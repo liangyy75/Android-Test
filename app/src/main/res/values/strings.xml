@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">AndroidTest</string>
+    <string name="recyclerview_test">Test RecyclerView</string>
+    <string name="handler_test">Test Handler</string>
+    <string name="contentDescription">null</string>
+    <string name="fragment_test">Test Fragment</string>
+    <string name="fragment_test_bottombar">Test Bottom Bar</string>
+    <string name="fragment_test_bottombar2">Test Bottom Bar2</string>
+    <string name="footer">Footer</string>
+    <string name="header">Header</string>
+    <string name="hotfix_test">Test Android Fix</string>
+    <string name="test">Test</string>
+    <string name="fix">FIX</string>
+</resources>

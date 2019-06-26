@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="liang.example.androidtest">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:name=".ApplicationTest"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="liang.example.recyclerviewtest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/recyclerview_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.fragmenttest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/fragment_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.fragmenttest.bottombar.MainActivity"
+            android:parentActivityName="liang.example.fragmenttest.MainActivity"
+            android:label="@string/fragment_test_bottombar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="liang.example.fragmenttest.MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.fragmenttest.bottombar2.MainActivity"
+            android:parentActivityName="liang.example.fragmenttest.MainActivity"
+            android:label="@string/fragment_test_bottombar2">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="liang.example.fragmenttest.MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.handlertest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/handler_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.hotfixtest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/hotfix_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+    </application>
+
+</manifest>

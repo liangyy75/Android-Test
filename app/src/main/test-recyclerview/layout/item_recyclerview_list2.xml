@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/dimen100"
+    android:background="@drawable/bg_item_recyclerview_list2"
+    android:layout_margin="@dimen/dimen10"
+    android:padding="@dimen/dimen10">
+
+    <TextView
+        android:id="@+id/test_recyclerview_item_num"
+        android:layout_width="@dimen/dimen120"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/font70"
+        android:textStyle="bold|italic"
+        android:textColor="@color/colorffffff"
+        tools:text="1"
+        android:gravity="center"
+        android:layout_marginEnd="@dimen/dimen16"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"/>
+
+    <TextView
+        android:id="@+id/test_recyclerview_item_str"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorffffff"
+        android:textSize="@dimen/font18"
+        android:textStyle="bold"
+        tools:text="string1"
+        android:layout_marginBottom="@dimen/dimen12"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@id/test_recyclerview_item_num"/>
+
+    <TextView
+        android:id="@+id/test_recyclerview_item_double"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colordddddd"
+        android:textSize="@dimen/font15"
+        tools:text="1.5"
+        android:layout_marginBottom="@dimen/dimen8"
+        android:layout_below="@id/test_recyclerview_item_str"
+        android:layout_toStartOf="@id/test_recyclerview_item_num"/>
+
+    <TextView
+        android:id="@+id/test_recyclerview_item_bool"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colordddddd"
+        android:textSize="@dimen/font15"
+        tools:text="true"
+        android:layout_below="@id/test_recyclerview_item_double"
+        android:layout_toStartOf="@id/test_recyclerview_item_num"/>
+</RelativeLayout>

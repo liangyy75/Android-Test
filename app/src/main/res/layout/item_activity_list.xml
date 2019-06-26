@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/dimen130"
+    android:background="@drawable/background_activity_list_item"
+    android:layout_margin="@dimen/dimen10"
+    android:padding="@dimen/dimen10">
+
+    <ImageView
+        android:id="@+id/test_activity_item_image"
+        android:layout_width="@dimen/dimen80"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        tools:background="@mipmap/ic_launcher"
+        android:contentDescription="@string/contentDescription"
+        android:layout_marginEnd="@dimen/dimen14"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"/>
+
+    <TextView
+        android:id="@+id/test_activity_item_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorffffff"
+        android:textSize="@dimen/font15"
+        android:textStyle="bold|italic"
+        tools:text="Test Handler"
+        android:layout_marginBottom="@dimen/dimen10"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@id/test_activity_item_image"/>
+
+    <TextView
+        android:id="@+id/test_activity_item_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colordddddd"
+        android:textSize="@dimen/font14"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        tools:text="liangyy75 / created: 2019-8-6 / update: 2019-8-6"
+        android:layout_marginBottom="@dimen/dimen10"
+        android:layout_toEndOf="@id/test_activity_item_image"
+        android:layout_below="@id/test_activity_item_name"/>
+
+    <TextView
+        android:id="@+id/test_activity_item_desc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colordddddd"
+        android:textSize="@dimen/font13"
+        android:lines="3"
+        android:ellipsize="end"
+        tools:text="This's a test about MessageQueue / Message / Handler / Looper. And I have tested some examples about Handler.Callback / Handler.postAtTime / Handler.postDelayed / Handler.postAtFrontOfQueue / MessageQueue.postSyncBarrier"
+        android:layout_toEndOf="@id/test_activity_item_image"
+        android:layout_below="@id/test_activity_item_message"/>
+</RelativeLayout>

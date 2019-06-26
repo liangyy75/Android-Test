@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.gridlayout.widget.GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/coloreeeeee"
+    app:rowCount="2"
+    app:columnCount="2"
+    android:padding="@dimen/dimen10">
+
+    <TextView
+        android:id="@+id/test_fragment_bottombar_item_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/font30"
+        android:gravity="center"
+        app:layout_columnSpan="2"
+        app:layout_rowWeight="1"
+        app:layout_columnWeight="2"
+        tools:text="微信"/>
+
+    <!--style="?android:buttonBarButtonStyle"-->
+    <!--style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"-->
+    <Button
+        android:id="@+id/test_fragment_bottombar_item_cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/font30"
+        android:textColor="@android:color/holo_red_light"
+        android:text="@android:string/cancel"
+        app:layout_rowWeight="1"
+        app:layout_columnWeight="1"
+        android:background="@color/colorTransparent"/>
+
+    <Button
+        android:id="@+id/test_fragment_bottombar_item_ok"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/font30"
+        android:textColor="@android:color/holo_red_light"
+        android:text="@android:string/ok"
+        app:layout_rowWeight="1"
+        app:layout_columnWeight="1"
+        android:background="@color/colorTransparent"/>
+</androidx.gridlayout.widget.GridLayout>
