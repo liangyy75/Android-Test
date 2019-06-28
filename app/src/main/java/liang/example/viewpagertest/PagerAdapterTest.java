@@ -2,6 +2,7 @@ package liang.example.viewpagertest;
 
 // import android.support.annotation.NonNull;
 // import androidx.core.view.PagerAdapter;
+
 import android.view.View;
 
 import androidx.annotation.NonNull;

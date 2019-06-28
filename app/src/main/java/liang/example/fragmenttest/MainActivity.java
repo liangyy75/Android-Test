@@ -60,7 +60,8 @@ public class MainActivity extends AppCompatActivity {
                     fragmentList.getContext(), new GestureDetector.SimpleOnGestureListener() {
                 @Override
                 public boolean onSingleTapConfirmed(MotionEvent e) {
-                    View view = fragmentList.findChildViewUnder(e.getX(), e.getY());if (view == null) return false;
+                    View view = fragmentList.findChildViewUnder(e.getX(), e.getY());
+                    if (view == null) return false;
                     int position = fragmentList.getChildAdapterPosition(view);
                     ActivityItem data = fragmentAdapter.getItem(position);
                     startActivity(new Intent(MainActivity.this, data.getClazz()));

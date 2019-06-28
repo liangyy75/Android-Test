@@ -19,7 +19,7 @@ import java.util.List;
 import liang.example.androidtest.R;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private String[] bottomBarTitles = new String[] {"微信", "通信录", "发现", "我", };
+    private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
     int lastPosition = 1;
     private ViewPager viewPager;
@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d("OnPageChangeListener onPageScrolled", String.format(
                         "position: %d, positionOffset: %f, positionOffsetPixels: %d", position, positionOffset, positionOffsetPixels));
             }
+
             /**
              * 当用手指滑动翻页的时候，如果翻动成功了（滑动的距离够长），手指抬起来就会立即执行这个方法。
              * 如果直接setCurrentItem翻页，那position就和setCurrentItem的参数一致，这种情况在onPageScrolled执行方法前就会立即执行。
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (position == lastPosition) return;
                 changeStatus(position);
             }
+
             /**
              * 此方法是在状态改变的时候调用
              * @param state 表示状态，可选值为0(END)/1(PRESS)/2(UP)，当用手指滑动翻页时，手指按下去的时候会触发这个方法，state值为1，

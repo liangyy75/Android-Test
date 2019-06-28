@@ -37,8 +37,12 @@ public class ContextFragment extends Fragment {
 
     public void setButtonListener(String key, View.OnClickListener listener) {
         switch (key) {
-            case BUTTON_OK_KEY : ok.setOnClickListener(listener); break;
-            case BUTTON_CANCEL_KEY : cancel.setOnClickListener(listener); break;
+            case BUTTON_OK_KEY:
+                ok.setOnClickListener(listener);
+                break;
+            case BUTTON_CANCEL_KEY:
+                cancel.setOnClickListener(listener);
+                break;
         }
     }
 }

@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         activityLayoutManager.setItemPrefetchEnabled(true);
         activityList.setLayoutManager(activityLayoutManager);
 
-        activityAdapter = new  RVAdapterTest<ActivityItem>(activityItemList, this, R.layout.item_activity_list, activityList) {
+        activityAdapter = new RVAdapterTest<ActivityItem>(activityItemList, this, R.layout.item_activity_list, activityList) {
             public void bindView(RVViewHolderTest viewHolder, ActivityItem data, int position) {
                 viewHolder.getViewById(R.id.test_activity_item_image).setBackgroundResource(R.mipmap.ic_launcher);
                 ((TextView) viewHolder.getViewById(R.id.test_activity_item_name)).setText(data.getName());

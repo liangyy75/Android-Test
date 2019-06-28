@@ -15,7 +15,8 @@ public class ExampleItem {
         this.aBoolean = aBoolean;
     }
 
-    public ExampleItem() {}
+    public ExampleItem() {
+    }
 
     public String getString() {
         return string;

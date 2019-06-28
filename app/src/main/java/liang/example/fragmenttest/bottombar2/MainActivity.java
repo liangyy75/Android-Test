@@ -22,7 +22,7 @@ import liang.example.androidtest.R;
 import liang.example.fragmenttest.bottombar.ContextFragment;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private String[] bottomBarTitles = new String[] {"微信", "通信录", "发现", "我", };
+    private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
     private List<Fragment> contextFragments;
     int lastPosition = 1;
