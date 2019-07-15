@@ -11,4 +11,6 @@
     <string name="hotfix_test">Test Android Fix</string>
     <string name="test">Test</string>
     <string name="fix">FIX</string>
+    <string name="apt_test">Test Apt</string>
+    <string name="apt_base_test">Test Annotation</string>
 </resources>

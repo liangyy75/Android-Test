@@ -1,12 +1,12 @@
-package liang.example.androidtest;
+package liang.example.apttest;
 
 import android.content.Intent;
-import android.os.PersistableBundle;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -14,13 +14,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+import liang.example.androidtest.ActivityItem;
+import liang.example.androidtest.R;
 import liang.example.recyclerviewtest.RVAdapterTest;
 import liang.example.recyclerviewtest.RVViewHolderTest;
 
 public class MainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -33,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView activityList = findViewById(R.id.test_activity_list);
         activityList.setHasFixedSize(true);
         LinearLayoutManager activityLayoutManager = new LinearLayoutManager(this, RecyclerView.VERTICAL, false);
-        activityLayoutManager.setInitialPrefetchItemCount(4);  // 数据预取(https://juejin.im/entry/58a3f4f62f301e0069908d8f)
+        activityLayoutManager.setInitialPrefetchItemCount(4);
         activityLayoutManager.setItemPrefetchEnabled(true);
         activityList.setLayoutManager(activityLayoutManager);
 
@@ -60,73 +62,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-        // activityList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-        //     @Override
-        //     public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-        //         View view = activityList.findChildViewUnder(e.getX(), e.getY());
-        //         if (view == null) return false;
-        //         // final RVViewHolderTest holder = (RVViewHolderTest) activityList.getChildViewHolder(view);
-        //         int position = activityList.getChildAdapterPosition(view);
-        //         ActivityItem data = activityAdapter.getItem(position);
-        //         startActivity(new Intent(MainActivity.this, data.getClazz()));
-        //         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        //         overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
-        //         return false;
-        //     }
-        // });
         activityList.setAdapter(activityAdapter);
-        // activityList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
-        super.onSaveInstanceState(outState, outPersistentState);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-    }
-
-    public void in(View v) {
-        startActivity(new Intent(this, MainActivity.class));
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);  // 可以同时使用两个动画，甚至更多
-    }
-
-    public void out(View v) {
-        finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
     }
 }

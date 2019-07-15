@@ -76,6 +76,24 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity"/>
         </activity>
+
+        <activity
+            android:name="liang.example.apttest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/apt_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.apttest.bind.MainActivity"
+            android:parentActivityName="liang.example.apttest.MainActivity"
+            android:label="@string/apt_base_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="liang.example.apttest.MainActivity"/>
+        </activity>
     </application>
 
 </manifest>
