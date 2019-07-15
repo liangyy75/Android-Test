@@ -11,4 +11,5 @@
     <string name="hotfix_test">Test Android Fix</string>
     <string name="test">Test</string>
     <string name="fix">FIX</string>
+    <string name="glide_test">Test Glide</string>
 </resources>

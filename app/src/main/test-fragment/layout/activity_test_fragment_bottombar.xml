@@ -15,38 +15,5 @@
         android:id="@+id/test_fragment_bottombar_buttons"
         android:layout_width="match_parent"
         android:layout_height="@dimen/dimen50"
-        android:orientation="horizontal">
-
-        <!--<Button-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:layout_weight="1"-->
-            <!--android:text="微信"-->
-            <!--android:background="@color/colorTransparent"-->
-            <!--android:textColor="@android:color/holo_red_light"/>-->
-
-        <!--<Button-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:layout_weight="1"-->
-            <!--android:text="通信录"-->
-            <!--android:background="@color/colorTransparent"-->
-            <!--android:textColor="@android:color/holo_red_light"/>-->
-
-        <!--<Button-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:layout_weight="1"-->
-            <!--android:text="发现"-->
-            <!--android:background="@color/colorTransparent"-->
-            <!--android:textColor="@android:color/holo_red_light"/>-->
-
-        <!--<Button-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:layout_weight="1"-->
-            <!--android:text="我"-->
-            <!--android:background="@color/colorTransparent"-->
-            <!--android:textColor="@android:color/holo_red_light"/>-->
-    </LinearLayout>
+        android:orientation="horizontal"/>
 </LinearLayout>

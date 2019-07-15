@@ -1,10 +1,6 @@
 package liang.example.fragmenttest.bottombar2;
 
 import android.os.Bundle;
-// import android.support.annotation.Nullable;
-// import androidx.core.app.Fragment;
-// import androidx.core.app.FragmentTransaction;
-// import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
