@@ -2,6 +2,7 @@ package liang.example.apttest.route;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
@@ -53,14 +54,19 @@ public class RouteProcessor extends AbstractProcessor {
     }
 
     private void generateJavaFile(Map<String, String> nameMap) {
+        MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addStatement("routeMap = new $T<>()", HashMap.class);
+        for (Map.Entry<String, String> entry : nameMap.entrySet()) {
+            constructorBuilder.addStatement("routeMap.put(\"$N\", \"$N\")", entry.getKey(), entry.getValue());
+        }
         JavaFile javaFile = JavaFile.builder("liang.example.apttest.route",
                 TypeSpec.classBuilder("Route$Finder")
                         .addModifiers(Modifier.PUBLIC)
-                        .addField(HashMap.class, "routeMap", Modifier.PRIVATE)
-                        .addMethod(MethodSpec.constructorBuilder()
-                                .addModifiers(Modifier.PUBLIC)
-                                .addStatement("routeMap = new $T<>()", HashMap.class)
-                                .build())
+                        // .addSuperinterface(Provider.class)
+                        .addField(ParameterizedTypeName
+                                .get(HashMap.class, String.class, String.class), "routeMap", Modifier.PRIVATE)
+                        .addMethod(constructorBuilder.build())
                         .build())
                 .build();
         try {
