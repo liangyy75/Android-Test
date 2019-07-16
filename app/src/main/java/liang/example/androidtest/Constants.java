@@ -9,6 +9,7 @@ class Constants {
             liang.example.fragmenttest.MainActivity.class,
             liang.example.hotfixtest.MainActivity.class,
             liang.example.apttest.MainActivity.class,
+            liang.example.gsontest.MainActivity.class,
     };
 
     static final String[] names = new String[]{
@@ -17,6 +18,7 @@ class Constants {
             "Test Fragment",
             "Test Android Fix",
             "Test Apt",
+            "Test Gson",
     };
 
     static final String[] descs = new String[]{
@@ -28,9 +30,11 @@ class Constants {
                     "Add and remove fragment dynamically / ViewPager with Fragment / 仿QQ|微信底部菜单.",
             "这是一个关于Android热更新/热修复的测试。我以及进行了关于热更新的测试",
             "Apt，即Annotation Processing Tool，就是可以在代码编译期间对注解进行处理，并且生成Java文件，减少手动的代码输入。",
+            "Some test about gson",
     };
 
     static final String[] authors = new String[]{
+            "liangyy75",
             "liangyy75",
             "liangyy75",
             "liangyy75",
@@ -44,6 +48,7 @@ class Constants {
             "2019-06-09",
             "2019-06-24",
             "2019-07-15",
+            "2019-07-15",
     };
 
     static final String[] updated = new String[]{
@@ -51,6 +56,7 @@ class Constants {
             "2019-06-10",
             "2019-06-11",
             "2019-06-24",
+            "2019-07-15",
             "2019-07-15",
     };
 }

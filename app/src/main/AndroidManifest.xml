@@ -94,6 +94,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="liang.example.apttest.MainActivity"/>
         </activity>
+
+        <activity
+            android:name="liang.example.gsontest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/gson_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
     </application>
 
 </manifest>

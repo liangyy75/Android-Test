@@ -13,4 +13,5 @@
     <string name="fix">FIX</string>
     <string name="apt_test">Test Apt</string>
     <string name="apt_base_test">Test Annotation</string>
+    <string name="gson_test">Test Gson</string>
 </resources>
