@@ -17,14 +17,14 @@ import java.util.List;
  * 2. 删除和添加item
  * 3. 添加item绑定抽象方法
  * 4. 下拉刷新和加载更多
- *     1. SwipeRefreshLayout(下拉刷新)
- *         1. setOnRefreshListener(OnRefreshListener) 添加下拉刷新监听，顶部下拉时会调用这个方法，在里面实现请求数据的逻辑，设置下拉进度条消失等等
- *         2. setRefreshing(boolean) 显示或者隐藏刷新动画
- *         3. isRefreshing() 检查是否处于刷新状态
- *         4. setColorSchemeResources() 设置进度条的颜色主题，参数为可变参数，并且是资源id，可以设置多种不同的颜色，每转一圈就显示一种颜色，以前的setColorScheme()方法已经弃用了
- *     2.
+ * 1. SwipeRefreshLayout(下拉刷新)
+ * 1. setOnRefreshListener(OnRefreshListener) 添加下拉刷新监听，顶部下拉时会调用这个方法，在里面实现请求数据的逻辑，设置下拉进度条消失等等
+ * 2. setRefreshing(boolean) 显示或者隐藏刷新动画
+ * 3. isRefreshing() 检查是否处于刷新状态
+ * 4. setColorSchemeResources() 设置进度条的颜色主题，参数为可变参数，并且是资源id，可以设置多种不同的颜色，每转一圈就显示一种颜色，以前的setColorScheme()方法已经弃用了
+ * 2.
  * 5. 多item布局
- *
+ * <p>
  * recyclerview可以做的
  * * recyclerview.Adapter
  * * recyclerview.ViewHolder
@@ -32,25 +32,25 @@ import java.util.List;
  * * recyclerview.ItemAnimator
  * * recyclerview.LayoutManager
  * * recyclerview.AdapterDataObserver
- *
+ * <p>
  * * recyclerview.OnScrollListener + SimpleOnItemTouchListener
- *     1. public void onTouchEvent(RecyclerView rv, MotionEvent e);
- *     2. public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e);
- *     3. public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept);
- *     4. 可以有这个，自己用在onTouchEvent中: private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {...}
+ * 1. public void onTouchEvent(RecyclerView rv, MotionEvent e);
+ * 2. public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e);
+ * 3. public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept);
+ * 4. 可以有这个，自己用在onTouchEvent中: private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {...}
  * * recyclerview.OnItemTouchListener
  * * recyclerview.OnFlingListener
  * * recyclerview.OnChildAttachStateChangeListener
- *     1.public void onChildViewAttachedToWindow(View view);
- *     2. public void onChildViewDetachedFromWindow(View view);
+ * 1.public void onChildViewAttachedToWindow(View view);
+ * 2. public void onChildViewDetachedFromWindow(View view);
  * * recyclerview.OnApplyWindowInsetsListener
  * * recyclerview.RecyclerListener
  * * recyclerview.
- *
+ * <p>
  * * recyclerview.ChildDrawingCallback
  * * recyclerview.EdgeEffectFactory
  * * recyclerview.
- *
+ * <p>
  * 可以实现的功能
  * 1. adapter + viewHolder + onItemClickListener
  * 2. Footer + Header + EmptyView
@@ -274,6 +274,7 @@ public abstract class RVAdapterTest<T> extends RecyclerView.Adapter<RVViewHolder
 
     public interface OnItemClickListener<T> {
         public void onItemClick(View view, T data, int position);
+
         public boolean onItemLongClick(View view, T data, int position);
     }
 }

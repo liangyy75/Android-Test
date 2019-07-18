@@ -12,7 +12,8 @@ public class ActivityItem implements Parcelable {
     private String updated;
     private Class<?> clazz;
 
-    public ActivityItem() {}
+    public ActivityItem() {
+    }
 
     public ActivityItem(Parcel source) {
         this(source.readString(), source.readString(), source.readString(), source.readString(), source.readString(), (Class) source.readSerializable());

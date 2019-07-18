@@ -42,12 +42,12 @@ public class FixDexUtil {
             dexDir = DEX_DIR;
         }
         File fileDir = externalStorageDirectory != null ?
-                new File(externalStorageDirectory,"007"):  // /storage/emulated/0/007
+                new File(externalStorageDirectory, "007") :  // /storage/emulated/0/007
                 new File(context.getFilesDir(), dexDir);  // data/data/包名/files/odex（这个可以任意位置）
         Log.d("Android Fix", fileDir.getAbsolutePath());
         // 遍历所有的修复dex , 因为可能是多个dex修复包
         File[] listFiles = fileDir.listFiles();
-        if (listFiles != null){
+        if (listFiles != null) {
             Log.d("Android Fix", "listFiles.length: " + listFiles.length);
             for (File file : listFiles) {
                 if (file.getName().startsWith("classes") &&

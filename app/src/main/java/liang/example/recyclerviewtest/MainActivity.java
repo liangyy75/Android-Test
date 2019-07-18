@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         adapter.setHeaderView(LayoutInflater.from(this).inflate(R.layout.item_recyclerview_header, recyclerView, false));
         adapter.setFooterView(LayoutInflater.from(this).inflate(R.layout.item_recyclerview_footer, recyclerView, false));
 
-        adapter.setItemLayoutIds(new int[] { R.layout.item_recyclerview_list, R.layout.item_recyclerview_list2, R.layout.item_recyclerview_list3 });
+        adapter.setItemLayoutIds(new int[]{R.layout.item_recyclerview_list, R.layout.item_recyclerview_list2, R.layout.item_recyclerview_list3});
         adapter.setOnItemViewTypeListener((position, data) -> data.getAnInt() % 3);
 
         // adapter.setOnItemClickListener(new RVAdapterTest.OnItemClickListener<ExampleItem>() {
@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
             });
+
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
                 gestureDetectorCompat.onTouchEvent(e);

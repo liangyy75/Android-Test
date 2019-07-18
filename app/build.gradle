@@ -24,6 +24,7 @@ android {
             'src/main/test-recyclerview',
             'src/main/test-handler',
             'src/main/test-androidfix',
+            'src/main/test-apt',
         ]
     }
     compileOptions {
@@ -46,4 +47,5 @@ dependencies {
     implementation 'org.greenrobot:greendao:3.2.2' // add library
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
 }
