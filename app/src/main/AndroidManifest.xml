@@ -89,6 +89,50 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity"/>
         </activity>
+
+        <activity
+            android:name="liang.example.rxjavatest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/rxjava_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.musictest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/music_app">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.okhttptest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/okhttp_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <activity
+            android:name="liang.example.loopjtest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/loopj_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+        <activity
+            android:name="liang.example.contentprovidertest.MainActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/contentProvider_test">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
     </application>
 
 </manifest>

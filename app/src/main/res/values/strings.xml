@@ -12,4 +12,9 @@
     <string name="test">Test</string>
     <string name="fix">FIX</string>
     <string name="glide_test">Test Glide</string>
+    <string name="rxjava_test">Test RxJava</string>
+    <string name="music_app">App Music</string>
+    <string name="okhttp_test">Test Okhttp</string>
+    <string name="loopj_test">Test Loopj</string>
+    <string name="contentProvider_test">Test ContentProvider</string>
 </resources>
