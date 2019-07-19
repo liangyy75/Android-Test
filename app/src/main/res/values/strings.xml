@@ -20,4 +20,5 @@
     <string name="okhttp_test">Test Okhttp</string>
     <string name="loopj_test">Test Loopj</string>
     <string name="contentProvider_test">Test ContentProvider</string>
+    <string name="volley_test">Test Volley</string>
 </resources>

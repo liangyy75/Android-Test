@@ -10,6 +10,7 @@ class Constants {
             liang.example.hotfixtest.MainActivity.class,
             liang.example.apttest.MainActivity.class,
             liang.example.gsontest.MainActivity.class,
+            liang.example.volleytest.MainActivity.class,
     };
 
     static final String[] names = new String[]{
@@ -19,6 +20,7 @@ class Constants {
             "Test Android Fix",
             "Test Apt",
             "Test Gson",
+            "Test Volley",
     };
 
     static final String[] descs = new String[]{
@@ -31,9 +33,11 @@ class Constants {
             "这是一个关于Android热更新/热修复的测试。我以及进行了关于热更新的测试",
             "Apt，即Annotation Processing Tool，就是可以在代码编译期间对注解进行处理，并且生成Java文件，减少手动的代码输入。",
             "Some test about gson",
+            "Some test about volley: StringRequest / JsonRequest / ImageRequest / ImageLoader / NetworkImageView / XmlRequest / GsonRequest",
     };
 
     static final String[] authors = new String[]{
+            "liangyy75",
             "liangyy75",
             "liangyy75",
             "liangyy75",
@@ -49,6 +53,7 @@ class Constants {
             "2019-06-24",
             "2019-07-15",
             "2019-07-15",
+            "2019-07-19",
     };
 
     static final String[] updated = new String[]{
@@ -58,5 +63,6 @@ class Constants {
             "2019-06-24",
             "2019-07-15",
             "2019-07-15",
+            "2019-07-19",
     };
 }

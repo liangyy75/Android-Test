@@ -10,14 +10,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-class InjectUtils {
+public class InjectUtils {
     private static final String TAG = "apt.base.InjectUtils";
 
     private InjectUtils() {}
 
     private static volatile InjectUtils INSTANCE = null;
 
-    static InjectUtils getInstance() {
+    public static InjectUtils getInstance() {
         if (INSTANCE == null) {
             synchronized (InjectUtils.class) {
                 if (INSTANCE == null) {
@@ -51,7 +51,7 @@ class InjectUtils {
         }
     }
 
-    void injectViews(Activity activity) {
+    public void injectViews(Activity activity) {
         Log.d(TAG, "begin injecting views");
         if (activity == null) return;
         Class<? extends Activity> activityClass = activity.getClass();
@@ -77,7 +77,7 @@ class InjectUtils {
         Log.d(TAG, "finish injecting views");
     }
 
-    void injectEvents(Activity activity) {
+    public void injectEvents(Activity activity) {
         Log.d(TAG, "begin injecting events");
         if (activity == null) return;
         Class<? extends Activity> activityClass = activity.getClass();
