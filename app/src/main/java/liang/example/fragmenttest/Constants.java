@@ -1,5 +1,6 @@
 package liang.example.fragmenttest;
 
+// TODO
 class Constants {
     // 使用 ClassLoader 优化，不要一下全部加载 TODO
     // 使用 OpenFIleInput 等等来优化 TODO

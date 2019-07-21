@@ -14,5 +14,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // Glide.with(this).load("http://smg.png").fitCenter()
+        // TODO
     }
 }

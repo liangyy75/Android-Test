@@ -23,5 +23,6 @@ public class MainActivity extends AppCompatActivity {
                 + "         \"cat logs-last.xlog | wc -l\",\n" + "         \"ls | head -n 3\"\n" + "     ]\n" + " }\n";
         BasicMsg<Object> objectBasicMsg = new Gson().fromJson(json, new TypeToken<BasicMsg<Object>>(){}.getType());
         Log.d("TestGson", objectBasicMsg.getType());
+        // TODO
     }
 }

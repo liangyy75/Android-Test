@@ -1,6 +1,7 @@
 package liang.example.apttest;
 
-public class Constants {
+// TODO
+class Constants {
 
     static final Class<?>[] classes = new Class<?>[]{
             liang.example.apttest.bind.MainActivity.class,
