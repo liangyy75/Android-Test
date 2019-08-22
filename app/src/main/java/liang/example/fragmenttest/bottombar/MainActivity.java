@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
              */
             @Override
             public void onPageSelected(int position) {
-                Log.d("OnPageChangeListener onPageSelected", String.format("position: %d", position));
+                Log.d("OPC", String.format("position: %d", position));
                 if (position == lastPosition) return;
                 changeStatus(position);
             }
@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
              */
             @Override
             public void onPageScrollStateChanged(int state) {
-                Log.d("OnPageChange onPageScrollStateChanged", String.format("state: %d", state));
+                Log.d("OPC", String.format("state: %d", state));
             }
             /*
              * 三个方法的执行顺序为：用手指拖动翻页时，最先执行一遍onPageScrollStateChanged（1），然后不断执行onPageScrolled，放手指的时候，

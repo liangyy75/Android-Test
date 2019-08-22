@@ -7,169 +7,174 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:name=".ApplicationTest"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:name=".ApplicationTest"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
 
-        <activity
-            android:name=".MainActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.VIEW"/>
+                <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
         <activity
             android:name="liang.example.recyclerviewtest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/recyclerview_test">
+            android:label="@string/recyclerview_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.fragmenttest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/fragment_test">
+            android:label="@string/fragment_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.fragmenttest.bottombar.MainActivity"
-            android:parentActivityName="liang.example.fragmenttest.MainActivity"
-            android:label="@string/fragment_test_bottombar">
+            android:label="@string/fragment_test_bottombar"
+            android:parentActivityName="liang.example.fragmenttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.fragmenttest.MainActivity"/>
+                android:value="liang.example.fragmenttest.MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.fragmenttest.bottombar2.MainActivity"
-            android:parentActivityName="liang.example.fragmenttest.MainActivity"
-            android:label="@string/fragment_test_bottombar2">
+            android:label="@string/fragment_test_bottombar2"
+            android:parentActivityName="liang.example.fragmenttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.fragmenttest.MainActivity"/>
+                android:value="liang.example.fragmenttest.MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.handlertest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/handler_test">
+            android:label="@string/handler_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.hotfixtest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/hotfix_test">
+            android:label="@string/hotfix_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.glidetest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/glide_test">
+            android:label="@string/glide_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.rxjavatest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/rxjava_test">
+            android:label="@string/rxjava_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.musictest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/music_app">
+            android:label="@string/music_app"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.okhttptest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/okhttp_test">
+            android:label="@string/okhttp_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.loopjtest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/loopj_test">
+            android:label="@string/loopj_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
         <activity
             android:name="liang.example.contentprovidertest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/contentProvider_test">
+            android:label="@string/contentProvider_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.apttest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/apt_test">
+            android:label="@string/apt_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.apttest.bind.MainActivity"
-            android:parentActivityName="liang.example.apttest.MainActivity"
-            android:label="@string/apt_base_test">
+            android:label="@string/apt_base_test"
+            android:parentActivityName="liang.example.apttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.apttest.MainActivity"/>
+                android:value="liang.example.apttest.MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.gsontest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/gson_test">
+            android:label="@string/gson_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
 
         <activity
             android:name="liang.example.volleytest.MainActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/volley_test">
+            android:label="@string/volley_test"
+            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
         </activity>
+
+        <activity android:name="liang.example.shelltest.MainActivity" />
+
+        <service android:name="liang.example.servicetest.ServiceTest" />
+        <service android:name="liang.example.servicetest.IntentServiceTest" />
     </application>
 
 </manifest>
