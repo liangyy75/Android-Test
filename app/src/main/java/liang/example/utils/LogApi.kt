@@ -3,21 +3,23 @@ package liang.example.utils
 import android.util.Log
 import java.lang.Exception
 
-enum class LoggerLevel { VERBOSE, DEBUG, INFO, WARN, ERROR, ASSERT }
+enum class LoggerLevel { VERBOSE, DEBUG, INFO, WARN, ERROR, FATAL }
+@Suppress("unused")
 enum class LoggerResult { SUCCESSFULLY, FAILED }
 
+var DEFAULT_LOGGER_LEVEL: LoggerLevel = LoggerLevel.VERBOSE
 var DEFAULT_TAG: String = "LoggerApi"
 private val EMPTY_ARRAY = emptyArray<Any>()
 
 /**
- * log(String)
  * log(Throwable)
+ * log(String)
  * log(String, Throwable, Object...)
  * log(Object, String)
- * log(Object, String, Throwable)
  * log(Object, Throwable, Object...)
  * log(Object, String, Throwable, Object...)
  */
+@Suppress("unused")
 interface LoggerInter {
     var logLevel: LoggerLevel
     fun isLoggable(level: LoggerLevel): Boolean
@@ -80,7 +82,13 @@ interface LoggerInter {
 }
 
 // TODO
-class DefaultLogger(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE) : LoggerInter {
+@Suppress("unused")
+interface LoggerHandler {
+    fun handle()
+}
+
+// TODO
+class DefaultLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) : LoggerInter {
     fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int, method2: (String, String, Throwable) -> Int, level: LoggerLevel) =
             when {
                 logLevel >= level -> 0
@@ -89,28 +97,28 @@ class DefaultLogger(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE) : 
             }
 
     override fun v(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.v(t2, m2) }, { t2, m2, t3 -> Log.v(t2, m2, t3) }, LoggerLevel.VERBOSE)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.v(t2, m2) }, { t2, m2, t3 -> Log.v(t2, m2, t3) }, LoggerLevel.VERBOSE)
 
     override fun d(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.d(t2, m2) }, { t2, m2, t3 -> Log.d(t2, m2, t3) }, LoggerLevel.DEBUG)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.d(t2, m2) }, { t2, m2, t3 -> Log.d(t2, m2, t3) }, LoggerLevel.DEBUG)
 
     override fun i(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.i(t2, m2) }, { t2, m2, t3 -> Log.i(t2, m2, t3) }, LoggerLevel.INFO)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.i(t2, m2) }, { t2, m2, t3 -> Log.i(t2, m2, t3) }, LoggerLevel.INFO)
 
     override fun w(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.w(t2, m2) }, { t2, m2, t3 -> Log.w(t2, m2, t3) }, LoggerLevel.WARN)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.w(t2, m2) }, { t2, m2, t3 -> Log.w(t2, m2, t3) }, LoggerLevel.WARN)
 
     override fun e(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.e(t2, m2) }, { t2, m2, t3 -> Log.e(t2, m2, t3) }, LoggerLevel.ERROR)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.e(t2, m2) }, { t2, m2, t3 -> Log.e(t2, m2, t3) }, LoggerLevel.ERROR)
 
     override fun wtf(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int =
-            log(tag.toString(), if (args != null || args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.wtf(t2, m2) }, { t2, m2, t3 -> Log.wtf(t2, m2, t3) }, LoggerLevel.ASSERT)
+            log(tag.toString(), if (args.size > 0) String.format(msg, args) else msg, t, { t2, m2 -> Log.wtf(t2, m2) }, { t2, m2, t3 -> Log.wtf(t2, m2, t3) }, LoggerLevel.FATAL)
 
     override fun isLoggable(level: LoggerLevel): Boolean = logLevel < level
 }
 
 // TODO
-class FileLogger(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE) : LoggerInter {
+class FileLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) : LoggerInter {
     override fun v(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -140,7 +148,7 @@ class FileLogger(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE) : Log
     }
 }
 
-class LoggerManager(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE, useDefault: Boolean = false) : LoggerInter {
+class LoggerManager(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL, useDefault: Boolean = false) : LoggerInter {
     var logger: LoggerInter? = null
     // TODO: 只是一个 logger ，还是用 HashMap 来管理
 
@@ -176,6 +184,7 @@ fun main() {
     // logger.i("msg", t, "smg", "wtf")
     logger.i(t)
     logger.i("msg")
+    logger.i("msg", t)
     logger.i("msg", t, "smg")
     logger.i("tag", "msg")
     logger.i("tag", "msg", t)
