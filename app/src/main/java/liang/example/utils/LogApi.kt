@@ -9,6 +9,15 @@ enum class LoggerResult { SUCCESSFULLY, FAILED }
 var DEFAULT_TAG: String = "LoggerApi"
 private val EMPTY_ARRAY = emptyArray<Any>()
 
+/**
+ * log(String)
+ * log(Throwable)
+ * log(String, Throwable, Object...)
+ * log(Object, String)
+ * log(Object, String, Throwable)
+ * log(Object, Throwable, Object...)
+ * log(Object, String, Throwable, Object...)
+ */
 interface LoggerInter {
     var logLevel: LoggerLevel
     fun isLoggable(level: LoggerLevel): Boolean
@@ -161,7 +170,7 @@ class LoggerManager(override var logLevel: LoggerLevel = LoggerLevel.VERBOSE, us
 }
 
 fun main() {
-    val logger = LoggerManager()
+    val logger = LoggerManager(useDefault = true)
     val t = Exception("test exception")
     // logger.i("msg", *arrayOf<Any>("smg"))
     // logger.i("msg", t, "smg", "wtf")
