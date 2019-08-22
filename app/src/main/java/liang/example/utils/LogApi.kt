@@ -81,13 +81,14 @@ interface LoggerInter {
     fun wtf(tag: Any = DEFAULT_TAG, msg: String, t: Throwable? = null, vararg args: Any? = EMPTY_ARRAY): Int
 }
 
-// TODO
+// TODO: LoggerHandler
 @Suppress("unused")
 interface LoggerHandler {
-    fun handle()
+    val defaultLoggerFormat: String
+    fun handleMsg(finalMsg: String)
 }
 
-// TODO
+// TODO: AndroidLogHandler
 class DefaultLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) : LoggerInter {
     fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int, method2: (String, String, Throwable) -> Int, level: LoggerLevel) =
             when {
@@ -117,7 +118,7 @@ class DefaultLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) :
     override fun isLoggable(level: LoggerLevel): Boolean = logLevel < level
 }
 
-// TODO
+// TODO: FileHandler
 class FileLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) : LoggerInter {
     override fun v(tag: Any, msg: String, t: Throwable?, vararg args: Any?): Int {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
@@ -148,6 +149,7 @@ class FileLogger(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL) : Lo
     }
 }
 
+// TODO: dynamic proxy
 class LoggerManager(override var logLevel: LoggerLevel = DEFAULT_LOGGER_LEVEL, useDefault: Boolean = false) : LoggerInter {
     var logger: LoggerInter? = null
     // TODO: 只是一个 logger ，还是用 HashMap 来管理
