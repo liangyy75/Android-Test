@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.greenrobot.greendao' // apply plugin
 
 android {
@@ -19,13 +21,13 @@ android {
     }
     sourceSets {
         main.res.srcDirs = [
-            'src/main/res',
-            'src/main/test-fragment',
-            'src/main/test-recyclerview',
-            'src/main/test-handler',
-            'src/main/test-androidfix',
-            'src/main/test-apt',
-            'src/main/test-volley',
+                'src/main/res',
+                'src/main/test-fragment',
+                'src/main/test-recyclerview',
+                'src/main/test-handler',
+                'src/main/test-androidfix',
+                'src/main/test-apt',
+                'src/main/test-volley',
         ]
     }
     compileOptions {
@@ -51,8 +53,10 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
 
     implementation 'com.android.volley:volley:1.1.1'
-    implementation 'com.squareup.okhttp3:okhttp:4.0.1'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.0.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.1.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.1.0'
 
     implementation 'com.google.firebase:firebase-messaging:20.0.0'
+
+    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
