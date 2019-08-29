@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     //     return true;
     // }
 
-    @OnLongClick({R.id.test_apt_base_ok})
+    @OnLongClick(R.id.test_apt_base_ok)
     public boolean invokeBtnLongClickOk(View view) {
         Toast.makeText(MainActivity.this, "Ok", Toast.LENGTH_SHORT).show();
         return true;

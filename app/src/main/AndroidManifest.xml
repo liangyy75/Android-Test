@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="liang.example.androidtest">
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 用于硬盘缓存和读取 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".ApplicationTest"
@@ -17,17 +11,23 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:targetApi="n">
 
-        <activity android:name=".MainActivity">
+        <!-- Main -->
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/android_test">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
 
+        <!-- RecycleView -->
         <activity
             android:name="liang.example.recyclerviewtest.MainActivity"
             android:label="@string/recyclerview_test"
@@ -37,6 +37,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Fragment -->
         <activity
             android:name="liang.example.fragmenttest.MainActivity"
             android:label="@string/fragment_test"
@@ -45,7 +46,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
-
         <activity
             android:name="liang.example.fragmenttest.bottombar.MainActivity"
             android:label="@string/fragment_test_bottombar"
@@ -54,7 +54,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="liang.example.fragmenttest.MainActivity" />
         </activity>
-
         <activity
             android:name="liang.example.fragmenttest.bottombar2.MainActivity"
             android:label="@string/fragment_test_bottombar2"
@@ -64,6 +63,7 @@
                 android:value="liang.example.fragmenttest.MainActivity" />
         </activity>
 
+        <!-- Handler -->
         <activity
             android:name="liang.example.handlertest.MainActivity"
             android:label="@string/handler_test"
@@ -73,6 +73,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- HotFix -->
         <activity
             android:name="liang.example.hotfixtest.MainActivity"
             android:label="@string/hotfix_test"
@@ -82,6 +83,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Glide -->
         <activity
             android:name="liang.example.glidetest.MainActivity"
             android:label="@string/glide_test"
@@ -91,6 +93,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- RxJava -->
         <activity
             android:name="liang.example.rxjavatest.MainActivity"
             android:label="@string/rxjava_test"
@@ -100,6 +103,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Music -->
         <activity
             android:name="liang.example.musictest.MainActivity"
             android:label="@string/music_app"
@@ -109,6 +113,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- OkHttp -->
         <activity
             android:name="liang.example.okhttptest.MainActivity"
             android:label="@string/okhttp_test"
@@ -118,6 +123,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- LoopJ -->
         <activity
             android:name="liang.example.loopjtest.MainActivity"
             android:label="@string/loopj_test"
@@ -126,6 +132,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
+
+        <!-- ContentProvider -->
         <activity
             android:name="liang.example.contentprovidertest.MainActivity"
             android:label="@string/contentProvider_test"
@@ -135,6 +143,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Apt -->
         <activity
             android:name="liang.example.apttest.MainActivity"
             android:label="@string/apt_test"
@@ -143,7 +152,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
-
         <activity
             android:name="liang.example.apttest.bind.MainActivity"
             android:label="@string/apt_base_test"
@@ -152,7 +160,16 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="liang.example.apttest.MainActivity" />
         </activity>
+        <activity
+            android:name="liang.example.apttest.route.MainActivity"
+            android:label="@string/apt_route_test"
+            android:parentActivityName="liang.example.apttest.MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="liang.example.apttest.MainActivity" />
+        </activity>
 
+        <!-- Gson -->
         <activity
             android:name="liang.example.gsontest.MainActivity"
             android:label="@string/gson_test"
@@ -162,6 +179,7 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Volley -->
         <activity
             android:name="liang.example.volleytest.MainActivity"
             android:label="@string/volley_test"
@@ -171,10 +189,26 @@
                 android:value=".MainActivity" />
         </activity>
 
-        <activity android:name="liang.example.shelltest.MainActivity" />
+        <!-- Shell -->
+        <activity
+            android:name="liang.example.shelltest.MainActivity"
+            android:label="@string/shell_test"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
 
         <service android:name="liang.example.servicetest.ServiceTest" />
         <service android:name="liang.example.servicetest.IntentServiceTest" />
     </application>
 
+    <!-- 用于硬盘缓存和读取 -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:ignore="ManifestOrder" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

@@ -54,23 +54,35 @@ public class RouteProcessor extends AbstractProcessor {
     }
 
     private void generateJavaFile(Map<String, String> nameMap) {
+        // constructor
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement("routeMap = new $T<>()", HashMap.class);
         for (Map.Entry<String, String> entry : nameMap.entrySet()) {
             constructorBuilder.addStatement("routeMap.put(\"$N\", \"$N\")", entry.getKey(), entry.getValue());
         }
-        // TODO
-        JavaFile javaFile = JavaFile.builder("liang.example.apttest.route",
-                TypeSpec.classBuilder("Route$Finder")
-                        .addModifiers(Modifier.PUBLIC)
-                        // .addSuperinterface(Provider.class)
-                        .addField(ParameterizedTypeName
-                                .get(HashMap.class, String.class, String.class), "routeMap", Modifier.PRIVATE)
-                        .addMethod(constructorBuilder.build())
-                        .build())
+        MethodSpec constructor = constructorBuilder.build();
+        // getActivityName
+        MethodSpec getActivityName = MethodSpec.methodBuilder("getActivityName")
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addParameter(String.class, "routeName")
+                .beginControlFlow("if (routeMap != null && !routeMap.isEmpty())")
+                .addStatement("return (String) routeMap.get(routeName)")
+                .endControlFlow()
+                .addStatement("return \"\"")
                 .build();
+        // class
+        TypeSpec typeSpec = TypeSpec.classBuilder("Route$Finder")
+                .addModifiers(Modifier.PUBLIC)
+                // .addSuperinterface(Provider.class)
+                .addField(ParameterizedTypeName.get(HashMap.class, String.class, String.class), "routeMap", Modifier.PRIVATE)
+                .addMethod(constructor)
+                .addMethod(getActivityName)
+                .build();
+        // final generation
         try {
+            JavaFile javaFile = JavaFile.builder("liang.example.apttest.route", typeSpec).build();
             javaFile.writeTo(filer);
         } catch (IOException e) {
             e.printStackTrace();

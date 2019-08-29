@@ -21,4 +21,7 @@
     <string name="loopj_test">Test Loopj</string>
     <string name="contentProvider_test">Test ContentProvider</string>
     <string name="volley_test">Test Volley</string>
+    <string name="shell_test">Test Shell</string>
+    <string name="apt_route_test">Apt Route Test</string>
+    <string name="android_test">Test Android</string>
 </resources>
