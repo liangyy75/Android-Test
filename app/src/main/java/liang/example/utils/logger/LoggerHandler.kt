@@ -3,19 +3,46 @@ package liang.example.utils.logger
 import java.io.*
 import kotlin.collections.ArrayList
 
-interface LoggerHandler {
+interface DefaultLoggerHandler : LoggerInter {}
+
+interface FormatLoggerHandler {
     fun handleMsg(msg: String): Int
 }
 
-class NullableLoggerHandler(var handler: LoggerHandler? = null) : LoggerHandler {
+class NullableDefaultLoggerHandler(var handler: DefaultLoggerHandler? = null) : DefaultLoggerHandler {
+    override var logLevel: LoggerLevel
+        get() = handler?.logLevel ?: LoggerLevel.NONE
+        set(value) {}
+
+    override fun v(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.v(tag, msg, t, args, depth + 1) ?: 0
+
+    override fun d(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.d(tag, msg, t, args, depth + 1) ?: 0
+
+    override fun i(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.i(tag, msg, t, args, depth + 1) ?: 0
+
+    override fun w(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.w(tag, msg, t, args, depth + 1) ?: 0
+
+    override fun e(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.e(tag, msg, t, args, depth + 1) ?: 0
+
+    override fun wtf(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
+            handler?.wtf(tag, msg, t, args, depth + 1) ?: 0
+}
+
+class NullableFormatLoggerHandler(var handler: FormatLoggerHandler? = null) : FormatLoggerHandler {
     override fun handleMsg(msg: String): Int = handler?.handleMsg(msg) ?: 0
 }
 
 abstract class CachedLoggerHandler(
         private val closable: Closeable,
+        private val flushable: Flushable,
         private val newLine: Boolean = false,
         private val maxCachedSize: Int = 64
-) : LoggerHandler {
+) : FormatLoggerHandler {
     protected val cachedMsgList: ArrayList<String> = ArrayList(maxCachedSize)
     private var nowCachedSize: Int = 0
 
@@ -32,6 +59,11 @@ abstract class CachedLoggerHandler(
 
     abstract fun cachedHandleMsg()
 
+    fun flush() {
+        cachedHandleMsg()
+        flushable.flush()
+    }
+
     fun close() {
         cachedHandleMsg()
         closable.close()
@@ -42,14 +74,14 @@ open class OutputStreamLoggerHandler(
         private val output: OutputStream,
         newLine: Boolean = true,
         maxCachedSize: Int = 64
-) : CachedLoggerHandler(output, newLine, maxCachedSize) {
+) : CachedLoggerHandler(output, output, newLine, maxCachedSize) {
     override fun cachedHandleMsg() = run { cachedMsgList.forEach { output.write(it.toByteArray()) }; output.flush() }
 }
 
 open class PrintStreamLoggerHandler(
         private val printStream: PrintStream,
         maxCachedSize: Int = 64
-) : CachedLoggerHandler(printStream, false, maxCachedSize) {
+) : CachedLoggerHandler(printStream, printStream, false, maxCachedSize) {
     override fun cachedHandleMsg() = run { cachedMsgList.forEach { printStream.println(it) }; printStream.flush() }
 }
 
@@ -57,45 +89,65 @@ open class WriterLoggerHandler(
         private val writer: Writer,
         newLine: Boolean = true,
         maxCachedSize: Int = 64
-) : CachedLoggerHandler(writer, newLine, maxCachedSize) {
+) : CachedLoggerHandler(writer, writer, newLine, maxCachedSize) {
     override fun cachedHandleMsg() = cachedMsgList.forEach { writer.write(it) }
 }
 
 open class PrintWriterLoggerHandler(
         private val printWriter: PrintWriter,
         maxCachedSize: Int = 64
-) : CachedLoggerHandler(printWriter, false, maxCachedSize) {
+) : CachedLoggerHandler(printWriter, printWriter, false, maxCachedSize) {
     override fun cachedHandleMsg() = run { cachedMsgList.forEach { printWriter.println(it) }; printWriter.flush() }
 }
 
-// TODO: appendable fileLoggerHandler
-
-open class MultiHandlersLogger(logLevel: LoggerLevel = DEFAULT_LEVEL) : LogLoggerImpl(logLevel) {
-    protected val loggerHandlers = mutableMapOf<String, LoggerHandler>()
-    val loggerFormatter: LoggerFormatter = DefaultLoggerFormatter()
+open class MultiFormatHandlersLogger(logLevel: LoggerLevel = DEFAULT_LEVEL) : LogLoggerImpl(logLevel) {
+    protected val loggerHandlers = mutableMapOf<String, FormatLoggerHandler>()
+    val loggerFormatter = DefaultLoggerFormatter()
 
     fun getLoggerHandler(name: String) = loggerHandlers.get(name)
-    fun addLoggerHandler(name: String, handler: LoggerHandler) = loggerHandlers.plus(Pair(name, handler))
+    fun addLoggerHandler(name: String, handler: FormatLoggerHandler) = run { loggerHandlers[name] = handler }
     fun hasLoggerHandler(name: String) = loggerHandlers.containsKey(name)
     fun removeLoggerHandler(name: String) = loggerHandlers.remove(name)
 
-    override fun log(tag: String, msg: String, t: Throwable?, level: LoggerLevel, vararg args: Any?): Int =
-            if (logLevel >= level || loggerHandlers.isEmpty()) 0
-            else loggerHandlers.toList().map { it.second.handleMsg(loggerFormatter.formatMsg(it.first, tag, t, level, msg, *args)) }.sum()
+    override fun log(tag: String, msg: String, t: Throwable?, level: LoggerLevel, vararg args: Any?, depth: Int): Int =
+            if (logLevel > level || loggerHandlers.isEmpty()) 0
+            else loggerHandlers.toList().map {
+                it.second.handleMsg(loggerFormatter.formatMsg(it.first, tag, t, level, msg, depth + 1, *args))
+            }.sum()
 
-    override fun logImpl(tag: String, msg: String, t: Throwable?, level: LoggerLevel, vararg args: Any?): Int = 0
+    override fun logImpl(
+            tag: String,
+            msg: String,
+            t: Throwable?,
+            level: LoggerLevel,
+            vararg args: Any?,
+            depth: Int
+    ): Int = 0
 
-    fun close() = loggerHandlers.forEach { if (it.value is CachedLoggerHandler) (it.value as CachedLoggerHandler).close() }
+    fun close() =
+            loggerHandlers.forEach { if (it.value is CachedLoggerHandler) (it.value as CachedLoggerHandler).close() }
+
+    fun flush() =
+            loggerHandlers.forEach { if (it.value is CachedFormatLogger) (it.value as CachedFormatLogger).flush() }
 }
 
 fun getSystemOutLoggerHandler(maxCachedSize: Int = 1) =
         PrintStreamLoggerHandler(System.out, maxCachedSize)
 
-fun getFilePrintWriterLoggerHandler(path: String, append: Boolean = false, maxCachedSize: Int = 64) =
+fun getFileWriterLoggerHandler(path: String, append: Boolean = false, maxCachedSize: Int = 64) =
         WriterLoggerHandler(FileWriter(path, append), true, maxCachedSize)
 
-fun getSystemAndFileLoggerHandler(path: String, cs1: Int = 1, cs2: Int = 64, name1: String = "system", name2: String = "file", append: Boolean = false): MultiHandlersLogger {
-    val logger = MultiHandlersLogger()
+fun getSystemAndFileLogger(
+        path: String,
+        cs1: Int = 1,
+        cs2: Int = 64,
+        name1: String = "system",
+        name2: String = "file",
+        append: Boolean = false
+): MultiFormatHandlersLogger {
+    val logger = MultiFormatHandlersLogger()
+    // logger.addLoggerHandler(name1, PrintStreamLoggerHandler(System.out, cs1))
+    // logger.addLoggerHandler(name2, WriterLoggerHandler(FileWriter(path, append), true, cs2))
     logger.addLoggerHandler(name1, PrintStreamLoggerHandler(System.out, cs1))
     logger.addLoggerHandler(name2, WriterLoggerHandler(FileWriter(path, append), true, cs2))
     return logger

@@ -17,8 +17,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import liang.example.androidtest.R;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private final static String TAG = "FragmentTest2_Main";
+
     private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
     int lastPosition = 1;
@@ -28,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_fragment_bottombar);
+        ApiManager.LOGGER.d(TAG, "onCreate -- start");
         initButton();
         initFragment();
     }
@@ -47,11 +51,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             linearLayout.addView(button, layoutParams);
             buttons[i] = button;
         }
+        ApiManager.LOGGER.d(TAG, "initButton -- finish");
     }
 
     @Override
     public void onClick(View v) {
-        viewPager.setCurrentItem((int) v.getTag());
+        int lastPosition = viewPager.getCurrentItem();
+        int newPosition = (int) v.getTag();
+        ApiManager.LOGGER.d(TAG, "onClick(lastPosition: %d, newPosition: %d)", lastPosition, newPosition);
+        viewPager.setCurrentItem(newPosition);
     }
 
     private void initFragment() {
@@ -117,11 +125,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
         viewPager.setCurrentItem(0);
         changeStatus(0);
+        ApiManager.LOGGER.d(TAG, "initFragment -- finish");
     }
 
-    private void changeStatus(int position) {
+    private void changeStatus(int newPosition) {
+        ApiManager.LOGGER.d(TAG, "changeStatus(lastPosition: %d, newPosition: %d)", lastPosition, newPosition);
         buttons[lastPosition].setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_light));
-        lastPosition = position;
+        lastPosition = newPosition;
         buttons[lastPosition].setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light));
     }
 }

@@ -16,8 +16,11 @@ import java.util.List;
 
 import liang.example.androidtest.R;
 import liang.example.fragmenttest.bottombar.ContextFragment;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private final static String TAG = "FragmentTest1_Main";
+
     private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
     private List<Fragment> contextFragments;
@@ -27,6 +30,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_fragment_bottombar2);
+        ApiManager.LOGGER.d(TAG, "onCreate -- start");
         initButton();
         initFragment();
     }
@@ -46,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             linearLayout.addView(button, layoutParams);
             buttons[i] = button;
         }
+        ApiManager.LOGGER.d(TAG, "initButton -- finish");
     }
 
     @Override
@@ -66,14 +71,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         transaction.commit();
         showFragment(0);
+        ApiManager.LOGGER.d(TAG, "initFragment -- finish");
     }
 
-    private void showFragment(int position) {
-        if (position == lastPosition) return;
+    private void showFragment(int newPosition) {
+        if (newPosition == lastPosition) return;
+        ApiManager.LOGGER.d(TAG, "changeStatus(lastPosition: %d, newPosition: %d)", lastPosition, newPosition);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.hide(contextFragments.get(lastPosition));
         buttons[lastPosition].setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_light));  // getColor(android.R.color.holo_red_light) minSdkVersion=21
-        lastPosition = position;
+        lastPosition = newPosition;
         transaction.show(contextFragments.get(lastPosition));
         buttons[lastPosition].setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light));
         transaction.commit();

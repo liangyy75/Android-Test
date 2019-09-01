@@ -22,14 +22,17 @@ import liang.example.androidtest.ActivityItem;
 import liang.example.androidtest.R;
 import liang.example.recyclerviewtest.RVAdapterTest;
 import liang.example.recyclerviewtest.RVViewHolderTest;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {
+    private final static String TAG = "FragmentTestMainActivity";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_fragment);
 
+        ApiManager.LOGGER.d(TAG, "onCreate -- begin creating Activity List");
         int length = Constants.classes.length;
         List<ActivityItem> activityItemList = new ArrayList<>(length);
         for (int i = 0; i < length; i++)
@@ -77,5 +80,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+        ApiManager.LOGGER.d(TAG, "onCreate -- finish creating Activity List");
     }
 }

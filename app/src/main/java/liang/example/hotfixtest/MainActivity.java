@@ -15,14 +15,17 @@ import androidx.core.content.ContextCompat;
 import java.io.File;
 
 import liang.example.androidtest.R;
+import liang.example.utils.ApiManager;
 
 // TODO
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "HotFixMainActivity";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fix_test);
+        ApiManager.LOGGER.d(TAG, "onCreate -- start");
         findViewById(R.id.test_androidfix_fix).setOnClickListener(view -> {
             Log.d("Android Fix", "start fix");
             // 获取权限
@@ -39,10 +42,11 @@ public class MainActivity extends AppCompatActivity {
             if (FixDexUtil.isGoingToFix(MainActivity.this, null)) {
                 FixDexUtil.loadFixedDex(MainActivity.this);
             }
-            Log.d("Android Fix", "finish fix");
+            ApiManager.LOGGER.d(TAG, "finish fix");
         });
         findViewById(R.id.test_androidfix_test).setOnClickListener(view -> {
             new BugClass(MainActivity.this);
+            ApiManager.LOGGER.d(TAG, "test fix");
         });
     }
 
@@ -50,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         int permissionCheck1 = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE);
         int permissionCheck2 = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (permissionCheck1 != PackageManager.PERMISSION_GRANTED || permissionCheck2 != PackageManager.PERMISSION_GRANTED) {
+            ApiManager.LOGGER.d(TAG, "begin getting permission");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     Manifest.permission.READ_EXTERNAL_STORAGE}, 124);
         }
@@ -60,9 +65,9 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == 124) {
             if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 // 结果 grantResults 的两个值是 -1，及PackageManager.java中的Denied
-                Log.d("Android Fix", "successfully");
+                ApiManager.LOGGER.d(TAG, "get permission successfully");
             } else {
-                Log.d("Android Fix", "get Permission failed");
+                ApiManager.LOGGER.d(TAG, "get permission failed");
             }
         }
     }

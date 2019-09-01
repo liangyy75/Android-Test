@@ -24,13 +24,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import liang.example.androidtest.R;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "RecyclerViewTestMain";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_recyclerview);
+        ApiManager.LOGGER.d(TAG, "onCreate -- start");
 
         int size = 10;
         List<ExampleItem> dataSet = new ArrayList<>(size);
@@ -186,11 +189,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         itemTouchHelper.attachToRecyclerView(recyclerView);
+
+        ApiManager.LOGGER.d(TAG, "onCreate -- end");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        ApiManager.LOGGER.d(TAG, "onDestroy");
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
         // 不起效果 TODO

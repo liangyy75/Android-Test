@@ -2,7 +2,6 @@ package liang.example.volleytest;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
 
@@ -29,9 +28,11 @@ import java.io.IOException;
 import liang.example.androidtest.R;
 import liang.example.apttest.bind.InjectUtils;
 import liang.example.apttest.bind.InjectView;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "VolleyTest";
+
     private RequestQueue requestQueue;
     private ImageLoader imageLoader;
     @InjectView(R.id.test_volley_image)
@@ -40,13 +41,15 @@ public class MainActivity extends AppCompatActivity {
     private NetworkImageView networkImageView;
     private String image_url = "https://images.pexels.com/photos/67636/rose-blue-flower-rose-blooms-67636.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500";
     private String json_url = "http://www.weather.com.cn/data/sk/101010100.html";
-    private String string_url = "https://www.baidu.com";
-    private String xml_url = "http://flash.weather.com.cn/wmaps/xml/china.xml";
+    String string_url = "https://www.baidu.com";
+    String xml_url = "http://flash.weather.com.cn/wmaps/xml/china.xml";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_volley);
+        ApiManager.LOGGER.d(TAG, "onCreate -- start");
+
         HTTPSTrustManager.allowAllSSL();
         requestQueue = Volley.newRequestQueue(this);
         InjectUtils.getInstance().injectViews(this);
@@ -65,36 +68,39 @@ public class MainActivity extends AppCompatActivity {
         final Gson gson = new Gson();
         try {
             GsonRequest<Weather> gsonRequest = new GsonRequest<Weather>(json_url,
-                    response -> Log.d(TAG, "get json successfully. " + gson.toJson(response)),
-                    error -> Log.e(TAG, "get json failed.", error)){};
-            Log.d(TAG, "gsonRequest's entityClass: " + gsonRequest.getEntityClass().getSimpleName());
+                    response -> ApiManager.LOGGER.d(TAG, "get json successfully. " + gson.toJson(response)),
+                    error -> ApiManager.LOGGER.e(TAG, "get json failed.", error)) {
+            };
+            ApiManager.LOGGER.d(TAG, "gsonRequest's entityClass: " + gsonRequest.getEntityClass().getSimpleName());
             requestQueue.add(gsonRequest);
         } catch (Exception e) {
-            Log.e(TAG, "cast error!", e);
+            ApiManager.LOGGER.e(TAG, "cast error!", e);
         }
     }
 
     private void testXmlRequest() {
         XmlRequest xmlRequest = new XmlRequest(xml_url, response -> {
-            Log.d(TAG, "get xml successfully. ");
+            ApiManager.LOGGER.d(TAG, "get xml successfully. ");
             try {
                 int eventType = response.getEventType();
+                StringBuilder sb = new StringBuilder();
                 while (eventType != XmlPullParser.END_DOCUMENT) {
                     if (eventType == XmlPullParser.START_TAG) {
                         String nodeName = response.getName();
                         if ("city".equals(nodeName)) {
                             String pName = response.getAttributeValue(0);
-                            Log.d(TAG, "pName is " + pName);
+                            sb.append("pName is ").append(pName).append("\n");
                         }
                     }
                     eventType = response.next();
                 }
+                ApiManager.LOGGER.d(TAG, "content of xml is:\n%s", sb.toString());
             } catch (XmlPullParserException e) {
-                Log.d(TAG, "parse xml failed -- XmlPullParserException.", e);
+                ApiManager.LOGGER.d(TAG, "parse xml failed -- XmlPullParserException.", e);
             } catch (IOException e) {
-                Log.d(TAG, "parse xml failed -- IOException.", e);
+                ApiManager.LOGGER.d(TAG, "parse xml failed -- IOException.", e);
             }
-        }, error -> Log.d(TAG, "get xml failed.", error));
+        }, error -> ApiManager.LOGGER.d(TAG, "get xml failed.", error));
         requestQueue.add(xmlRequest);
     }
 
@@ -108,13 +114,13 @@ public class MainActivity extends AppCompatActivity {
         imageLoader.get(image_url, new ImageLoader.ImageListener() {
             @Override
             public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
-                Log.d(TAG, "get image successfully");
+                ApiManager.LOGGER.d(TAG, "get image successfully");
                 imageView.setImageBitmap(response.getBitmap());
             }
 
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d(TAG, "get image failed", error);
+                ApiManager.LOGGER.d(TAG, "get image failed", error);
             }
         });
     }
@@ -142,21 +148,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void testImageRequest() {
         ImageRequest imageRequest = new ImageRequest(image_url, response -> {
-            Log.d(TAG, "get image successfully!");
+            ApiManager.LOGGER.d(TAG, "get image successfully!");
             imageView.setImageBitmap(response);
-        }, 200, 200, ImageView.ScaleType.FIT_CENTER, Bitmap.Config.RGB_565, error -> Log.d(TAG, "get image failed", error));
+        }, 200, 200, ImageView.ScaleType.FIT_CENTER, Bitmap.Config.RGB_565, error -> ApiManager.LOGGER.d(TAG, "get image failed", error));
         requestQueue.add(imageRequest);
     }
 
     private void testJsonRequest() {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, json_url, null,
-                response -> Log.d(TAG, "json response: " + response.toString()), error -> Log.e(TAG, "json error: ", error));
+                response -> ApiManager.LOGGER.d(TAG, "json response: " + response.toString()), error -> ApiManager.LOGGER.e(TAG, "json error: ", error));
         requestQueue.add(jsonObjectRequest);
     }
 
     private void testStringRequest() {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, string_url,
-                response -> Log.d(TAG, "string response: " + response), error -> Log.e(TAG, "string error: ", error));
+                response -> ApiManager.LOGGER.d(TAG, "string response: " + response), error -> ApiManager.LOGGER.e(TAG, "string error: ", error));
         requestQueue.add(stringRequest);
     }
 }
