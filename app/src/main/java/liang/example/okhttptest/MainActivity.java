@@ -17,6 +17,7 @@ import java.util.Objects;
 import liang.example.androidtest.R;
 import liang.example.apttest.bind.InjectUtils;
 import liang.example.apttest.bind.InjectView;
+import liang.example.utils.ApiManager;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -45,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_volley);
+        ApiManager.LOGGER.d(TAG, "get permission successfully");
         // TODO
         client = new OkHttpClient();
         InjectUtils.getInstance().injectViews(this);

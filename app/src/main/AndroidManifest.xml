@@ -199,9 +199,37 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <activity android:name="liang.example.apttest.dagger2.MainActivity" />
+
+        <meta-data
+            android:name="logger_tag"
+            android:value="AndroidTestTag" />
+        <meta-data
+            android:name="logger_level"
+            android:value="DEBUG" />
+        <meta-data
+            android:name="logger_mask"
+            android:value="5" />
+        <meta-data
+            android:name="android_logger_name"
+            android:value="AndroidLogTag" />
+        <meta-data
+            android:name="system_logger_name"
+            android:value="SystemLogTag" />
+        <meta-data
+            android:name="file_logger_name"
+            android:value="FileLogTag" />
+
         <service android:name="liang.example.servicetest.ServiceTest" />
         <service android:name="liang.example.servicetest.IntentServiceTest" />
     </application>
+    <!-- 用于硬盘缓存和读取 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- 用于硬盘缓存和读取 -->
     <uses-permission

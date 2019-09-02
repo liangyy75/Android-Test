@@ -11,19 +11,24 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import liang.example.recyclerviewtest.RVAdapterTest;
 import liang.example.recyclerviewtest.RVViewHolderTest;
+import liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {
+    private final static String TAG = "AndroidTestMainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ApiManager.LOGGER.d(TAG, "onCreate -- begin creating Activity List");
         int length = Constants.classes.length;
         List<ActivityItem> activityItemList = new ArrayList<>(length);
         for (int i = 0; i < length; i++)
@@ -76,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         // });
         activityList.setAdapter(activityAdapter);
         // activityList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        ApiManager.LOGGER.d(TAG, "onCreate -- finish creating Activity List");
     }
 
     @Override
@@ -109,12 +115,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+    public void onSaveInstanceState(@NotNull Bundle outState, @NotNull PersistableBundle outPersistentState) {
         super.onSaveInstanceState(outState, outPersistentState);
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NotNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
     }
 

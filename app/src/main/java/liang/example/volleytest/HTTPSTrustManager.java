@@ -1,7 +1,5 @@
 package liang.example.volleytest;
 
-import android.util.Log;
-
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -13,6 +11,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import liang.example.utils.ApiManager;
 
 public class HTTPSTrustManager implements X509TrustManager {
     private static final String TAG = "HTTPSTrustManager";
@@ -33,12 +33,10 @@ public class HTTPSTrustManager implements X509TrustManager {
     }
 
     public static void allowAllSSL() {
-        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-            @Override
-            public boolean verify(String arg0, SSLSession arg1) {
-                // TODO Auto-generated method stub
-                return true;
-            }
+        ApiManager.LOGGER.d(TAG, "allowAllSSL");
+        HttpsURLConnection.setDefaultHostnameVerifier((arg0, arg1) -> {
+            // TODO Auto-generated method stub
+            return true;
         });
         SSLContext context = null;
         if (trustManagers == null) {
@@ -48,9 +46,9 @@ public class HTTPSTrustManager implements X509TrustManager {
             context = SSLContext.getInstance("TLS");
             context.init(null, trustManagers, new SecureRandom());
         } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "NoSuchAlgorithmException", e);
+            ApiManager.LOGGER.e(TAG, "NoSuchAlgorithmException", e);
         } catch (KeyManagementException e) {
-            Log.e(TAG, "KeyManagementException", e);
+            ApiManager.LOGGER.e(TAG, "KeyManagementException", e);
         }
         assert context != null;
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());

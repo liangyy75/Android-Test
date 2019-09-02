@@ -1,6 +1,9 @@
 package liang.example.androidtest;
 
 import android.app.Application;
+import android.util.Log;
+
+import liang.example.utils.ApiManager;
 
 /**
  * 能实现的功能:
@@ -15,4 +18,11 @@ import android.app.Application;
  * 2.
  */
 public class ApplicationTest extends Application {
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d("ApplicationTest", "onCreate");
+        ApiManager.init(this.getApplicationContext());
+    }
 }
