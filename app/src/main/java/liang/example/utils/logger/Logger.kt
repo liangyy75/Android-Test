@@ -16,7 +16,7 @@ var DEFAULT_LEVEL: LoggerLevel = LoggerLevel.VERBOSE
 var DEFAULT_TAG: String = "LoggerApi"
 private val EMPTY_ARRAY = emptyArray<Any>()
 
-// TODO: path
+// TODO: 给LoggerInter添加 val depth: Int --> 需要重写时再弄吧
 /**
  * log(Object, String)
  * log(Object, Throwable)
