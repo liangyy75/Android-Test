@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.com.liang.example.utils">
+
+    <application>
+        <!--<meta-data-->
+        <!--    android:name="logger_tag"-->
+        <!--    android:value="AndroidTest" />-->
+        <!--<meta-data-->
+        <!--    android:name="logger_level"-->
+        <!--    android:value="DEBUG" />-->
+        <!--<meta-data-->
+        <!--    android:name="logger_mask"-->
+        <!--    android:value="5" />-->
+        <!--<meta-data-->
+        <!--    android:name="android_logger_name"-->
+        <!--    android:value="AndroidLog" />-->
+        <!--<meta-data-->
+        <!--    android:name="system_logger_name"-->
+        <!--    android:value="SystemLog" />-->
+        <!--<meta-data-->
+        <!--    android:name="file_logger_name"-->
+        <!--    android:value="FileLog" />-->
+    </application>
+</manifest>
