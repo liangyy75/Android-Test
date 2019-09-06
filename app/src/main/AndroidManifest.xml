@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="liang.example.androidtest">
+    package="com.liang.example.androidtest">
 
     <application
         android:name=".ApplicationTest"
@@ -12,6 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        tools:ignore="AllowBackup"
         tools:targetApi="n">
 
         <!-- Main -->
@@ -29,7 +30,7 @@
 
         <!-- RecycleView -->
         <activity
-            android:name="liang.example.recyclerviewtest.MainActivity"
+            android:name="com.liang.example.recyclerviewtest.MainActivity"
             android:label="@string/recyclerview_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -39,7 +40,7 @@
 
         <!-- Fragment -->
         <activity
-            android:name="liang.example.fragmenttest.MainActivity"
+            android:name="com.liang.example.fragmenttest.MainActivity"
             android:label="@string/fragment_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -47,25 +48,25 @@
                 android:value=".MainActivity" />
         </activity>
         <activity
-            android:name="liang.example.fragmenttest.bottombar.MainActivity"
+            android:name="com.liang.example.fragmenttest.bottombar.MainActivity"
             android:label="@string/fragment_test_bottombar"
-            android:parentActivityName="liang.example.fragmenttest.MainActivity">
+            android:parentActivityName="com.liang.example.fragmenttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.fragmenttest.MainActivity" />
+                android:value="com.liang.example.fragmenttest.MainActivity" />
         </activity>
         <activity
-            android:name="liang.example.fragmenttest.bottombar2.MainActivity"
+            android:name="com.liang.example.fragmenttest.bottombar2.MainActivity"
             android:label="@string/fragment_test_bottombar2"
-            android:parentActivityName="liang.example.fragmenttest.MainActivity">
+            android:parentActivityName="com.liang.example.fragmenttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.fragmenttest.MainActivity" />
+                android:value="com.liang.example.fragmenttest.MainActivity" />
         </activity>
 
         <!-- Handler -->
         <activity
-            android:name="liang.example.handlertest.MainActivity"
+            android:name="com.liang.example.handlertest.MainActivity"
             android:label="@string/handler_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -75,7 +76,7 @@
 
         <!-- HotFix -->
         <activity
-            android:name="liang.example.hotfixtest.MainActivity"
+            android:name="com.liang.example.hotfixtest.MainActivity"
             android:label="@string/hotfix_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -85,7 +86,7 @@
 
         <!-- Glide -->
         <activity
-            android:name="liang.example.glidetest.MainActivity"
+            android:name="com.liang.example.glidetest.MainActivity"
             android:label="@string/glide_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -95,7 +96,7 @@
 
         <!-- RxJava -->
         <activity
-            android:name="liang.example.rxjavatest.MainActivity"
+            android:name="com.liang.example.rxjavatest.MainActivity"
             android:label="@string/rxjava_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -105,7 +106,7 @@
 
         <!-- Music -->
         <activity
-            android:name="liang.example.musictest.MainActivity"
+            android:name="com.liang.example.musictest.MainActivity"
             android:label="@string/music_app"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -115,7 +116,7 @@
 
         <!-- OkHttp -->
         <activity
-            android:name="liang.example.okhttptest.MainActivity"
+            android:name="com.liang.example.okhttptest.MainActivity"
             android:label="@string/okhttp_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -125,7 +126,7 @@
 
         <!-- LoopJ -->
         <activity
-            android:name="liang.example.loopjtest.MainActivity"
+            android:name="com.liang.example.loopjtest.MainActivity"
             android:label="@string/loopj_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -135,7 +136,7 @@
 
         <!-- ContentProvider -->
         <activity
-            android:name="liang.example.contentprovidertest.MainActivity"
+            android:name="com.liang.example.contentprovidertest.MainActivity"
             android:label="@string/contentProvider_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -145,7 +146,7 @@
 
         <!-- Apt -->
         <activity
-            android:name="liang.example.apttest.MainActivity"
+            android:name="com.liang.example.apttest.MainActivity"
             android:label="@string/apt_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -153,25 +154,25 @@
                 android:value=".MainActivity" />
         </activity>
         <activity
-            android:name="liang.example.apttest.bind.MainActivity"
+            android:name="com.liang.example.apttest.bind.MainActivity"
             android:label="@string/apt_base_test"
-            android:parentActivityName="liang.example.apttest.MainActivity">
+            android:parentActivityName="com.liang.example.apttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.apttest.MainActivity" />
+                android:value="com.liang.example.apttest.MainActivity" />
         </activity>
         <activity
-            android:name="liang.example.apttest.route.MainActivity"
+            android:name="com.liang.example.apttest.route.MainActivity"
             android:label="@string/apt_route_test"
-            android:parentActivityName="liang.example.apttest.MainActivity">
+            android:parentActivityName="com.liang.example.apttest.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="liang.example.apttest.MainActivity" />
+                android:value="com.liang.example.apttest.MainActivity" />
         </activity>
 
         <!-- Gson -->
         <activity
-            android:name="liang.example.gsontest.MainActivity"
+            android:name="com.liang.example.gsontest.MainActivity"
             android:label="@string/gson_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -181,7 +182,7 @@
 
         <!-- Volley -->
         <activity
-            android:name="liang.example.volleytest.MainActivity"
+            android:name="com.liang.example.volleytest.MainActivity"
             android:label="@string/volley_test"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -191,19 +192,19 @@
 
         <!-- Shell -->
         <activity
-            android:name="liang.example.shelltest.MainActivity"
+            android:name="com.liang.example.shelltest.MainActivity"
             android:label="@string/shell_test"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
-
-        <activity android:name="liang.example.apttest.dagger2.MainActivity" />
+        <activity android:name="com.liang.example.apttest.dagger2.MainActivity" />
 
         <meta-data
             android:name="logger_tag"
             android:value="AndroidTestTag" />
+
         <meta-data
             android:name="logger_level"
             android:value="DEBUG" />
@@ -220,23 +221,26 @@
             android:name="file_logger_name"
             android:value="FileLogTag" />
 
-        <service android:name="liang.example.servicetest.ServiceTest" />
-        <service android:name="liang.example.servicetest.IntentServiceTest" />
-    </application>
-    <!-- 用于硬盘缓存和读取 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        <!-- Shell -->
+        <service android:name="com.liang.example.shelltest.RemoteShellService" />
 
-    <uses-permission android:name="android.permission.INTERNET" />
+        <!-- Service -->
+        <service android:name="com.liang.example.servicetest.ServiceTest" />
+        <service android:name="com.liang.example.servicetest.IntentServiceTest" />
+    </application>
 
     <!-- 用于硬盘缓存和读取 -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         tools:ignore="ManifestOrder" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <!-- 它可以监听用户的连接状态并在用户重新连接到网络时重启之前失败的请求 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="@dimen/dimen20">
+
+    <Button
+        android:id="@+id/test_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dimen20"
+        android:text="@string/start_test" />
+
+    <Button
+        android:id="@+id/test_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dimen20"
+        android:text="@string/stop_test" />
+
+    <EditText
+        android:id="@+id/test_remote_shell_server_url"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dimen50"
+        android:hint="@string/input_your_server_url"
+        android:importantForAutofill="no"
+        android:inputType="textUri"
+        android:text="@string/test_remote_shell_default_server_url" />
+
+    <EditText
+        android:id="@+id/test_remote_shell_uid"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dimen50"
+        android:hint="@string/input_your_uid"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:text="@string/uid_value" />
+
+    <EditText
+        android:id="@+id/test_remote_shell_guid"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dimen50"
+        android:hint="@string/input_your_guid"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:text="@string/guid_value" />
+
+</LinearLayout>

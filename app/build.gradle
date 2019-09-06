@@ -6,7 +6,7 @@ apply plugin: 'org.greenrobot.greendao' // apply plugin
 android {
     compileSdkVersion 29
     defaultConfig {
-        applicationId "liang.example.androidtest"
+        applicationId "com.liang.example.androidtest"
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
@@ -28,6 +28,7 @@ android {
                 'src/main/test-androidfix',
                 'src/main/test-apt',
                 'src/main/test-volley',
+                'src/main/test-shell',
         ]
     }
     compileOptions {
@@ -64,4 +65,8 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.1.0'
     api 'com.google.dagger:dagger:2.24'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.24'
+
+    api project(":utils")
+    api project(":remote")
+    api project(":lib")
 }

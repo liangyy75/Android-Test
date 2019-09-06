@@ -24,4 +24,14 @@
     <string name="shell_test">Test Shell</string>
     <string name="apt_route_test">Apt Route Test</string>
     <string name="android_test">Test Android</string>
+    <string name="uid_value">50042533</string>
+    <string name="guid_value">0e74af97aa48135d0c5528db29dbb6fe</string>
+    <string name="notification_title_shell_service">RemoteShellService is running …</string>
+    <string name="notification_message_shell_service">Please don\'t close me…</string>
+    <string name="start_test">start test</string>
+    <string name="stop_test">stop test</string>
+    <string name="input_your_uid">input your uid</string>
+    <string name="input_your_guid">input your guid</string>
+    <string name="input_your_server_url">input your server url</string>
+    <string name="test_remote_shell_default_server_url">ws://157.255.228.135</string>
 </resources>
