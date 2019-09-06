@@ -1,5 +1,6 @@
 package com.liang.example.shelltest;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -26,7 +27,6 @@ import com.liang.example.utils.ApiManager;
 
 import java.util.Arrays;
 
-// TODO
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     static final String DEFAULT_SERVER_URL = "ws://157.255.228.135";
@@ -99,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
             "android.permission.WRITE_EXTERNAL_STORAGE",
     };
 
+    @SuppressLint("BatteryLife")
     public void verifyPermissions() {
         String packageName = getPackageName();
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);

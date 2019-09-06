@@ -124,12 +124,14 @@ public class MainActivity extends AppCompatActivity {
         super.onRestoreInstanceState(savedInstanceState);
     }
 
+    @SuppressWarnings("unused")
     public void in(View v) {
         startActivity(new Intent(this, MainActivity.class));
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);  // 可以同时使用两个动画，甚至更多
     }
 
+    @SuppressWarnings("unused")
     public void out(View v) {
         finish();
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);

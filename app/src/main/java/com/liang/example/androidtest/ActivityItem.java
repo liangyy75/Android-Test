@@ -12,6 +12,7 @@ public class ActivityItem implements Parcelable {
     private String updated;
     private Class<?> clazz;
 
+    @SuppressWarnings("unused")
     public ActivityItem() {
     }
 
@@ -40,6 +41,7 @@ public class ActivityItem implements Parcelable {
         return desc;
     }
 
+    @SuppressWarnings("unused")
     public void setDesc(String desc) {
         this.desc = desc;
     }
@@ -48,6 +50,7 @@ public class ActivityItem implements Parcelable {
         return author;
     }
 
+    @SuppressWarnings("unused")
     public void setAuthor(String author) {
         this.author = author;
     }
@@ -56,6 +59,7 @@ public class ActivityItem implements Parcelable {
         return created;
     }
 
+    @SuppressWarnings("unused")
     public void setCreated(String created) {
         this.created = created;
     }
@@ -64,6 +68,7 @@ public class ActivityItem implements Parcelable {
         return updated;
     }
 
+    @SuppressWarnings("unused")
     public void setUpdated(String updated) {
         this.updated = updated;
     }
@@ -72,6 +77,7 @@ public class ActivityItem implements Parcelable {
         return clazz;
     }
 
+    @SuppressWarnings("unused")
     public void setClazz(Class<?> clazz) {
         this.clazz = clazz;
     }
