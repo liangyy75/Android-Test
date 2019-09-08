@@ -111,7 +111,9 @@ public class WSClientWrapper extends WebSocketClient {
         if (null != listener) {
             listener.onClose();
         }
-        timer.cancel();
+        if (timer != null) {
+            timer.cancel();
+        }
     }
 
     @Override
