@@ -102,8 +102,8 @@ class VAction(argparse.Action):
 def parse_args():
     parser = argparse.ArgumentParser(
         description="WebSocket Simple Dump Tool", add_help=True)
-    parser.add_argument("-url", metavar="--ws_url", default='ws://157.255.228.135',
-                        help="Websocket url. ex. ws://echo.websocket.org/")
+    parser.add_argument("-url", metavar="--ws_url", default='ws://172.18.33.203:9001',
+                        help="Websocket url. ex. ws://172.18.33.203:9001")
     parser.add_argument("-u", "--userId", type=int,
                         help="User id for connecting")
     parser.add_argument("-g", "--guid", type=str, help="Guid for connecting")
@@ -302,3 +302,5 @@ if __name__ == "__main__":
         str_e = str(e)
         print(str_e)
         logging.error('app terminate: {}'.format(str_e))
+
+# pyinstaller -F .\remote_cmd_controller.py

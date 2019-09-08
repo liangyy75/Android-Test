@@ -9,8 +9,7 @@ import threading
 import time
 from base64 import b64encode
 from hashlib import sha1
-from socket import error as SocketError
-from socket import socket
+from socket import error as SocketError, socket
 from socketserver import StreamRequestHandler, TCPServer, ThreadingMixIn
 from typing import Union, Tuple
 
@@ -97,9 +96,9 @@ def define_log(log_dir_path: str, max_retain: int):
     file_handler = logging.FileHandler(log_file_path)
     file_handler.setFormatter(log_formatter)
     root_logger.addHandler(file_handler)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(log_formatter)
-    root_logger.addHandler(console_handler)
+    # console_handler = logging.StreamHandler(sys.stdout)
+    # console_handler.setFormatter(log_formatter)
+    # root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.NOTSET)
 
 
@@ -347,7 +346,7 @@ class WebSocketHandler(StreamRequestHandler):
         if not isinstance(message, (bytes, str)):
             logging.warning(
                 '{}.send_text -- Can\'t send message, message has to be a string or bytes. Given type is {}'
-                    .format(self.TAG, type(message)))
+                .format(self.TAG, type(message)))
             return
         header = bytearray()
         payload = encode_to_utf8(message) if isinstance(message, str) else message
@@ -699,3 +698,5 @@ if __name__ == '__main__':
 
     define_log(args.log_files, 10)
     RemoteShellServer(args.port, args.host).start()
+
+# pyinstaller -F .\remote_server.py
