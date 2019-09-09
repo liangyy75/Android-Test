@@ -12,6 +12,10 @@ fun init(context: Context) {
     applicationInfo = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
 }
 
+fun release() {
+    applicationInfo = null
+}
+
 fun getAnyMetaData(name: String) = applicationInfo?.metaData?.get(name)
 
 @JvmOverloads

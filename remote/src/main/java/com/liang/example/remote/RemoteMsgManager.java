@@ -187,5 +187,3 @@ public class RemoteMsgManager {
 // TODO: 优化弱网
 //  1. jec;
 //  2. 断网续传;
-
-// TODO: https://jenkins.huya.com/job/kiwi_git-android/27261/

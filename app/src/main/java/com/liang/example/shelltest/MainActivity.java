@@ -23,13 +23,14 @@ import com.liang.example.apttest.bind.InjectUtils;
 import com.liang.example.apttest.bind.InjectView;
 import com.liang.example.apttest.bind.OnClick;
 import com.liang.example.remote.RemoteMsgManager;
+import com.liang.example.remote.WakeLockUtil;
 import com.liang.example.utils.ApiManager;
 
 import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    static final String DEFAULT_SERVER_URL = "ws://157.255.228.135";
+    static final String DEFAULT_SERVER_URL = "ws://172.18.33.203:9001";
 
     private boolean useDefault = false;
     @InjectView(R.id.test_remote_shell_server_url)
@@ -43,15 +44,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shell_main);
-        // ApiManager.LOGGER.d(TAG, "onCreate and call wakeLock.lock");
-        // WakeLockUtil.lock(this, "remote:main", 60 * 60 * 1000L /* 60 minutes */);
+        ApiManager.LOGGER.d(TAG, "onCreate and call wakeLock.lock");
+        WakeLockUtil.lock(this, "remote:main", 60 * 60 * 1000L /* 60 minutes */);
 
         InjectUtils.getInstance().injectViews(this);
         InjectUtils.getInstance().injectEvents(this);
         useDefault = true;
         verifyPermissions();
 
-        // startService(new Intent(this, RemoteShellService.class));
+        startService(new Intent(this, RemoteShellService.class));
     }
 
     @OnClick(R.id.test_start)
@@ -128,19 +129,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // @Override
-    // protected void onPause() {
-    //     super.onPause();
-    //     ApiManager.LOGGER.d(TAG, "onPause");
-    //     startService(new Intent(this, RemoteShellService.class));
-    // }
-    //
-    // @Override
-    // protected void onStop() {
-    //     super.onStop();
-    //     ApiManager.LOGGER.d(TAG, "onStop");
-    //     startService(new Intent(this, RemoteShellService.class));
-    // }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        ApiManager.LOGGER.d(TAG, "onPause");
+        startService(new Intent(this, RemoteShellService.class));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        ApiManager.LOGGER.d(TAG, "onStop");
+        startService(new Intent(this, RemoteShellService.class));
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -149,10 +150,10 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    // @Override
-    // protected void onDestroy() {
-    //     super.onDestroy();
-    //     WakeLockUtil.release();
-    //     ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
-    // }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        WakeLockUtil.release();
+        ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
+    }
 }

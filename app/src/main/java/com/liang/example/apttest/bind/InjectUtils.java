@@ -138,4 +138,6 @@ public class InjectUtils {
         }
         Log.d(TAG, "finish injecting events");
     }
+
+    // TODO: 使用apt
 }

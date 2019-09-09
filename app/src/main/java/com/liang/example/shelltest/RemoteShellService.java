@@ -55,8 +55,8 @@ public class RemoteShellService extends Service {
         startForeground(1, notification);
         // new Thread(RemoteMsgManager.getInstance().getRemoteClient()).start();
 
-        makeTimer(10 * 1000);
-        ApiManager.LOGGER.d(TAG, "onCreate");
+        // makeTimer(10 * 1000);
+        // ApiManager.LOGGER.d(TAG, "onCreate");
     }
 
     private void makeTimer(long period) {

@@ -33,5 +33,5 @@
     <string name="input_your_uid">input your uid</string>
     <string name="input_your_guid">input your guid</string>
     <string name="input_your_server_url">input your server url</string>
-    <string name="test_remote_shell_default_server_url">ws://157.255.228.135</string>
+    <string name="test_remote_shell_default_server_url">ws://172.18.33.203:9001</string>
 </resources>
