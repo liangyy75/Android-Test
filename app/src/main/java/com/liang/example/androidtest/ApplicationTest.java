@@ -31,7 +31,7 @@ public class ApplicationTest extends Application {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
-        ApiManager.init(this.getApplicationContext());
+        ApiManager.init(this);
 
         RemoteMsgManager.setLogger(ApiManager.LOGGER);
         RemoteMsgManager
