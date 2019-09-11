@@ -11,6 +11,9 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/lib" />
             <option value="$PROJECT_DIR$/remote" />
+            <option value="$PROJECT_DIR$/spi/spi_impl1" />
+            <option value="$PROJECT_DIR$/spi/spi_impl2" />
+            <option value="$PROJECT_DIR$/spi/spi_interface" />
             <option value="$PROJECT_DIR$/utils" />
           </set>
         </option>

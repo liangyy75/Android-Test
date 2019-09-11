@@ -1,1 +1,5 @@
-include ':app', ':lib', ':remote', ':utils'
+include ':app', ':lib', ':remote', ':utils', ':spi_interface', ':spi_impl1', ':spi_impl2'
+
+project(":spi_interface").projectDir = new File("spi/spi_interface")
+project(":spi_impl1").projectDir = new File("spi/spi_impl1")
+project(":spi_impl2").projectDir = new File("spi/spi_impl2")

@@ -23,8 +23,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
+    private int lastPosition = 1;
     private List<Fragment> contextFragments;
-    int lastPosition = 1;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

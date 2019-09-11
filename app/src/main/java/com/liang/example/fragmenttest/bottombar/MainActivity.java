@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private String[] bottomBarTitles = new String[]{"微信", "通信录", "发现", "我",};
     private Button[] buttons;
-    int lastPosition = 1;
+    private int lastPosition = 1;
     private ViewPager viewPager;
 
     @Override

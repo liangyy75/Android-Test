@@ -6,7 +6,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.liang.example.androidtest.R;
+import com.liang.example.apttest.route.Route;
 
+@Route(path = "apt_dagger2_main")
 public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

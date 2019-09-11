@@ -54,8 +54,8 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
 
     implementation 'com.android.volley:volley:1.1.1'
-    implementation 'com.squareup.okhttp3:okhttp:4.1.0'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.1.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.2.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.2.0'
 
     implementation 'com.google.firebase:firebase-messaging:20.0.0'
 
@@ -69,4 +69,12 @@ dependencies {
     api project(":utils")
     api project(":remote")
     api project(":lib")
+    annotationProcessor project(":lib")
+    api project(":spi_impl2")
+    api project(":spi_impl1")
+    api project(":spi_interface")
+    // 不需要的时候就没有这个实现了，当然还要在app模块的resources/META-INF/services里面的com.liang.example.spi_interface.SpiDisplay，而且需要注意ServiceLoader的reload方法
+
+    // api 'com.alibaba:arouter-api:1.4.0'
+    // annotationProcessor 'com.alibaba:arouter-compiler:1.2.1'
 }

@@ -54,7 +54,7 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.liang.example.fragmenttest.MainActivity" />
-        </activity>
+        </activity>  <!-- ViewPager -->
         <activity
             android:name="com.liang.example.fragmenttest.bottombar2.MainActivity"
             android:label="@string/fragment_test_bottombar2"
@@ -62,7 +62,7 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.liang.example.fragmenttest.MainActivity" />
-        </activity>
+        </activity>  <!-- Fragments -->
 
         <!-- Handler -->
         <activity
@@ -160,7 +160,7 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.liang.example.apttest.MainActivity" />
-        </activity>
+        </activity>  <!-- bind -->
         <activity
             android:name="com.liang.example.apttest.route.MainActivity"
             android:label="@string/apt_route_test"
@@ -168,7 +168,15 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.liang.example.apttest.MainActivity" />
-        </activity>
+        </activity>  <!-- route -->
+        <activity
+            android:name="com.liang.example.apttest.spi.MainActivity"
+            android:label="@string/apt_spi_test"
+            android:parentActivityName="com.liang.example.apttest.MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.liang.example.apttest.MainActivity" />
+        </activity>  <!-- spi -->
 
         <!-- Gson -->
         <activity
@@ -201,10 +209,10 @@
         </activity>
         <activity android:name="com.liang.example.apttest.dagger2.MainActivity" />
 
+        <!-- Logger Configuration -->
         <meta-data
             android:name="logger_tag"
             android:value="AndroidTestTag" />
-
         <meta-data
             android:name="logger_level"
             android:value="DEBUG" />

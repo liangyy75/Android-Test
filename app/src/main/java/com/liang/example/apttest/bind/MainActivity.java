@@ -9,7 +9,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.liang.example.androidtest.R;
+import com.liang.example.apttest.route.Route;
 
+@Route(path = "apt_bind_main")
 public class MainActivity extends AppCompatActivity {
     @InjectView(R.id.test_apt_base_ok)
     private Button ok;

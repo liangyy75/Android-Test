@@ -1,5 +1,6 @@
 package com.liang.example.apttest.route;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -43,40 +44,47 @@ public class RouteProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        HashMap<String, String> nameMap = new HashMap<>();
+        HashMap<String, TypeElement> nameMap = new HashMap<>();
+        // StringBuffer sb = new StringBuffer();
+        // for (TypeElement te : set) {
+        //     sb.append(te.getQualifiedName()).append(";");
+        // }
+        // nameMap.put("set", sb.toString());
+        //  --> routeMap.put("set", "com.liang.example.apttest.route.Route;");
         Set<? extends Element> annotationElements = roundEnvironment.getElementsAnnotatedWith(Route.class);
         for (Element element : annotationElements) {
             Route route = element.getAnnotation(Route.class);
-            nameMap.put(route.path(), element.getSimpleName().toString());
+            nameMap.put(route.path(), (TypeElement) element);
         }
         generateJavaFile(nameMap);
         return true;
     }
 
-    private void generateJavaFile(Map<String, String> nameMap) {
+    private void generateJavaFile(Map<String, TypeElement> nameMap) {
         // constructor
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement("routeMap = new $T<>()", HashMap.class);
-        for (Map.Entry<String, String> entry : nameMap.entrySet()) {
-            constructorBuilder.addStatement("routeMap.put(\"$N\", \"$N\")", entry.getKey(), entry.getValue());
+        for (Map.Entry<String, TypeElement> entry : nameMap.entrySet()) {
+            // constructorBuilder.addStatement("routeMap.put(\"$N\", \"$N\")", entry.getKey(), pair);
+            constructorBuilder.addStatement("routeMap.put(\"$N\", $T.class)", entry.getKey(), ClassName.get(entry.getValue()));
         }
         MethodSpec constructor = constructorBuilder.build();
         // getActivityName
         MethodSpec getActivityName = MethodSpec.methodBuilder("getActivityName")
                 .addModifiers(Modifier.PUBLIC)
-                .returns(String.class)
+                .returns(Class.class)
                 .addParameter(String.class, "routeName")
                 .beginControlFlow("if (routeMap != null && !routeMap.isEmpty())")
-                .addStatement("return (String) routeMap.get(routeName)")
+                .addStatement("return routeMap.get(routeName)")
                 .endControlFlow()
-                .addStatement("return \"\"")
+                .addStatement("return null")
                 .build();
         // class
         TypeSpec typeSpec = TypeSpec.classBuilder("Route$Finder")
                 .addModifiers(Modifier.PUBLIC)
                 // .addSuperinterface(Provider.class)
-                .addField(ParameterizedTypeName.get(HashMap.class, String.class, String.class), "routeMap", Modifier.PRIVATE)
+                .addField(ParameterizedTypeName.get(HashMap.class, String.class, Class.class), "routeMap", Modifier.PRIVATE)
                 .addMethod(constructor)
                 .addMethod(getActivityName)
                 .build();

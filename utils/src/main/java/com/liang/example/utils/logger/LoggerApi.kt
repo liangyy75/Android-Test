@@ -159,11 +159,11 @@ class FormatAndroidLogLogger(override var logLevel: LoggerLevel = DEFAULT_LEVEL)
      * format ==>
      * 0 -- VMStack.java/-2 dalvik.system.VMStack/getThreadStackTrace
      * 1 -- Thread.java/1538 java.lang.Thread/getStackTrace
-     * 2 -- LoggerFormatter.kt/79 com.com.liang.example.utils.logger.AndroidLoggerFormatter/formatMsg
-     * 3 -- Logger.kt/429 com.com.liang.example.utils.logger.FormatAndroidLogLogger/d
-     * 4 -- Logger.kt/237 com.com.liang.example.utils.logger.MultiLogger/d
-     * 5 -- Logger.kt/39 com.com.liang.example.utils.logger.LoggerInter$DefaultImpls/d
-     * 6 -- Logger.kt/217 com.com.liang.example.utils.logger.MultiLogger/d
+     * 2 -- LoggerFormatter.kt/79 com.liang.example.utils.logger.AndroidLoggerFormatter/formatMsg
+     * 3 -- Logger.kt/429 com.liang.example.utils.logger.FormatAndroidLogLogger/d
+     * 4 -- Logger.kt/237 com.liang.example.utils.logger.MultiLogger/d
+     * 5 -- Logger.kt/39 com.liang.example.utils.logger.LoggerInter$DefaultImpls/d
+     * 6 -- Logger.kt/217 com.liang.example.utils.logger.MultiLogger/d
      * 7 -- ...
      */
     private inline fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
