@@ -1,4 +1,4 @@
-package com.liang.example.recyclerviewtest;
+package com.liang.example.recyclerviewtest.recycler1;
 
 import android.content.Context;
 import android.util.SparseArray;

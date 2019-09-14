@@ -1,4 +1,4 @@
-package com.liang.example.recyclerviewtest;
+package com.liang.example.recyclerviewtest.recycler1;
 
 import android.content.Context;
 import android.view.View;
@@ -74,7 +74,7 @@ public abstract class RVAdapterTest<T> extends RecyclerView.Adapter<RVViewHolder
     private static final int TYPE_HEADER = -1;
     private static final int TYPE_FOOTER = -2;
 
-    public RVAdapterTest(List<T> datas, Context context, int itemLayoutId, RecyclerView recyclerView) {
+    protected RVAdapterTest(List<T> datas, Context context, int itemLayoutId, RecyclerView recyclerView) {
         this.datas = datas;
         this.context = context;
         this.itemLayoutId = itemLayoutId;

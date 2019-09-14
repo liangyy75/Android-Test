@@ -1,7 +1,6 @@
 package com.liang.example.fragmenttest.bottombar;
 
 import android.os.Bundle;
-
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -11,13 +10,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private final static String TAG = "FragmentTest2_Main";
@@ -32,10 +32,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_fragment_bottombar);
         ApiManager.LOGGER.d(TAG, "onCreate -- start");
-        initButton();
-        initFragment();
+
+        // initButton();
+        // initFragment();
     }
 
+    @Deprecated
     private void initButton() {
         LinearLayout linearLayout = findViewById(R.id.test_fragment_bottombar_buttons);
         buttons = new Button[bottomBarTitles.length];
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ApiManager.LOGGER.d(TAG, "initButton -- finish");
     }
 
+    @Deprecated
     @Override
     public void onClick(View v) {
         int lastPosition = viewPager.getCurrentItem();
@@ -62,16 +65,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         viewPager.setCurrentItem(newPosition);
     }
 
+    @Deprecated
     private void initFragment() {
         List<Fragment> contextFragments = new ArrayList<>(bottomBarTitles.length);
         for (String title : bottomBarTitles) {
             ContextFragment contextFragment = new ContextFragment();
             Bundle bundle = new Bundle();
-            bundle.putString(ContextFragment.TEXTVIEW_NAME_KEY, title);
+            bundle.putString(ContextFragment.TEXT_VIEW_NAME_KEY, title);
             contextFragment.setArguments(bundle);
             contextFragments.add(contextFragment);
         }
-        FragmentPagerAdapterTest fragmentPagerAdapter = new FragmentPagerAdapterTest(getSupportFragmentManager(), contextFragments);
+        FragmentPagerAdapterTest fragmentPagerAdapter = new FragmentPagerAdapterTest(getSupportFragmentManager(), contextFragments,
+                FragmentPagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
         viewPager = findViewById(R.id.test_fragment_bottombar_viewpager);
         viewPager.setAdapter(fragmentPagerAdapter);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {

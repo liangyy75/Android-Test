@@ -155,5 +155,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         WakeLockUtil.release();
         ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
+        stopService(new Intent(this, RemoteShellService.class));
     }
 }

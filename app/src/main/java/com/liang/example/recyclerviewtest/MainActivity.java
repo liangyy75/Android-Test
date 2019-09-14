@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.liang.example.androidtest.R;
+import com.liang.example.recyclerviewtest.recycler1.RVAdapterTest;
+import com.liang.example.recyclerviewtest.recycler1.RVViewHolderTest;
 import com.liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {

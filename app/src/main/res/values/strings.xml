@@ -38,4 +38,6 @@
     <string name="route_to_bind_activity">Route to bind activity</string>
     <string name="route_to_dagger2_activity">Route to dagger2 activity</string>
     <string name="route_to_spi_activity">Route to spi activity</string>
+    <string name="apt_dagger2_test">Apt Dagger2 Test</string>
+    <string name="view_test">View Test</string>
 </resources>

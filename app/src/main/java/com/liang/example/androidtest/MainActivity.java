@@ -1,8 +1,9 @@
 package com.liang.example.androidtest;
 
+import android.app.Activity;
 import android.content.Intent;
-import android.os.PersistableBundle;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -11,38 +12,33 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.liang.example.recyclerviewtest.recycler1.RVAdapterTest;
+import com.liang.example.recyclerviewtest.recycler1.RVViewHolderTest;
+import com.liang.example.utils.ApiManager;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.liang.example.recyclerviewtest.RVAdapterTest;
-import com.liang.example.recyclerviewtest.RVViewHolderTest;
-import com.liang.example.utils.ApiManager;
-
 public class MainActivity extends AppCompatActivity {
     private final static String TAG = "AndroidTestMainActivity";
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        ApiManager.LOGGER.d(TAG, "onCreate -- begin creating Activity List");
-        int length = Constants.classes.length;
-        List<ActivityItem> activityItemList = new ArrayList<>(length);
+    public static void bindActivityList(String[] ns, String[] ds, String[] as, String[] crs, String[] us, Class[] cls, Activity a, String t) {
+        ApiManager.LOGGER.d(t, "onCreate -- begin creating Activity List");
+        int length = cls.length;
+        List<ActivityItem> dataSet = new ArrayList<>(length);
         for (int i = 0; i < length; i++)
-            activityItemList.add(new ActivityItem(Constants.names[i], Constants.descs[i],
-                    Constants.authors[i], Constants.created[i], Constants.updated[i], Constants.classes[i]));
+            dataSet.add(new ActivityItem(ns[i], ds[i], as[i], crs[i], us[i], cls[i]));
 
-        RecyclerView activityList = findViewById(R.id.test_activity_list);
-        activityList.setHasFixedSize(true);
-        LinearLayoutManager activityLayoutManager = new LinearLayoutManager(this, RecyclerView.VERTICAL, false);
+        RecyclerView rv = a.findViewById(R.id.test_activity_list);
+        rv.setHasFixedSize(true);
+        LinearLayoutManager activityLayoutManager = new LinearLayoutManager(a, RecyclerView.VERTICAL, false);
         activityLayoutManager.setInitialPrefetchItemCount(4);  // 数据预取(https://juejin.im/entry/58a3f4f62f301e0069908d8f)
         activityLayoutManager.setItemPrefetchEnabled(true);
-        activityList.setLayoutManager(activityLayoutManager);
+        rv.setLayoutManager(activityLayoutManager);
 
-        RVAdapterTest<ActivityItem> activityAdapter = new RVAdapterTest<ActivityItem>(activityItemList, this, R.layout.item_activity_list, activityList) {
+        RVAdapterTest<ActivityItem> rvAdapter = new RVAdapterTest<ActivityItem>(dataSet, a, R.layout.item_activity_list, rv) {
             public void bindView(RVViewHolderTest viewHolder, ActivityItem data, int position) {
                 viewHolder.getViewById(R.id.test_activity_item_image).setBackgroundResource(R.mipmap.ic_launcher);
                 ((TextView) viewHolder.getViewById(R.id.test_activity_item_name)).setText(data.getName());
@@ -51,37 +47,65 @@ public class MainActivity extends AppCompatActivity {
                 ((TextView) viewHolder.getViewById(R.id.test_activity_item_desc)).setText(data.getDesc());
             }
         };
-        activityAdapter.setOnItemClickListener(new RVAdapterTest.OnItemClickListener<ActivityItem>() {
+        rvAdapter.setOnItemClickListener(new RVAdapterTest.OnItemClickListener<ActivityItem>() {
             @Override
             public void onItemClick(View view, ActivityItem data, int position) {
-                startActivity(new Intent(MainActivity.this, data.getClazz()));
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-                overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+                a.startActivity(new Intent(a, data.getClazz()));
+                a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                a.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
             }
 
             @Override
             public boolean onItemLongClick(View view, ActivityItem data, int position) {
-                Toast.makeText(MainActivity.this, data.getDesc(), Toast.LENGTH_LONG).show();
+                Toast.makeText(a, data.getDesc(), Toast.LENGTH_LONG).show();
                 return false;
             }
         });
-        // activityList.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+        // rv.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
         //     @Override
-        //     public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-        //         View view = activityList.findChildViewUnder(e.getX(), e.getY());
+        //     public boolean onInterceptTouchEvent(@NotNull RecyclerView rv, @NotNull MotionEvent e) {
+        //         View view = rv.findChildViewUnder(e.getX(), e.getY());
         //         if (view == null) return false;
         //         // final RVViewHolderTest holder = (RVViewHolderTest) activityList.getChildViewHolder(view);
-        //         int position = activityList.getChildAdapterPosition(view);
-        //         ActivityItem data = activityAdapter.getItem(position);
-        //         startActivity(new Intent(MainActivity.this, data.getClazz()));
-        //         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        //         overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        //         int position = rv.getChildAdapterPosition(view);
+        //         ActivityItem data = rvAdapter.getItem(position);
+        //         a.startActivity(new Intent(a, data.getClazz()));
+        //         a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        //         a.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
         //         return false;
         //     }
+        //
+        //     // private GestureDetectorCompat gestureDetectorCompat = new GestureDetectorCompat(a, new GestureDetector.SimpleOnGestureListener() {
+        //     //     @Override
+        //     //     public boolean onSingleTapConfirmed(MotionEvent e) {
+        //     //         View view = rv.findChildViewUnder(e.getX(), e.getY());
+        //     //         if (view == null) return false;
+        //     //         int position = rv.getChildAdapterPosition(view);
+        //     //         ActivityItem data = rvAdapter.getItem(position);
+        //     //         a.startActivity(new Intent(a, data.getClazz()));
+        //     //         a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        //     //         a.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        //     //         return true;
+        //     //     }
+        //     // });
+        //     //
+        //     // @Override
+        //     // public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+        //     //     gestureDetectorCompat.onTouchEvent(e);
+        //     //     return false;
+        //     // }
         // });
-        activityList.setAdapter(activityAdapter);
+        rv.setAdapter(rvAdapter);
         // activityList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        ApiManager.LOGGER.d(TAG, "onCreate -- finish creating Activity List");
+        ApiManager.LOGGER.d(t, "onCreate -- finish creating Activity List");
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        bindActivityList(Constants.names, Constants.descs, Constants.authors, Constants.created, Constants.updated, Constants.classes, this, TAG);
     }
 
     @Override

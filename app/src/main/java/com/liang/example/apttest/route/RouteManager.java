@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcelable;
 
+// TODO: Class.forName来做
 public class RouteManager {
     private static volatile RouteManager instance;
     private Route$Finder finder;
