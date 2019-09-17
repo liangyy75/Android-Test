@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private final static String TAG = "AndroidTestMainActivity";
-
     public static void bindActivityList(String[] ns, String[] ds, String[] as, String[] crs, String[] us, Class[] cls, Activity a, String t) {
         ApiManager.LOGGER.d(t, "onCreate -- begin creating Activity List");
         int length = cls.length;
@@ -51,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(View view, ActivityItem data, int position) {
                 a.startActivity(new Intent(a, data.getClazz()));
-                a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-                a.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+                // a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                // a.overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
             }
 
             @Override
@@ -105,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bindActivityList(Constants.names, Constants.descs, Constants.authors, Constants.created, Constants.updated, Constants.classes, this, TAG);
+        bindActivityList(Constants.names, Constants.descs, Constants.authors, Constants.created, Constants.updated, Constants.classes, this, "App_Main");
     }
 
     @Override

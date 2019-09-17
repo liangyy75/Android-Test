@@ -40,4 +40,8 @@
     <string name="route_to_spi_activity">Route to spi activity</string>
     <string name="apt_dagger2_test">Apt Dagger2 Test</string>
     <string name="view_test">View Test</string>
+    <string name="view_autofill_test">Test View\'s AutoFill</string>
+    <string name="music_load">Load Music App</string>
+    <string name="music_first">First Music App Activity</string>
+    <string name="navigation_icon_button">navigation icon button!</string>
 </resources>

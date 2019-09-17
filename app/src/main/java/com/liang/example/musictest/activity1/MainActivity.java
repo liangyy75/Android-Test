@@ -1,4 +1,4 @@
-package com.liang.example.fragmenttest;
+package com.liang.example.musictest.activity1;
 
 import android.os.Bundle;
 
@@ -11,9 +11,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        com.liang.example.androidtest.MainActivity.bindActivityList(Constants.names, Constants.descs,
-                Constants.authors, Constants.created, Constants.updated, Constants.classes, this, "Fragment_Main");
+        setContentView(R.layout.activity_music_first);
     }
 }

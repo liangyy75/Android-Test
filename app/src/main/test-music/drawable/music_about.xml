@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="?attr/actionBarSize"
+    android:height="?attr/actionBarSize"
+    android:viewportWidth="50"
+    android:viewportHeight="40">
+    <!--<path-->
+    <!--    android:fillColor="@color/colorTheme"-->
+    <!--    android:pathData="h50v40h-50v-40" />-->
+    <path
+        android:pathData="M15, 15h20m-20, 5h20m-20, 5h20"
+        android:strokeWidth="1.5"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -12,6 +12,7 @@ class Constants {
             com.liang.example.gsontest.MainActivity.class,
             com.liang.example.volleytest.MainActivity.class,
             com.liang.example.shelltest.MainActivity.class,
+            com.liang.example.musictest.LoadActivity.class,
     };
 
     static final String[] names = new String[]{
@@ -23,6 +24,7 @@ class Constants {
             "Test Gson",
             "Test Volley",
             "Test Remote Controller",
+            "Test Music",
     };
 
     static final String[] descs = new String[]{
@@ -37,9 +39,11 @@ class Constants {
             "Some test about gson",
             "Some test about volley: StringRequest / JsonRequest / ImageRequest / ImageLoader / NetworkImageView / XmlRequest / GsonRequest",
             "Some test about remote control",
+            "Just some test about a future music app",
     };
 
     static final String[] authors = new String[]{
+            "liangyy75",
             "liangyy75",
             "liangyy75",
             "liangyy75",
@@ -59,6 +63,7 @@ class Constants {
             "2019-07-15",
             "2019-07-19",
             "2019-09-06",
+            "2019-09-16",
     };
 
     static final String[] updated = new String[]{
@@ -70,5 +75,6 @@ class Constants {
             "2019-08-26",
             "2019-07-19",
             "2019-09-06",
+            "2019-09-16",
     };
 }

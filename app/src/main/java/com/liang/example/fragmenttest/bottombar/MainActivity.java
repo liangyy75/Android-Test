@@ -33,8 +33,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_test_fragment_bottombar);
         ApiManager.LOGGER.d(TAG, "onCreate -- start");
 
-        // initButton();
-        // initFragment();
+        initButton();
+        initFragment();
     }
 
     @Deprecated

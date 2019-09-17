@@ -6,10 +6,10 @@
     <application
         android:name=".ApplicationTest"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/music_launcher"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/music_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup"
@@ -108,10 +108,29 @@
         <activity
             android:name="com.liang.example.musictest.MainActivity"
             android:label="@string/music_app"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="com.liang.example.musictest.LoadActivity"
+            android:theme="@style/MusicMainPage">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.liang.example.musictest.LoadActivity" />
+        </activity>
+        <activity
+            android:name="com.liang.example.musictest.LoadActivity"
+            android:label="@string/music_load"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/SplashTheme">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
+        </activity>
+        <activity
+            android:name="com.liang.example.musictest.activity1.MainActivity"
+            android:label="@string/music_first"
+            android:parentActivityName="com.liang.example.musictest.MainActivity"
+            android:theme="@style/MusicMainPage">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.liang.example.musictest.MainActivity" />
         </activity>
 
         <!-- OkHttp -->
@@ -225,6 +244,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
+        <activity
+            android:name="com.liang.example.viewtest.autofilltest.MainActivity"
+            android:label="@string/view_autofill_test"
+            android:parentActivityName="com.liang.example.viewtest.MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.liang.example.viewtest.MainActivity" />
+        </activity>
+        <activity android:name="com.liang.example.viewtest.viewpagert.MainActivity" />
 
         <!-- Logger Configuration -->
         <meta-data

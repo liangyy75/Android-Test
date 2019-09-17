@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/holo_red_dark" />
+    <item
+        android:top="@dimen/dimen300"
+        android:drawable="@drawable/music_launcher"
+        android:gravity="center_horizontal|center_vertical">
+        <!--<bitmap-->
+        <!--    android:gravity="center_horizontal|center_vertical"-->
+        <!--    android:src="@drawable/music_launcher" />-->
+    </item>
+</layer-list>

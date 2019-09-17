@@ -40,5 +40,6 @@ public class ApiManager {
     public static void destroy() {
         CONTEXT.setApplication(null);
         CONTEXT.setContext(null);
+        CONTEXT.setHandler(null);
     }
 }

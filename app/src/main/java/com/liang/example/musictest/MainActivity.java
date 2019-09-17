@@ -12,7 +12,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_test_handler);
-        // TODO
+        setContentView(R.layout.activity_main);
+
+        com.liang.example.androidtest.MainActivity.bindActivityList(Constants.names, Constants.descs,
+                Constants.authors, Constants.created, Constants.updated, Constants.classes, this, "Music_Main");
     }
 }
