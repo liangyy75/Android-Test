@@ -1,5 +1,6 @@
-package com.liang.example.viewtest.viewpagert;
+package com.liang.example.viewtest.viewpager;
 
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -7,15 +8,20 @@ import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import com.liang.example.utils.ApiManager;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-// TODO
+// TODO: instantiateItem时的Cache
+// TODO: subViews在有轮播与没轮播的适配
 public class PagerAdapterTest<T> extends PagerAdapter/* implements ViewPager.OnPageChangeListener*/ {
+    private static final String TAG = "PagerAdapterTest";
+
     private List<T> dataSet;
-    private List<View> subViews;
+    private SparseArray<View> subViews;
     private boolean carousel;  // 是否轮播
     private long duration;  // 轮播时间间隔
     private ViewPager viewPager;  // 轮播需要的ViewPager
@@ -36,7 +42,7 @@ public class PagerAdapterTest<T> extends PagerAdapter/* implements ViewPager.OnP
         this.pagerAdapterItemHolder = pagerAdapterItemHolder;
         this.duration = duration;
         this.viewPager = viewPager;
-        this.subViews = new ArrayList<>();
+        this.subViews = new SparseArray<>();
         this.carousel = duration > 0;
 
         // viewPager.addOnPageChangeListener(this);
@@ -78,20 +84,24 @@ public class PagerAdapterTest<T> extends PagerAdapter/* implements ViewPager.OnP
     }
 
     private int parsePos(int position) {
-        if (!carousel) return position;
-        int size = dataSet.size();
-        if (position == 0) return size - 1;
-        if (position == size) return 0;
-        return position - 1;
+        int result = position;
+        if (carousel) {
+            int size = dataSet.size();
+            if (position == 0) result = size - 1;
+            else if (position == size + 1) result = 0;
+            else result--;
+        }
+        ApiManager.LOGGER.d(TAG, "position: %d, result: %d", position, result);
+        return result;
     }
 
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        position = parsePos(position);
-        T data = dataSet.get(position);
-        View view = pagerAdapterItemHolder.instantiateItem(container, position, data);
-        subViews.add(view);
+        int newPos = parsePos(position);
+        T data = dataSet.get(newPos);
+        View view = pagerAdapterItemHolder.instantiateItem(container, newPos, data);
+        subViews.put(newPos, view);
         container.addView(view);
         return data;
     }
@@ -111,8 +121,8 @@ public class PagerAdapterTest<T> extends PagerAdapter/* implements ViewPager.OnP
 
     @Override
     public void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
-        position = parsePos(position);
-        pagerAdapterItemHolder.setPrimaryItem(container, position, object, dataSet.get(position));
+        int newPos = parsePos(position);
+        pagerAdapterItemHolder.setPrimaryItem(container, newPos, object, dataSet.get(newPos));
     }
 
     @Override

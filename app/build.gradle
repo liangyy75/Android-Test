@@ -31,6 +31,7 @@ android {
                 'src/main/test-volley',
                 'src/main/test-shell',
                 'src/main/test-music',
+                'src/main/test-view',
         ]
     }
     compileOptions {
