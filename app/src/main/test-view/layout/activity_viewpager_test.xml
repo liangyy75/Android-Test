@@ -15,11 +15,27 @@
         android:id="@+id/test_viewpager_start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingTop="@dimen/dimen20"
         android:text="@string/start_test" />
 
     <Button
         android:id="@+id/test_viewpager_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingTop="@dimen/dimen20"
         android:text="@string/stop_test" />
+
+    <Button
+        android:id="@+id/test_viewpager_add_item"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="@dimen/dimen20"
+        android:text="@string/add_item" />
+
+    <Button
+        android:id="@+id/test_viewpager_remove_item"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="@dimen/dimen20"
+        android:text="@string/remove_item" />
 </LinearLayout>

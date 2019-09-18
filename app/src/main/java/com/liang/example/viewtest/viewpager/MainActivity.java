@@ -1,6 +1,8 @@
 package com.liang.example.viewtest.viewpager;
 
 import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -14,14 +16,16 @@ import androidx.viewpager.widget.ViewPager;
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "ViewPager_Main";
 
-    private ViewPager viewPager;
+    private List<String> dataSet = new ArrayList<>(Arrays.asList("1", "2", "3", "4", "5"));
     private PagerAdapterTest<String> pagerAdapterTest;
+    private ViewPager viewPager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -35,15 +39,17 @@ public class MainActivity extends AppCompatActivity {
                 R.color.color888888
         );
         int background_dark = ContextCompat.getColor(this, android.R.color.background_dark);
-        pagerAdapterTest = new PagerAdapterTest<>(Arrays.asList("1", "2", "3", "4", "5"), new PagerAdapterTest.PagerAdapterItemHolder<String>() {
+        viewPager = findViewById(R.id.test_viewpager_viewpager);
+        pagerAdapterTest = new PagerAdapterTest<>(dataSet, new PagerAdapterTest.PagerAdapterItemHolder<String>() {
             @Override
             public View instantiateItem(@NonNull ViewGroup container, int position, String data) {
-                ApiManager.LOGGER.d(TAG, "instantiateItem: " + position);
+                ApiManager.LOGGER.d(TAG, "instantiateItem -- position: %d, data: %s", position, data);
                 TextView view = new TextView(MainActivity.this);
-                view.setText(String.valueOf(data));
                 view.setBackgroundResource(colors.get(position % colors.size()));
+                view.setText(data);
+                view.setGravity(Gravity.CENTER);
                 view.setTextColor(background_dark);
-                view.setTextSize(R.dimen.dimen100);
+                view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 100);
                 return view;
             }
 
@@ -56,12 +62,23 @@ public class MainActivity extends AppCompatActivity {
             public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view, String data) {
                 ApiManager.LOGGER.d(TAG, "destroyItem: " + position);
             }
-        });
-        ApiManager.LOGGER.d(TAG, "getCount: " + pagerAdapterTest.getCount());
-        viewPager = findViewById(R.id.test_viewpager_viewpager);
-        viewPager.setAdapter(pagerAdapterTest);
-        viewPager.setCurrentItem(0);
+        }/*, 5 * 1000, viewPager*/);
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
+        // findViewById(R.id.test_viewpager_add_item).setOnClickListener((v) -> pagerAdapterTest.addItem(String.valueOf(pagerAdapterTest.getSize() + 1), 0));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        viewPager.setAdapter(pagerAdapterTest);
+        viewPager.setCurrentItem(pagerAdapterTest.getFirstItemPos());
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        viewPager.removeOnPageChangeListener(pagerAdapterTest);
+        viewPager.setAdapter(null);
     }
 }

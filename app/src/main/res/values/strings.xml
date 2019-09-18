@@ -45,4 +45,6 @@
     <string name="music_first">First Music App Activity</string>
     <string name="navigation_icon_button">navigation icon button!</string>
     <string name="view_viewpager_test">Test ViewPager</string>
+    <string name="add_item">Add Item</string>
+    <string name="remove_item">Remote Item</string>
 </resources>
