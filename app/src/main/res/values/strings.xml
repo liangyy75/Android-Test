@@ -47,4 +47,5 @@
     <string name="view_viewpager_test">Test ViewPager</string>
     <string name="add_item">Add Item</string>
     <string name="remove_item">Remote Item</string>
+    <string name="input_position">input position</string>
 </resources>

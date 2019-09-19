@@ -1,6 +1,5 @@
 package com.liang.example.viewtest.viewpager;
 
-import android.database.DataSetObserver;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,13 +10,13 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.liang.example.utils.ApiManager;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 // TODO: instantiateItem时的Cache
-// TODO: add/remove以及instantiateItem/destroyItem的配合
+// TODO: add/remove以及instantiateItem/destroyItem的配合 -- 有问题的删除，可能需要重写viewpager才行？
 public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPageChangeListener {
     private static final String TAG = "PagerAdapterTest";
 
@@ -29,17 +28,26 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     private volatile Timer timer;  // 轮播的timer
     private PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder;
     private int pageChangePos = -1;
+    private boolean canChanged;
 
     // private List<OnPageChangeListener> pageChangeListeners;
     // private List<OnPageScrolledListener> pageScrolledListeners;
     // private List<OnPageSelectedListener> pageSelectedListeners;
     // private List<OnPageScrollStateListener> pageScrollStateListeners;
 
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder/*, ViewPager viewPager*/) {
-        this(dataSet, pagerAdapterItemHolder, -1, /*viewPager*/null);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder) {
+        this(dataSet, pagerAdapterItemHolder, -1, null, false);
+    }
+
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, ViewPager viewPager, boolean canChanged) {
+        this(dataSet, pagerAdapterItemHolder, -1, viewPager, canChanged);
     }
 
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager) {
+        this(dataSet, pagerAdapterItemHolder, duration, viewPager, false);
+    }
+
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager, boolean canChanged) {
         this.dataSet = dataSet;
         this.pagerAdapterItemHolder = pagerAdapterItemHolder;
         this.duration = duration;
@@ -49,12 +57,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         if (viewPager != null) {
             this.viewPager.addOnPageChangeListener(this);
         }
-        registerDataSetObserver(new DataSetObserver() {
-            @Override
-            public void onChanged() {
-                // TODO: add/remove以及instantiateItem/destroyItem的配合
-            }
-        });
+        this.canChanged = canChanged;
 
         // pageChangeListeners = new ArrayList<>();
         // pageScrolledListeners = new ArrayList<>();
@@ -135,13 +138,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         View view = subViews.get(position);
         subViews.remove(position);
         container.removeView(view);
-        pagerAdapterItemHolder.destroyItem(container, newPos, object, view, dataSet.get(newPos));
+        pagerAdapterItemHolder.destroyItem(container, newPos, object, view);
     }
 
     @Override
     public void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         int newPos = parsePos(position, "setPrimaryItem");
-        pagerAdapterItemHolder.setPrimaryItem(container, newPos, object, subViews.get(position), dataSet.get(newPos));
+        pagerAdapterItemHolder.setPrimaryItem(container, newPos, object, subViews.get(position));
     }
 
     @Override
@@ -167,20 +170,47 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public void addItem(T data, int position) {
+        if (!canChanged) return;
+        int oldPos = viewPager.getCurrentItem();
         dataSet.add(position, data);
         notifyDataSetChanged();
+        for (int i = position; i < dataSet.size(); i++) {
+            viewPager.setCurrentItem(i, false);
+        }
+        viewPager.setCurrentItem(oldPos >= position ? oldPos + 1 : oldPos, false);
     }
 
     public boolean removeItem(T data) {
-        boolean result = dataSet.remove(data);
-        notifyDataSetChanged();
-        return result;
+        if (!canChanged) return false;
+        int position = dataSet.indexOf(data);
+        removeItem(position);
+        return position == -1;
     }
 
     public T removeItem(int position) {
+        if (!canChanged) return null;
+        int oldPos = viewPager.getCurrentItem();
         T result = dataSet.remove(position);
         notifyDataSetChanged();
+        for (int i = position; i < dataSet.size(); i++) {
+            viewPager.setCurrentItem(i, false);
+        }
+        if (position == oldPos && oldPos > 0 || oldPos > position) {
+            viewPager.setCurrentItem(oldPos - 1, false);
+        } else if (oldPos < position) {
+            viewPager.setCurrentItem(oldPos, false);
+        } else {
+            viewPager.setCurrentItem(0, false);
+        }
         return result;
+    }
+
+    @Override
+    public int getItemPosition(@NonNull Object object) {
+        if (dataSet.size() == 0 || dataSet.indexOf((T) object) == -1) {
+            return POSITION_NONE;  // remove
+        }
+        return pagerAdapterItemHolder.getItemPosition(object, dataSet, subViews);
     }
 
     public void setDuration(long duration, boolean restart) {
@@ -277,16 +307,20 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             return view == object;
         }
 
-        default void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view, T data) {
+        default void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View vie) {
         }
 
-        default void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view, T data) {
+        default void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view) {
         }
 
         default void finishUpdate(@NonNull ViewGroup container, List<T> dataSet, SparseArray<View> subViews) {
         }
 
         default void startUpdate(@NonNull ViewGroup container, List<T> dataSet, SparseArray<View> subViews) {
+        }
+
+        default int getItemPosition(@NonNull Object object, List<T> dataSet, SparseArray<View> subViews) {
+            return PagerAdapter.POSITION_UNCHANGED;
         }
     }
 
