@@ -16,7 +16,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 // TODO: instantiateItem时的Cache
-// TODO: add/remove以及instantiateItem/destroyItem的配合 -- 有问题的删除，可能需要重写viewpager才行？
+
+/**
+ * 1. 支持轮播
+ * 2. 支持动态扩展和删除，但与轮播不兼容，后期考虑兼容实现，即动态轮播，必要时轮播，不轮播时可以动态扩展和删除
+ * 3. 支持缓存
+ *
+ * @param <T>
+ */
 public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPageChangeListener {
     private static final String TAG = "PagerAdapterTest";
 
@@ -29,11 +36,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     private PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder;
     private int pageChangePos = -1;
     private boolean canChanged;
-
-    // private List<OnPageChangeListener> pageChangeListeners;
-    // private List<OnPageScrolledListener> pageScrolledListeners;
-    // private List<OnPageSelectedListener> pageSelectedListeners;
-    // private List<OnPageScrollStateListener> pageScrollStateListeners;
+    private HashMap<T, Boolean> changedMap;
 
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder) {
         this(dataSet, pagerAdapterItemHolder, -1, null, false);
@@ -53,16 +56,15 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         this.duration = duration;
         this.viewPager = viewPager;
         this.subViews = new SparseArray<>();
-        this.carousel = duration > 0;
-        if (viewPager != null) {
+        boolean flag = viewPager != null;
+        if (flag) {
+            this.carousel = duration > 0;
             this.viewPager.addOnPageChangeListener(this);
         }
-        this.canChanged = canChanged;
-
-        // pageChangeListeners = new ArrayList<>();
-        // pageScrolledListeners = new ArrayList<>();
-        // pageSelectedListeners = new ArrayList<>();
-        // pageScrollStateListeners = new ArrayList<>();
+        this.canChanged = !this.carousel && flag && canChanged;
+        if (this.canChanged) {
+            this.changedMap = new HashMap<>();
+        }
     }
 
     public void startCarousel() {
@@ -164,37 +166,38 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public boolean addItem(T data) {
+        if (carousel || !canChanged) return false;
         boolean result = dataSet.add(data);
         notifyDataSetChanged();
         return result;
     }
 
-    public void addItem(T data, int position) {
-        if (!canChanged) return;
+    public boolean addItem(T data, int position) {
+        if (carousel || !canChanged) return false;
         int oldPos = viewPager.getCurrentItem();
         dataSet.add(position, data);
-        notifyDataSetChanged();
         for (int i = position; i < dataSet.size(); i++) {
-            viewPager.setCurrentItem(i, false);
+            changedMap.put(dataSet.get(i), true);
         }
+        notifyDataSetChanged();
         viewPager.setCurrentItem(oldPos >= position ? oldPos + 1 : oldPos, false);
+        return true;
     }
 
     public boolean removeItem(T data) {
-        if (!canChanged) return false;
+        if (carousel || !canChanged) return false;
         int position = dataSet.indexOf(data);
-        removeItem(position);
-        return position == -1;
+        return position != -1 && removeItem(position);
     }
 
-    public T removeItem(int position) {
-        if (!canChanged) return null;
+    public boolean removeItem(int position) {
+        if (carousel || !canChanged) return false;
         int oldPos = viewPager.getCurrentItem();
         T result = dataSet.remove(position);
-        notifyDataSetChanged();
         for (int i = position; i < dataSet.size(); i++) {
-            viewPager.setCurrentItem(i, false);
+            changedMap.put(dataSet.get(i), true);
         }
+        notifyDataSetChanged();
         if (position == oldPos && oldPos > 0 || oldPos > position) {
             viewPager.setCurrentItem(oldPos - 1, false);
         } else if (oldPos < position) {
@@ -202,13 +205,17 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         } else {
             viewPager.setCurrentItem(0, false);
         }
-        return result;
+        return true;
     }
 
     @Override
     public int getItemPosition(@NonNull Object object) {
-        if (dataSet.size() == 0 || dataSet.indexOf((T) object) == -1) {
+        T obj = (T) object;
+        if (dataSet.size() == 0 || dataSet.indexOf(obj) == -1) {
             return POSITION_NONE;  // remove
+        }
+        if (changedMap.containsKey(obj)) {
+            return changedMap.get(obj) ? POSITION_NONE : POSITION_UNCHANGED;
         }
         return pagerAdapterItemHolder.getItemPosition(object, dataSet, subViews);
     }
@@ -268,38 +275,6 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         }
     }
 
-    // public boolean addPageChangeListener(OnPageChangeListener pageChangeListener) {
-    //     return pageChangeListeners.add(pageChangeListener);
-    // }
-    //
-    // public boolean removePageChangeListener(OnPageChangeListener pageChangeListener) {
-    //     return pageChangeListeners.remove(pageChangeListener);
-    // }
-    //
-    // public boolean addPageScrolledListener(OnPageScrolledListener pageScrolledListener) {
-    //     return pageScrolledListeners.add(pageScrolledListener);
-    // }
-    //
-    // public boolean removePageScrolledListener(OnPageScrolledListener pageScrolledListener) {
-    //     return pageScrolledListeners.remove(pageScrolledListener);
-    // }
-    //
-    // public boolean addPageSelectedListener(OnPageSelectedListener pageSelectedListener) {
-    //     return pageSelectedListeners.add(pageSelectedListener);
-    // }
-    //
-    // public boolean removePageSelectedListener(OnPageSelectedListener pageSelectedListener) {
-    //     return pageSelectedListeners.remove(pageSelectedListener);
-    // }
-    //
-    // public boolean addPageScrollStateListener(OnPageScrollStateListener pageScrollStateListener) {
-    //     return pageScrollStateListeners.add(pageScrollStateListener);
-    // }
-    //
-    // public boolean removePageScrollStateListener(OnPageScrollStateListener pageScrollStateListener) {
-    //     return pageScrollStateListeners.remove(pageScrollStateListener);
-    // }
-
     public interface PagerAdapterItemHolder<T> {
         View instantiateItem(@NonNull ViewGroup container, int position, T data);
 
@@ -323,27 +298,4 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             return PagerAdapter.POSITION_UNCHANGED;
         }
     }
-
-    // public interface OnPageChangeListener {
-    //     default void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-    //     }
-    //
-    //     default void onPageSelected(int position) {
-    //     }
-    //
-    //     default void onPageScrollStateChanged(int state) {
-    //     }
-    // }
-    //
-    // public interface OnPageScrolledListener {
-    //     void onPageScrolled(int position, float positionOffset, int positionOffsetPixels);
-    // }
-    //
-    // public interface OnPageSelectedListener {
-    //     void onPageSelected(int position);
-    // }
-    //
-    // public interface OnPageScrollStateListener {
-    //     void onPageScrollStateChanged(int state);
-    // }
 }

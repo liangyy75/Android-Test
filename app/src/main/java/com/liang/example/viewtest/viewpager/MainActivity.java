@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
             public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view) {
                 ApiManager.LOGGER.d(TAG, "destroyItem: " + position);
             }
-        }/*, 5 * 1000*/, viewPager, true);
+        }, 5 * 1000, viewPager, true);
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
         findViewById(R.id.test_viewpager_add_item).setOnClickListener((v) -> {
@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public int getPos(boolean flag) {
+    private int getPos(boolean flag) {
         String strPos = posET.getText().toString().trim();
         if (TextUtils.isEmpty(strPos)) {
             Toast.makeText(MainActivity.this, "position should not be empty", Toast.LENGTH_LONG).show();
