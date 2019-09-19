@@ -12,6 +12,7 @@ import com.liang.example.utils.ApiManager;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -36,21 +37,32 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     private PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder;
     private int pageChangePos = -1;
     private boolean canChanged;
-    private HashMap<T, Boolean> changedMap;
+    private boolean haveChanged;
+    private HashMap<Integer, Boolean> changedMap;
+    private boolean useCache;
 
+    /* 最基本的PagerAdapter */
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder) {
-        this(dataSet, pagerAdapterItemHolder, -1, null, false);
+        this(dataSet, pagerAdapterItemHolder, -1, null, false, false);
     }
 
+    /* 支持数据集修改 */
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, ViewPager viewPager, boolean canChanged) {
-        this(dataSet, pagerAdapterItemHolder, -1, viewPager, canChanged);
+        this(dataSet, pagerAdapterItemHolder, -1, viewPager, canChanged, false);
     }
 
+    /* 支持轮播 */
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager) {
-        this(dataSet, pagerAdapterItemHolder, duration, viewPager, false);
+        this(dataSet, pagerAdapterItemHolder, duration, viewPager, false, false);
     }
 
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager, boolean canChanged) {
+    /* 支持缓存 */
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, boolean useCache) {
+        this(dataSet, pagerAdapterItemHolder, -1, null, false, useCache);
+    }
+
+    /* 支持轮播/数据集修改/缓存 */
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager, boolean canChanged, boolean useCache) {
         this.dataSet = dataSet;
         this.pagerAdapterItemHolder = pagerAdapterItemHolder;
         this.duration = duration;
@@ -65,10 +77,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         if (this.canChanged) {
             this.changedMap = new HashMap<>();
         }
+        this.useCache = useCache;
     }
 
     public void startCarousel() {
-        if (!carousel || timer != null) return;
+        if (!carousel || timer != null) {
+            return;
+        }
         ApiManager.LOGGER.d(TAG, "startCarousel begin");
         synchronized (this) {
             timer = new Timer();
@@ -83,7 +98,9 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public void stopCarousel() {
-        if (!carousel || timer == null) return;
+        if (!carousel || timer == null) {
+            return;
+        }
         ApiManager.LOGGER.d(TAG, "stopCarousel start");
         synchronized (this) {
             timer.cancel();
@@ -109,9 +126,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         int result = position;
         if (carousel) {
             int size = dataSet.size();
-            if (position == 0) result = size - 1;
-            else if (position == size + 1) result = 0;
-            else result--;
+            if (position == 0) {
+                result = size - 1;
+            } else if (position == size + 1) {
+                result = 0;
+            } else {
+                result--;
+            }
         }
         ApiManager.LOGGER.d(TAG, "parse position: %d, result: %d -- %s", position, result, tag);
         return result;
@@ -122,6 +143,9 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
         int newPos = parsePos(position, "instantiateItem");
         T data = dataSet.get(newPos);
+        if (useCache && !haveChanged && subViews.get(position) != null) {
+            return data;
+        }
         View view = pagerAdapterItemHolder.instantiateItem(container, newPos, data);
         subViews.put(position, view);
         container.addView(view);
@@ -136,6 +160,9 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     @Override
     public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
+        if (useCache && !haveChanged) {
+            return;
+        }
         int newPos = parsePos(position, "destroyItem");
         View view = subViews.get(position);
         subViews.remove(position);
@@ -165,19 +192,30 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         return dataSet.size();
     }
 
+    @Override
+    public void notifyDataSetChanged() {
+        haveChanged = true;
+        super.notifyDataSetChanged();
+        haveChanged = false;
+    }
+
     public boolean addItem(T data) {
-        if (carousel || !canChanged) return false;
+        if (carousel || !canChanged) {
+            return false;
+        }
         boolean result = dataSet.add(data);
         notifyDataSetChanged();
         return result;
     }
 
     public boolean addItem(T data, int position) {
-        if (carousel || !canChanged) return false;
+        if (carousel || !canChanged) {
+            return false;
+        }
         int oldPos = viewPager.getCurrentItem();
         dataSet.add(position, data);
         for (int i = position; i < dataSet.size(); i++) {
-            changedMap.put(dataSet.get(i), true);
+            changedMap.put(i, true);
         }
         notifyDataSetChanged();
         viewPager.setCurrentItem(oldPos >= position ? oldPos + 1 : oldPos, false);
@@ -185,17 +223,21 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public boolean removeItem(T data) {
-        if (carousel || !canChanged) return false;
+        if (carousel || !canChanged) {
+            return false;
+        }
         int position = dataSet.indexOf(data);
         return position != -1 && removeItem(position);
     }
 
     public boolean removeItem(int position) {
-        if (carousel || !canChanged) return false;
+        if (carousel || !canChanged) {
+            return false;
+        }
         int oldPos = viewPager.getCurrentItem();
         T result = dataSet.remove(position);
         for (int i = position; i < dataSet.size(); i++) {
-            changedMap.put(dataSet.get(i), true);
+            changedMap.put(i, true);
         }
         notifyDataSetChanged();
         if (position == oldPos && oldPos > 0 || oldPos > position) {
@@ -208,14 +250,24 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         return true;
     }
 
+    public boolean setItem(T data, int position) {
+        if (carousel || !canChanged) {
+            return false;
+        }
+        dataSet.set(position, data);
+        changedMap.put(position, true);
+        notifyDataSetChanged();
+        return true;
+    }
+
     @Override
     public int getItemPosition(@NonNull Object object) {
-        T obj = (T) object;
-        if (dataSet.size() == 0 || dataSet.indexOf(obj) == -1) {
+        int index = dataSet.indexOf(object);
+        if (dataSet.size() == 0 || index == -1) {
             return POSITION_NONE;  // remove
         }
-        if (changedMap.containsKey(obj)) {
-            return changedMap.get(obj) ? POSITION_NONE : POSITION_UNCHANGED;
+        if (changedMap.containsKey(index)) {
+            return changedMap.get(index) ? POSITION_NONE : POSITION_UNCHANGED;
         }
         return pagerAdapterItemHolder.getItemPosition(object, dataSet, subViews);
     }
@@ -232,6 +284,10 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             stopCarousel();
             startCarousel();
         }
+    }
+
+    public void setUseCache(boolean useCache) {
+        this.useCache = useCache;
     }
 
     @Override

@@ -50,5 +50,20 @@
             android:layout_height="wrap_content"
             android:paddingTop="@dimen/dimen20"
             android:text="@string/remove_item" />
+
+        <EditText
+            android:id="@+id/test_viewpager_value"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:hint="@string/input_value"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal" />
+
+        <Button
+            android:id="@+id/test_viewpager_set_item"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/dimen20"
+            android:text="@string/set_item" />
     </LinearLayout>
 </ScrollView>

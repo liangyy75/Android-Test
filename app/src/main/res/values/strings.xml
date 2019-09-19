@@ -48,4 +48,6 @@
     <string name="add_item">Add Item</string>
     <string name="remove_item">Remote Item</string>
     <string name="input_position">input position</string>
+    <string name="set_item">Set Item</string>
+    <string name="input_value">input value</string>
 </resources>
