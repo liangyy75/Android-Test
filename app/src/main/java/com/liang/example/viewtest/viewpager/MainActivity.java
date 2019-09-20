@@ -2,6 +2,7 @@ package com.liang.example.viewtest.viewpager;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -69,6 +70,18 @@ public class MainActivity extends AppCompatActivity {
             public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View view) {
                 ApiManager.LOGGER.d(TAG, "destroyItem: " + position);
             }
+
+            @Override
+            public void startUpdate(@NonNull ViewGroup container, List<String> dataSet, SparseArray<View> subViews) {
+                showDataSet(dataSet, "startUpdate");
+                showSubViews(subViews, "startUpdate");
+            }
+
+            @Override
+            public void finishUpdate(@NonNull ViewGroup container, List<String> dataSet, SparseArray<View> subViews) {
+                showDataSet(dataSet, "finishUpdate");
+                showSubViews(subViews, "finishUpdate");
+            }
         }, -1, viewPager, true, false);
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
@@ -96,6 +109,34 @@ public class MainActivity extends AppCompatActivity {
             }
             pagerAdapterTest.setItem(String.valueOf(intVal), intPos);
         });
+    }
+
+    private void showDataSet(List<String> dataSet, String tag) {
+        int size = dataSet.size();
+        if (size == 0) {
+            ApiManager.LOGGER.d(TAG, "%s -- showDataSet: []", tag);
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(0).append(": ").append(dataSet.get(0));
+        for (int i = 1; i < size; i++) {
+            sb.append(", ").append(i).append(": ").append(dataSet.get(i));
+        }
+        ApiManager.LOGGER.d(TAG, "%s -- showDataSet: [%s]", tag, sb.toString());
+    }
+
+    private void showSubViews(SparseArray<View> subViews, String tag) {
+        int size = subViews.size();
+        if (size == 0) {
+            ApiManager.LOGGER.d(TAG, "%s -- showSubViews: []", tag);
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(0).append(": ").append(subViews.get(0));
+        for (int i = 1; i < size; i++) {
+            sb.append(", ").append(i).append(": ").append(subViews.get(i));
+        }
+        ApiManager.LOGGER.d(TAG, "%s -- showDataSet: [%s]", tag, sb.toString());
     }
 
     private int getPos(boolean flag) {
@@ -140,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         pagerAdapterTest.setUseCache(false);
+        pagerAdapterTest.clearCache();
         viewPager.removeOnPageChangeListener(pagerAdapterTest);
         viewPager.setAdapter(null);
     }

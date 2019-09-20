@@ -1,5 +1,6 @@
 package com.liang.example.viewtest.viewpager;
 
+import android.annotation.SuppressLint;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +26,7 @@ import java.util.TimerTask;
  *
  * @param <T>
  */
+@SuppressWarnings("unused")
 public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPageChangeListener {
     private static final String TAG = "PagerAdapterTest";
 
@@ -62,6 +64,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     /* 支持轮播/数据集修改/缓存 */
+    @SuppressLint("UseSparseArrays")
     public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager, boolean canChanged, boolean useCache) {
         this.dataSet = dataSet;
         this.pagerAdapterItemHolder = pagerAdapterItemHolder;
@@ -143,9 +146,6 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
         int newPos = parsePos(position, "instantiateItem");
         T data = dataSet.get(newPos);
-        if (useCache && !haveChanged && subViews.get(position) != null) {
-            return data;
-        }
         View view = pagerAdapterItemHolder.instantiateItem(container, newPos, data);
         subViews.put(position, view);
         container.addView(view);
@@ -160,9 +160,6 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     @Override
     public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
-        if (useCache && !haveChanged) {
-            return;
-        }
         int newPos = parsePos(position, "destroyItem");
         View view = subViews.get(position);
         subViews.remove(position);
@@ -192,20 +189,8 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         return dataSet.size();
     }
 
-    @Override
-    public void notifyDataSetChanged() {
-        haveChanged = true;
-        super.notifyDataSetChanged();
-        haveChanged = false;
-    }
-
     public boolean addItem(T data) {
-        if (carousel || !canChanged) {
-            return false;
-        }
-        boolean result = dataSet.add(data);
-        notifyDataSetChanged();
-        return result;
+        return addItem(data, dataSet.size());
     }
 
     public boolean addItem(T data, int position) {
@@ -266,8 +251,10 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         if (dataSet.size() == 0 || index == -1) {
             return POSITION_NONE;  // remove
         }
-        if (changedMap.containsKey(index)) {
-            return changedMap.get(index) ? POSITION_NONE : POSITION_UNCHANGED;
+        Boolean flag = changedMap.get(index);
+        if (flag != null) {
+            changedMap.remove(index);
+            return flag ? POSITION_NONE : POSITION_UNCHANGED;
         }
         return pagerAdapterItemHolder.getItemPosition(object, dataSet, subViews);
     }
@@ -288,6 +275,11 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     public void setUseCache(boolean useCache) {
         this.useCache = useCache;
+    }
+
+    public void clearCache() {
+        subViews.clear();
+        changedMap.clear();
     }
 
     @Override
