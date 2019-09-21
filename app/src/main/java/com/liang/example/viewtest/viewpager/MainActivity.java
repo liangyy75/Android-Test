@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                 showDataSet(dataSet, "finishUpdate");
                 showSubViews(subViews, "finishUpdate");
             }
-        }, -1, viewPager, true, false);
+        }, 5000, viewPager, true, true);
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
         findViewById(R.id.test_viewpager_add_item).setOnClickListener((v) -> {
