@@ -8,6 +8,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +20,7 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
+import com.liang.example.viewtest.cornerview.CornerView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager viewPager;
     private EditText posET;
     private EditText valET;
+    private LinearLayout controllerContainer;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -42,13 +45,16 @@ public class MainActivity extends AppCompatActivity {
                 android.R.color.holo_red_dark,
                 android.R.color.holo_green_dark,
                 android.R.color.holo_blue_dark,
-                R.color.color888888
+                android.R.color.darker_gray
         );
         int background_dark = ContextCompat.getColor(this, android.R.color.background_dark);
+        int controller_size = (int) getResources().getDimension(R.dimen.dimen10);
+        int controller_color = ContextCompat.getColor(this, android.R.color.tab_indicator_text);
         viewPager = findViewById(R.id.test_viewpager_viewpager);
         posET = findViewById(R.id.test_viewpager_position);
         valET = findViewById(R.id.test_viewpager_value);
-        pagerAdapterTest = new PagerAdapterTest<>(dataSet, new PagerAdapterTest.PagerAdapterItemHolder<String>() {
+        controllerContainer = findViewById(R.id.test_viewpager_controllers);
+        pagerAdapterTest = new PagerAdapterTest<>(dataSet, new PagerAdapterTest.PagerAdapterHolder<String>() {
             @Override
             public View instantiateItem(@NonNull ViewGroup container, int position, String data) {
                 ApiManager.LOGGER.d(TAG, "instantiateItem -- position: %d, data: %s", position, data);
@@ -59,11 +65,6 @@ public class MainActivity extends AppCompatActivity {
                 view.setTextColor(background_dark);
                 view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 100);
                 return view;
-            }
-
-            @Override
-            public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
-                return ((TextView) view).getText().toString().equals(object);
             }
 
             @Override
@@ -82,7 +83,25 @@ public class MainActivity extends AppCompatActivity {
                 showDataSet(dataSet, "finishUpdate");
                 showSubViews(subViews, "finishUpdate");
             }
-        }, 5000, viewPager, true, true);
+        }, 5000, viewPager, true, false, true, new PagerAdapterTest.ControllerHolder<String>() {
+            @Override
+            public View getController(int index, String data) {
+                ApiManager.LOGGER.d(TAG, "getController(index: %d, data: %s)", index, data);
+                CornerView view = new CornerView(MainActivity.this);
+                view.setPaintColor(controller_color);
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(controller_size, controller_size);
+                layoutParams.setMargins(controller_size, 0, controller_size, 0);
+                controllerContainer.addView(view, layoutParams);
+                return view;
+            }
+
+            @Override
+            public void removeController(int index, String data, View view) {
+                ApiManager.LOGGER.d(TAG, "removeController(index: %d, data: %s)", index, data);
+                controllerContainer.removeView(view);
+            }
+        });
+        ApiManager.LOGGER.d(TAG, "pagerAdapterTest.getCount: %d, getSize: %d", pagerAdapterTest.getCount(), pagerAdapterTest.getSize());
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
         findViewById(R.id.test_viewpager_add_item).setOnClickListener((v) -> {
@@ -132,11 +151,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(0).append(": ").append(subViews.get(0));
+        View view = subViews.get(0);
+        sb.append(0).append(": ").append(view != null ? ((TextView) view).getText() : "null");
         for (int i = 1; i < size; i++) {
-            sb.append(", ").append(i).append(": ").append(subViews.get(i));
+            view = subViews.get(i);
+            sb.append(", ").append(i).append(": ").append(view != null ? ((TextView) view).getText() : "null");
         }
-        ApiManager.LOGGER.d(TAG, "%s -- showDataSet: [%s]", tag, sb.toString());
+        ApiManager.LOGGER.d(TAG, "%s -- showSubViews: [%s]", tag, sb.toString());
     }
 
     private int getPos(boolean flag) {
@@ -175,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         viewPager.setAdapter(pagerAdapterTest);
         viewPager.setCurrentItem(pagerAdapterTest.getFirstItemPos());
+        pagerAdapterTest.startCarousel();
     }
 
     @Override

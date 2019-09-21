@@ -10,29 +10,47 @@
         android:gravity="center_horizontal"
         android:orientation="vertical">
 
-        <androidx.viewpager.widget.ViewPager
-            android:id="@+id/test_viewpager_viewpager"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="@dimen/dimen300" />
+            android:layout_height="@dimen/dimen300">
+
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/test_viewpager_viewpager"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dimen300"
+                android:layout_centerInParent="true" />
+
+            <LinearLayout
+                android:id="@+id/test_viewpager_controllers"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/dimen10"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="@dimen/dimen10"
+                android:background="@color/colorTransparent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </RelativeLayout>
 
         <Button
             android:id="@+id/test_viewpager_start"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/dimen20"
+            android:layout_marginTop="@dimen/dimen10"
             android:text="@string/start_test" />
 
         <Button
             android:id="@+id/test_viewpager_stop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/dimen20"
+            android:layout_marginTop="@dimen/dimen10"
             android:text="@string/stop_test" />
 
         <EditText
             android:id="@+id/test_viewpager_position"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginTop="@dimen/dimen10"
             android:hint="@string/input_position"
             android:importantForAutofill="no"
             android:inputType="numberDecimal" />
@@ -41,20 +59,21 @@
             android:id="@+id/test_viewpager_add_item"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/dimen20"
+            android:layout_marginTop="@dimen/dimen10"
             android:text="@string/add_item" />
 
         <Button
             android:id="@+id/test_viewpager_remove_item"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/dimen20"
+            android:layout_marginTop="@dimen/dimen10"
             android:text="@string/remove_item" />
 
         <EditText
             android:id="@+id/test_viewpager_value"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginTop="@dimen/dimen10"
             android:hint="@string/input_value"
             android:importantForAutofill="no"
             android:inputType="numberDecimal" />
@@ -63,7 +82,7 @@
             android:id="@+id/test_viewpager_set_item"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/dimen20"
+            android:layout_marginTop="@dimen/dimen10"
             android:text="@string/set_item" />
     </LinearLayout>
 </ScrollView>

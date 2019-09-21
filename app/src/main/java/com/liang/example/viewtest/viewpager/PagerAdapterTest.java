@@ -1,27 +1,35 @@
 package com.liang.example.viewtest.viewpager;
 
 import android.annotation.SuppressLint;
+import android.os.Parcelable;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * 1. 支持数据集
- * 2. 支持轮播
- * 3. 支持动态扩展和删除  TODO: 动态修改与轮播兼容
- * 4. 支持缓存  TODO: 动态修改时不需要重新生成一遍收到影响的所有page
- * 5. 支持懒加载与预加载
+ * 1. 功能
+ * 1.1 支持数据集
+ * 1.2 支持轮播
+ * 1.3 支持动态扩展和删除  TODO: 动态修改与轮播兼容
+ * 1.4 支持缓存  TODO: 动态修改时不需要重新生成一遍收到影响的所有page
+ * 1.5 支持懒加载与预加载(PagerAdapter特性)
+ * 1.6 支持Controller：一个Pager对应一个Controller
+ * 2. bug
+ * 2.1 2019-09-22: TODO subViews出错
  *
  * @param <T> 数据集中数据的类型，不需要时可以用 {@link Void}
  */
@@ -31,44 +39,56 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     private List<T> dataSet;
     private SparseArray<View> subViews;
+    private PagerAdapterHolder<T> pagerAdapterHolder;
+
     private boolean carousel;  // 是否轮播
     private long duration;  // 轮播时间间隔
     private ViewPager viewPager;  // 轮播需要的ViewPager
     private volatile Timer timer;  // 轮播的timer
-    private PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder;
-    private int pageChangePos = -1;
+    private int pageChangePos = -1;  // pager当前位置
+
     private boolean canChanged;
-    private boolean haveChanged;
     private HashMap<Integer, Boolean> changedMap;
+
     private boolean useCache;
     private SparseArray<View> cachedViews;
 
+    private boolean useController;
+    private ControllerHolder<T> controllerHolder;
+    private List<View> controllers;
+
     /**************************************** 构造函数 ****************************************/
     /* 最基本的PagerAdapter */
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder) {
-        this(dataSet, pagerAdapterItemHolder, -1, null, false, false);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder) {
+        this(dataSet, pagerAdapterHolder, -1, null, false, false, false, null);
     }
 
     /* 支持数据集修改 */
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, ViewPager viewPager, boolean canChanged) {
-        this(dataSet, pagerAdapterItemHolder, -1, viewPager, canChanged, false);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, ViewPager viewPager, boolean canChanged) {
+        this(dataSet, pagerAdapterHolder, -1, viewPager, canChanged, false, false, null);
     }
 
     /* 支持轮播 */
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager) {
-        this(dataSet, pagerAdapterItemHolder, duration, viewPager, false, false);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, long duration, ViewPager viewPager) {
+        this(dataSet, pagerAdapterHolder, duration, viewPager, false, false, false, null);
     }
 
     /* 支持缓存 */
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, boolean useCache) {
-        this(dataSet, pagerAdapterItemHolder, -1, null, false, useCache);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, boolean useCache) {
+        this(dataSet, pagerAdapterHolder, -1, null, false, useCache, false, null);
     }
 
-    /* 支持轮播/数据集修改/缓存 */
+    /* 支持控制器 */
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, ViewPager viewPager, boolean useController, ControllerHolder<T> controllerHolder) {
+        this(dataSet, pagerAdapterHolder, -1, viewPager, false, false, useController, controllerHolder);
+    }
+
+    /* 支持轮播/数据集修改/缓存/控制器 */
     @SuppressLint("UseSparseArrays")
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterTest.PagerAdapterItemHolder<T> pagerAdapterItemHolder, long duration, ViewPager viewPager, boolean canChanged, boolean useCache) {
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, long duration, ViewPager viewPager, boolean canChanged, boolean useCache,
+                            boolean useController, ControllerHolder<T> controllerHolder) {
         this.dataSet = dataSet;
-        this.pagerAdapterItemHolder = pagerAdapterItemHolder;
+        this.pagerAdapterHolder = pagerAdapterHolder;
         this.duration = duration;
         this.viewPager = viewPager;
         this.subViews = new SparseArray<>();
@@ -81,10 +101,8 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         if (this.canChanged) {
             this.changedMap = new HashMap<>();
         }
-        this.useCache = useCache;
-        if (useCache) {
-            this.cachedViews = new SparseArray<>();
-        }
+        setUseCache(useCache);
+        setUseController(useController, controllerHolder);
     }
 
     /**************************************** page的生成与销毁 ****************************************/
@@ -103,12 +121,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             view = cachedViews.get(position);
             ApiManager.LOGGER.d(TAG, "instantiateItem -- use cachedView");
         } else {
-            view = pagerAdapterItemHolder.instantiateItem(container, newPos, data);
+            view = pagerAdapterHolder.instantiateItem(container, newPos, data);
             ApiManager.LOGGER.d(TAG, "instantiateItem -- create newView");
             if (useCache) {
                 cachedViews.put(position, view);
             }
         }
+        view.setTag(R.id.PAGE_TAG_KEY, data);
         subViews.put(position, view);
         container.addView(view);
         return data;
@@ -117,7 +136,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     @Override
     public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
         ApiManager.LOGGER.d(TAG, "isViewFromObject");
-        return pagerAdapterItemHolder.isViewFromObject(view, object);
+        return pagerAdapterHolder.isViewFromObject(view, object);
     }
 
     @Override
@@ -126,29 +145,51 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         View view = subViews.get(position);
         subViews.remove(position);
         container.removeView(view);
-        pagerAdapterItemHolder.destroyItem(container, newPos, object, view);
+        pagerAdapterHolder.destroyItem(container, newPos, object, view);
     }
 
     @Override
     public void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         int newPos = parsePos(position, "setPrimaryItem");
-        pagerAdapterItemHolder.setPrimaryItem(container, newPos, object, subViews.get(position));
+        pagerAdapterHolder.setPrimaryItem(container, newPos, object, subViews.get(position));
     }
 
     @Override
     public void finishUpdate(@NonNull ViewGroup container) {
         ApiManager.LOGGER.d(TAG, "finishUpdate");
-        pagerAdapterItemHolder.finishUpdate(container, dataSet, subViews);
+        pagerAdapterHolder.finishUpdate(container, dataSet, subViews);
     }
 
     @Override
     public void startUpdate(@NonNull ViewGroup container) {
         ApiManager.LOGGER.d(TAG, "startUpdate");
-        pagerAdapterItemHolder.startUpdate(container, dataSet, subViews);
+        pagerAdapterHolder.startUpdate(container, dataSet, subViews);
     }
 
-    public int getSize() {
-        return dataSet.size();
+    @Nullable
+    @Override
+    public CharSequence getPageTitle(int position) {
+        int newPos = parsePos(position, "getPageTitle");
+        return pagerAdapterHolder.getPageTitle(position, subViews.get(position), dataSet.get(newPos));
+    }
+
+    @Override
+    public float getPageWidth(int position) {
+        int newPos = parsePos(position, "getPageWidth");
+        return pagerAdapterHolder.getPageWidth(position, subViews.get(position), dataSet.get(newPos));
+    }
+
+    @Nullable
+    @Override
+    public Parcelable saveState() {
+        ApiManager.LOGGER.d(TAG, "saveState");
+        return pagerAdapterHolder.saveState(dataSet);
+    }
+
+    @Override
+    public void restoreState(@Nullable Parcelable state, @Nullable ClassLoader loader) {
+        ApiManager.LOGGER.d(TAG, "restoreState");
+        pagerAdapterHolder.restoreState(state, loader, dataSet);
     }
 
     /**************************************** 数据集动态修改相关 ****************************************/
@@ -159,6 +200,10 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     public boolean addItem(T data, int position) {
         if (carousel || !canChanged) {
             return false;
+        }
+        ApiManager.LOGGER.d(TAG, "addItem(data: %s, position: %d)", data, position);
+        if (useController) {
+            addController(position);
         }
         int oldPos = viewPager.getCurrentItem();
         int size = dataSet.size();
@@ -186,16 +231,17 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public boolean removeItem(T data) {
-        if (carousel || !canChanged) {
-            return false;
-        }
         int position = dataSet.indexOf(data);
-        return position != -1 && removeItem(position);
+        return position != -1 && removeItem(position).equals(data);
     }
 
-    public boolean removeItem(int position) {
+    public T removeItem(int position) {
         if (carousel || !canChanged) {
-            return false;
+            return null;
+        }
+        ApiManager.LOGGER.d(TAG, "removeItem(position: %d)", position);
+        if (useController) {
+            removeController(position);
         }
         int oldPos = viewPager.getCurrentItem();
         T result = dataSet.remove(position);
@@ -225,7 +271,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         } else {
             viewPager.setCurrentItem(0, false);
         }
-        return true;
+        return result;
     }
 
     public boolean setItem(T data, int position) {
@@ -243,22 +289,33 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     @Override
     public int getItemPosition(@NonNull Object object) {
+        int result = POSITION_UNCHANGED;
         int index = dataSet.indexOf(object);
         if (dataSet.size() == 0 || index == -1) {
-            return POSITION_NONE;  // remove
+            result = POSITION_NONE;
+        } else {
+            Boolean flag = changedMap.get(index);
+            if (flag != null) {
+                changedMap.remove(index);
+                result = flag ? POSITION_NONE : POSITION_UNCHANGED;
+            }
         }
-        Boolean flag = changedMap.get(index);
-        if (flag != null) {
-            changedMap.remove(index);
-            return flag ? POSITION_NONE : POSITION_UNCHANGED;
+        if (result == POSITION_UNCHANGED) {
+            result = pagerAdapterHolder.getItemPosition(object, dataSet, subViews);
         }
-        return pagerAdapterItemHolder.getItemPosition(object, dataSet, subViews);
+        ApiManager.LOGGER.d(TAG, "getItemPosition(object: %s) -- result: %d", object, result);
+        return result;
+    }
+
+    public int getSize() {
+        return dataSet.size();
     }
 
     /**************************************** 缓存相关 ****************************************/
     public void setUseCache(boolean useCache) {
         this.useCache = useCache;
-        if (!useCache) {
+        ApiManager.LOGGER.d(TAG, "setUseCache(useCache: %s)", String.valueOf(useCache));
+        if (!useCache && cachedViews != null) {
             cachedViews.clear();
             cachedViews = null;
         } else {
@@ -267,7 +324,9 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public void clearCache() {
-        cachedViews.clear();
+        if (useCache) {
+            cachedViews.clear();
+        }
     }
 
     public SparseArray<View> getCachedViews() {
@@ -348,34 +407,16 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        // for (OnPageChangeListener pageChangeListener : pageChangeListeners) {
-        //     pageChangeListener.onPageScrolled(position, positionOffset, positionOffsetPixels);
-        // }
-        // for (OnPageScrolledListener pageScrolledListener : pageScrolledListeners) {
-        //     pageScrolledListener.onPageScrolled(position, positionOffset, positionOffsetPixels);
-        // }
         pageChangePos = position;
     }
 
     @Override
     public void onPageSelected(int position) {
-        // for (OnPageChangeListener pageChangeListener : pageChangeListeners) {
-        //     pageChangeListener.onPageSelected(position);
-        // }
-        // for (OnPageSelectedListener pageSelectedListener : pageSelectedListeners) {
-        //     pageSelectedListener.onPageSelected(position);
-        // }
         pageChangePos = position;
     }
 
     @Override
     public void onPageScrollStateChanged(int state) {
-        // for (OnPageChangeListener pageChangeListener : pageChangeListeners) {
-        //     pageChangeListener.onPageScrollStateChanged(state);
-        // }
-        // for (OnPageScrollStateListener pageScrollStateListener : pageScrollStateListeners) {
-        //     pageScrollStateListener.onPageScrollStateChanged(state);
-        // }
         if (carousel && state == ViewPager.SCROLL_STATE_IDLE) {
             int count = dataSet.size();
             ApiManager.LOGGER.d(TAG, "adjust pageChangePos: %d", pageChangePos);
@@ -387,12 +428,81 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         }
     }
 
+    /**************************************** 控制器相关 ****************************************/
+    public void setUseController(boolean useController, ControllerHolder<T> controllerHolder) {
+        ApiManager.LOGGER.d(TAG, "setUseController(useController: %s)", String.valueOf(useController));
+        this.useController = useController;
+        this.controllerHolder = controllerHolder;
+        if (this.useController) {
+            controllers = new ArrayList<>();
+            int size = dataSet.size();
+            int key = R.id.CONTROLLER_TAG_KEY;
+            for (int i = 0; i < size; i++) {
+                View controller = this.controllerHolder.getController(i, dataSet.get(i));
+                controller.setTag(key, carousel ? i + 1 : i);
+                controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
+                this.controllers.add(controller);
+            }
+        } else {
+            clearControllers();
+        }
+    }
+
+    public void clearControllers() {
+        if (controllers != null) {
+            ApiManager.LOGGER.d(TAG, "clearControllers");
+            int size = dataSet.size();
+            int key = R.id.CONTROLLER_TAG_KEY;
+            for (int i = 0; i < size; i++) {
+                View view = controllers.get(i);
+                view.setOnClickListener(null);
+                view.setTag(key, null);
+                this.controllerHolder.removeController(i, dataSet.get(i), view);
+            }
+            controllers.clear();
+            controllers = null;
+            useController = false;
+        }
+    }
+
+    private void addController(int position) {
+        int size = dataSet.size();
+        int key = R.id.CONTROLLER_TAG_KEY;
+        for (int i = position; i < size; i++) {
+            controllers.get(i).setTag(key, i + 1);
+        }
+        View controller = controllerHolder.getController(position, dataSet.get(position));
+        controller.setTag(key, carousel ? position + 1 : position);
+        controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
+        controllers.add(position, controller);
+    }
+
+    private void removeController(int position) {
+        int size = dataSet.size();
+        int key = R.id.CONTROLLER_TAG_KEY;
+        for (int i = position + 1; i < size; i++) {
+            controllers.get(i).setTag(key, i - 1);
+        }
+        View view = controllers.remove(position);
+        view.setOnClickListener(null);
+        view.setTag(key, null);
+        controllerHolder.removeController(position, dataSet.get(position), view);
+    }
+
+    public interface ControllerHolder<T> {
+        View getController(int index, T data);
+
+        default void removeController(int index, T data, View view) {
+        }
+    }
+
     /**************************************** 委托接口 ****************************************/
-    public interface PagerAdapterItemHolder<T> {
+    public interface PagerAdapterHolder<T> {
         View instantiateItem(@NonNull ViewGroup container, int position, T data);
 
         default boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
-            return view == object;
+            int key = R.id.PAGE_TAG_KEY;
+            return view == object || (view.getTag(key) != null && view.getTag(key).equals(object));
         }
 
         default void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object, View vie) {
@@ -409,6 +519,21 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
         default int getItemPosition(@NonNull Object object, List<T> dataSet, SparseArray<View> subViews) {
             return PagerAdapter.POSITION_UNCHANGED;
+        }
+
+        default CharSequence getPageTitle(int position, View view, T data) {
+            return null;
+        }
+
+        default float getPageWidth(int position, View view, T data) {
+            return 1.f;
+        }
+
+        default Parcelable saveState(List<T> dataSet) {
+            return null;
+        }
+
+        default void restoreState(@Nullable Parcelable state, @Nullable ClassLoader loader, List<T> dataSet) {
         }
     }
 }

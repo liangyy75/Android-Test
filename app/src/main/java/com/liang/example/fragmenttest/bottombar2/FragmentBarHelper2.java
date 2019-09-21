@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
 
 import java.lang.reflect.Field;
@@ -16,6 +17,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 1. 支持数据集
+ * 2. 支持缓存
+ * 3. 一个Fragment对应一个Controller
+ * 4. 可以切换(暂时没有切换动画)  TODO: 切换动画
+ * 5. 懒加载  TODO: 预加载
+ * 6. 有回退栈
+ * 7. 有切换监听器和回退键监听器
+ * 8. TODO: 支持数据集修改
+ *
+ * @param <T> 数据集中数据的类型，不需要时可以用 {@link Void}
+ */
 public class FragmentBarHelper2<T> {
     private static final String TAG = "FragmentBarHelper2";
     private static Field field;
@@ -24,7 +37,7 @@ public class FragmentBarHelper2<T> {
     private int containerId;
     private ControllerCreator<T> controllerCreator;
     private List<T> dataSet;
-    private List<View> buttons;
+    private List<View> controllers;
     private FragmentCreator fragmentCreator;
     private List<FragmentWrapper> fragmentWrappers;
     private int lastPosition = -1;
@@ -61,8 +74,8 @@ public class FragmentBarHelper2<T> {
         }
     }
 
-    public List<View> getButtons() {
-        return buttons;
+    public List<View> getControllers() {
+        return controllers;
     }
 
     public List<FragmentWrapper> getFragmentWrappers() {
@@ -81,24 +94,25 @@ public class FragmentBarHelper2<T> {
         return lastPosition;
     }
 
+    public List<Integer> getBackStack() {
+        return backStack;
+    }
+
     public FragmentBarHelper2<T> changePosition(int position) {
         this.lastPosition = position;
         return this;
     }
 
-    public List<Integer> getBackStack() {
-        return backStack;
-    }
-
     public FragmentBarHelper2<T> initButtons() {
         int len = dataSet.size();
-        buttons = new ArrayList<>(len);
+        controllers = new ArrayList<>(len);
         fragmentWrappers = new ArrayList<>(len);
+        int id = R.id.CONTROLLER_TAG_KEY;
         for (int i = 0; i < len; i++) {
-            View button = controllerCreator.getController(i, activity, dataSet.get(i));
-            button.setTag(i);
-            button.setOnClickListener((v) -> switchFragment((int) v.getTag()));
-            buttons.add(button);
+            View view = controllerCreator.getController(i, activity, dataSet.get(i));
+            view.setTag(id, i);
+            view.setOnClickListener((v) -> switchFragment((int) v.getTag(id)));
+            controllers.add(view);
         }
         ApiManager.LOGGER.d(TAG, "initButtons: %d", len);
         return this;
@@ -116,7 +130,7 @@ public class FragmentBarHelper2<T> {
 
     public FragmentBarHelper2<T> initFragments() {
         FragmentTransaction transaction = activity.getSupportFragmentManager().beginTransaction();
-        int len = buttons.size();
+        int len = controllers.size();
         for (int i = 0; i < len; i++) {
             FragmentWrapper fragmentWrapper = fragmentCreator.getFragment(i);
             Fragment fragment = fragmentWrapper.fragment;
@@ -169,7 +183,7 @@ public class FragmentBarHelper2<T> {
     }
 
     public FragmentBarHelper2<T> fillFragments() {
-        int len = buttons.size();
+        int len = controllers.size();
         for (int i = 0; i < len; i++) {
             fragmentWrappers.add(new FragmentWrapper());
         }

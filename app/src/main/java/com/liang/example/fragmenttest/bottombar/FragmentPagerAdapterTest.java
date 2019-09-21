@@ -29,12 +29,11 @@ public class FragmentPagerAdapterTest extends FragmentPagerAdapter {
     @Override
     public int getCount() {
         Log.d("FragmentPagerAdapterTest.getCount", String.valueOf(fragments == null ? 0 : fragments.size()));
-        return fragments == null ? 0 : /*fragments.size()*/ Integer.MAX_VALUE;
+        return fragments == null ? 0 : fragments.size();
     }
 
     @Override
-    public int getItemPosition(@NonNull Object object) {
-        Log.d("FragmentPagerAdapterTest.getItemPosition", object.getClass().getName());
-        return super.getItemPosition(object);
+    public long getItemId(int position) {
+        return super.getItemId(position);
     }
 }

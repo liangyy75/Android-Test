@@ -69,8 +69,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return new FragmentBarHelper2.FragmentWrapper(contextFragment, title);
                 }, false/*, true*/)
                 .setSwitchListener(((lastPos, newPos) -> {
-                    ((Button) fragmentBarHelper.getButtons().get(lastPos)).setTextColor(red);
-                    ((Button) fragmentBarHelper.getButtons().get(newPos)).setTextColor(green);
+                    ((Button) fragmentBarHelper.getControllers().get(lastPos)).setTextColor(red);
+                    ((Button) fragmentBarHelper.getControllers().get(newPos)).setTextColor(green);
                 }))
                 .setBackListener((lastPos, newPos) -> {
                     fragmentBarHelper.getBackStack().clear();

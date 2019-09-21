@@ -7,6 +7,12 @@ import com.liang.example.fragmenttest.bottombar2.FragmentBarHelper2;
 
 import java.util.List;
 
+/**
+ * 1. ViewPager加上FragmentPagerAdapter后已有的功能
+ *     1. 支持切换
+ *
+ * @param <T>
+ */
 public class TabFragmentHelper<T> {
     private static final String TAG = "TabFragmentHelper";
 
