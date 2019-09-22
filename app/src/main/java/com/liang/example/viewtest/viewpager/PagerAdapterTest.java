@@ -27,9 +27,11 @@ import java.util.TimerTask;
  * 1.3 支持动态扩展和删除  TODO: 动态修改与轮播兼容
  * 1.4 支持缓存  TODO: 动态修改时不需要重新生成一遍收到影响的所有page
  * 1.5 支持懒加载与预加载(PagerAdapter特性)
- * 1.6 支持Controller：一个Pager对应一个Controller
+ * 1.6 支持ViewPagerIndicator
+ * 1.7 多item显示 -- 两种形式
  * 2. bug
- * 2.1 2019-09-22: TODO subViews出错
+ * 2.1 2019-09-22: subViews出错 -- SparseArray当作List处理了，其实subViews内容是没错的
+ * 2.2 2019-09-23: pageMargin需要深入理解一下 -- https://juejin.im/post/5a4c2f496fb9a044fd122631 -- 没有使用getResources.getDimensionPixelSize而是用getResources.getDimension
  *
  * @param <T> 数据集中数据的类型，不需要时可以用 {@link Void}
  */
@@ -53,9 +55,11 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     private boolean useCache;
     private SparseArray<View> cachedViews;
 
-    private boolean useController;
-    private ControllerHolder<T> controllerHolder;
-    private List<View> controllers;
+    private boolean useIndicator;
+    private IndicatorHolder<T> indicatorHolder;
+    private List<View> indicators;
+
+    private float pageWidth = 1.f;
 
     /**************************************** 构造函数 ****************************************/
     /* 最基本的PagerAdapter */
@@ -79,14 +83,14 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     /* 支持控制器 */
-    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, ViewPager viewPager, boolean useController, ControllerHolder<T> controllerHolder) {
-        this(dataSet, pagerAdapterHolder, -1, viewPager, false, false, useController, controllerHolder);
+    public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, ViewPager viewPager, boolean useIndicator, IndicatorHolder<T> indicatorHolder) {
+        this(dataSet, pagerAdapterHolder, -1, viewPager, false, false, useIndicator, indicatorHolder);
     }
 
     /* 支持轮播/数据集修改/缓存/控制器 */
     @SuppressLint("UseSparseArrays")
     public PagerAdapterTest(List<T> dataSet, PagerAdapterHolder<T> pagerAdapterHolder, long duration, ViewPager viewPager, boolean canChanged, boolean useCache,
-                            boolean useController, ControllerHolder<T> controllerHolder) {
+                            boolean useIndicator, IndicatorHolder<T> indicatorHolder) {
         this.dataSet = dataSet;
         this.pagerAdapterHolder = pagerAdapterHolder;
         this.duration = duration;
@@ -102,7 +106,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             this.changedMap = new HashMap<>();
         }
         setUseCache(useCache);
-        setUseController(useController, controllerHolder);
+        setUseController(useIndicator, indicatorHolder);
     }
 
     /**************************************** page的生成与销毁 ****************************************/
@@ -166,6 +170,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         pagerAdapterHolder.startUpdate(container, dataSet, subViews);
     }
 
+    /**************************************** page的一些功能和状态 ****************************************/
     @Nullable
     @Override
     public CharSequence getPageTitle(int position) {
@@ -176,7 +181,39 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     @Override
     public float getPageWidth(int position) {
         int newPos = parsePos(position, "getPageWidth");
-        return pagerAdapterHolder.getPageWidth(position, subViews.get(position), dataSet.get(newPos));
+        return pageWidth != 1.f ? pageWidth : pagerAdapterHolder.getPageWidth(position, subViews.get(position), dataSet.get(newPos));
+    }
+
+    public boolean prepareForMultipleViewByPW(float pageWidth) {
+        if (viewPager != null) {
+            this.pageWidth = pageWidth;
+            viewPager.setClipChildren(false);
+            ViewGroup parentOfVP = (ViewGroup) viewPager.getParent();
+            parentOfVP.setClipChildren(false);
+            parentOfVP.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            return false;
+        }
+        return false;
+    }
+
+    public boolean prepareForMultipleViewByXML(int marginLeft, int marginRight, int offscreenPageLimit, int pageMargin) {
+        if (viewPager != null) {
+            ApiManager.LOGGER.d(TAG, "prepareForPageWidth(marginLeft: %d, marginRight: %d)", marginLeft, marginRight);
+            ViewGroup.LayoutParams layoutParams = viewPager.getLayoutParams();
+            if (layoutParams instanceof ViewGroup.MarginLayoutParams) {
+                viewPager.setOffscreenPageLimit(offscreenPageLimit);
+                viewPager.setPageMargin(pageMargin);
+                viewPager.setClipChildren(false);
+                ViewGroup parentOfVP = (ViewGroup) viewPager.getParent();
+                parentOfVP.setClipChildren(false);
+                parentOfVP.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                ViewGroup.MarginLayoutParams marginLayoutParams = (ViewGroup.MarginLayoutParams) layoutParams;
+                marginLayoutParams.setMargins(marginLeft, marginLayoutParams.topMargin, marginRight, marginLayoutParams.bottomMargin);
+                viewPager.setLayoutParams(marginLayoutParams);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nullable
@@ -202,7 +239,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             return false;
         }
         ApiManager.LOGGER.d(TAG, "addItem(data: %s, position: %d)", data, position);
-        if (useController) {
+        if (useIndicator) {
             addController(position);
         }
         int oldPos = viewPager.getCurrentItem();
@@ -240,7 +277,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             return null;
         }
         ApiManager.LOGGER.d(TAG, "removeItem(position: %d)", position);
-        if (useController) {
+        if (useIndicator) {
             removeController(position);
         }
         int oldPos = viewPager.getCurrentItem();
@@ -429,19 +466,19 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     /**************************************** 控制器相关 ****************************************/
-    public void setUseController(boolean useController, ControllerHolder<T> controllerHolder) {
-        ApiManager.LOGGER.d(TAG, "setUseController(useController: %s)", String.valueOf(useController));
-        this.useController = useController;
-        this.controllerHolder = controllerHolder;
-        if (this.useController) {
-            controllers = new ArrayList<>();
+    public void setUseController(boolean useController, IndicatorHolder<T> indicatorHolder) {
+        ApiManager.LOGGER.d(TAG, "setUseController(useIndicator: %s)", String.valueOf(useController));
+        this.useIndicator = useController;
+        this.indicatorHolder = indicatorHolder;
+        if (this.useIndicator) {
+            indicators = new ArrayList<>();
             int size = dataSet.size();
             int key = R.id.CONTROLLER_TAG_KEY;
             for (int i = 0; i < size; i++) {
-                View controller = this.controllerHolder.getController(i, dataSet.get(i));
+                View controller = this.indicatorHolder.getIndicator(i, dataSet.get(i));
                 controller.setTag(key, carousel ? i + 1 : i);
                 controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
-                this.controllers.add(controller);
+                this.indicators.add(controller);
             }
         } else {
             clearControllers();
@@ -449,19 +486,19 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     public void clearControllers() {
-        if (controllers != null) {
+        if (indicators != null) {
             ApiManager.LOGGER.d(TAG, "clearControllers");
             int size = dataSet.size();
             int key = R.id.CONTROLLER_TAG_KEY;
             for (int i = 0; i < size; i++) {
-                View view = controllers.get(i);
+                View view = indicators.get(i);
                 view.setOnClickListener(null);
                 view.setTag(key, null);
-                this.controllerHolder.removeController(i, dataSet.get(i), view);
+                this.indicatorHolder.removeIndicator(i, dataSet.get(i), view);
             }
-            controllers.clear();
-            controllers = null;
-            useController = false;
+            indicators.clear();
+            indicators = null;
+            useIndicator = false;
         }
     }
 
@@ -469,30 +506,30 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         int size = dataSet.size();
         int key = R.id.CONTROLLER_TAG_KEY;
         for (int i = position; i < size; i++) {
-            controllers.get(i).setTag(key, i + 1);
+            indicators.get(i).setTag(key, i + 1);
         }
-        View controller = controllerHolder.getController(position, dataSet.get(position));
+        View controller = indicatorHolder.getIndicator(position, dataSet.get(position));
         controller.setTag(key, carousel ? position + 1 : position);
         controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
-        controllers.add(position, controller);
+        indicators.add(position, controller);
     }
 
     private void removeController(int position) {
         int size = dataSet.size();
         int key = R.id.CONTROLLER_TAG_KEY;
         for (int i = position + 1; i < size; i++) {
-            controllers.get(i).setTag(key, i - 1);
+            indicators.get(i).setTag(key, i - 1);
         }
-        View view = controllers.remove(position);
+        View view = indicators.remove(position);
         view.setOnClickListener(null);
         view.setTag(key, null);
-        controllerHolder.removeController(position, dataSet.get(position), view);
+        indicatorHolder.removeIndicator(position, dataSet.get(position), view);
     }
 
-    public interface ControllerHolder<T> {
-        View getController(int index, T data);
+    public interface IndicatorHolder<T> {
+        View getIndicator(int index, T data);
 
-        default void removeController(int index, T data, View view) {
+        default void removeIndicator(int index, T data, View view) {
         }
     }
 

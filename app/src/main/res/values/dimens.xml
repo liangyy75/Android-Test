@@ -39,11 +39,34 @@
     <dimen name="dimen180">180dp</dimen>
     <dimen name="dimen190">190dp</dimen>
     <dimen name="dimen200">200dp</dimen>
+    <dimen name="dimen210">210dp</dimen>
+    <dimen name="dimen220">220dp</dimen>
+    <dimen name="dimen230">230dp</dimen>
+    <dimen name="dimen240">240dp</dimen>
+    <dimen name="dimen250">250dp</dimen>
+    <dimen name="dimen260">260dp</dimen>
+    <dimen name="dimen270">270dp</dimen>
+    <dimen name="dimen280">280dp</dimen>
+    <dimen name="dimen290">290dp</dimen>
 
     <dimen name="dimen300">300dp</dimen>
+    <dimen name="dimen320">320dp</dimen>
+    <dimen name="dimen340">340dp</dimen>
+    <dimen name="dimen360">360dp</dimen>
+    <dimen name="dimen380">380dp</dimen>
     <dimen name="dimen400">400dp</dimen>
+    <dimen name="dimen420">420dp</dimen>
+    <dimen name="dimen440">440dp</dimen>
+    <dimen name="dimen460">460dp</dimen>
+    <dimen name="dimen480">480dp</dimen>
+
     <dimen name="dimen500">500dp</dimen>
+    <dimen name="dimen533">533dp</dimen>
+    <dimen name="dimen566">566dp</dimen>
     <dimen name="dimen600">600dp</dimen>
+    <dimen name="dimen633">633dp</dimen>
+    <dimen name="dimen666">666dp</dimen>
+
     <dimen name="dimen700">700dp</dimen>
     <dimen name="dimen800">800dp</dimen>
     <dimen name="dimen900">900dp</dimen>

@@ -12,12 +12,12 @@
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="@dimen/dimen300">
+            android:layout_height="@dimen/dimen260">
 
             <androidx.viewpager.widget.ViewPager
                 android:id="@+id/test_viewpager_viewpager"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/dimen300"
+                android:layout_width="@dimen/dimen260"
+                android:layout_height="@dimen/dimen260"
                 android:layout_centerInParent="true" />
 
             <LinearLayout

@@ -20,6 +20,7 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
+import com.liang.example.utils.ScreenApiKt;
 import com.liang.example.viewtest.cornerview.CornerView;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
                 android.R.color.darker_gray
         );
         int background_dark = ContextCompat.getColor(this, android.R.color.background_dark);
-        int controller_size = (int) getResources().getDimension(R.dimen.dimen10);
+        int controller_size = getResources().getDimensionPixelSize(R.dimen.dimen10);
         int controller_color = ContextCompat.getColor(this, android.R.color.tab_indicator_text);
         viewPager = findViewById(R.id.test_viewpager_viewpager);
         posET = findViewById(R.id.test_viewpager_position);
@@ -83,24 +84,30 @@ public class MainActivity extends AppCompatActivity {
                 showDataSet(dataSet, "finishUpdate");
                 showSubViews(subViews, "finishUpdate");
             }
-        }, 5000, viewPager, true, false, true, new PagerAdapterTest.ControllerHolder<String>() {
+        }, -1, viewPager, true, true, true, new PagerAdapterTest.IndicatorHolder<String>() {
             @Override
-            public View getController(int index, String data) {
-                ApiManager.LOGGER.d(TAG, "getController(index: %d, data: %s)", index, data);
+            public View getIndicator(int index, String data) {
+                ApiManager.LOGGER.d(TAG, "getIndicator(index: %d, data: %s)", index, data);
                 CornerView view = new CornerView(MainActivity.this);
                 view.setPaintColor(controller_color);
                 LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(controller_size, controller_size);
                 layoutParams.setMargins(controller_size, 0, controller_size, 0);
-                controllerContainer.addView(view, layoutParams);
+                controllerContainer.addView(view, index, layoutParams);
                 return view;
             }
 
             @Override
-            public void removeController(int index, String data, View view) {
-                ApiManager.LOGGER.d(TAG, "removeController(index: %d, data: %s)", index, data);
+            public void removeIndicator(int index, String data, View view) {
+                ApiManager.LOGGER.d(TAG, "removeIndicator(index: %d, data: %s)", index, data);
                 controllerContainer.removeView(view);
             }
         });
+
+        // pagerAdapterTest.prepareForMultipleViewByPW(0.6f);
+        int mlr = getResources().getDimensionPixelSize(R.dimen.dimen40);
+        int pageMargin = getResources().getDimensionPixelSize(R.dimen.dimen10);
+        pagerAdapterTest.prepareForMultipleViewByXML(mlr, mlr, 2, pageMargin);
+
         ApiManager.LOGGER.d(TAG, "pagerAdapterTest.getCount: %d, getSize: %d", pagerAdapterTest.getCount(), pagerAdapterTest.getSize());
         findViewById(R.id.test_viewpager_start).setOnClickListener((v) -> pagerAdapterTest.startCarousel());
         findViewById(R.id.test_viewpager_stop).setOnClickListener((v) -> pagerAdapterTest.stopCarousel());
@@ -130,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showDataSet(List<String> dataSet, String tag) {
+    static void showDataSet(List<String> dataSet, String tag) {
         int size = dataSet.size();
         if (size == 0) {
             ApiManager.LOGGER.d(TAG, "%s -- showDataSet: []", tag);
@@ -144,17 +151,17 @@ public class MainActivity extends AppCompatActivity {
         ApiManager.LOGGER.d(TAG, "%s -- showDataSet: [%s]", tag, sb.toString());
     }
 
-    private void showSubViews(SparseArray<View> subViews, String tag) {
+    static void showSubViews(SparseArray<View> subViews, String tag) {
         int size = subViews.size();
         if (size == 0) {
             ApiManager.LOGGER.d(TAG, "%s -- showSubViews: []", tag);
             return;
         }
         StringBuilder sb = new StringBuilder();
-        View view = subViews.get(0);
+        View view = subViews.get(subViews.keyAt(0));
         sb.append(0).append(": ").append(view != null ? ((TextView) view).getText() : "null");
         for (int i = 1; i < size; i++) {
-            view = subViews.get(i);
+            view = subViews.get(subViews.keyAt(i));
             sb.append(", ").append(i).append(": ").append(view != null ? ((TextView) view).getText() : "null");
         }
         ApiManager.LOGGER.d(TAG, "%s -- showSubViews: [%s]", tag, sb.toString());
@@ -196,7 +203,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         viewPager.setAdapter(pagerAdapterTest);
         viewPager.setCurrentItem(pagerAdapterTest.getFirstItemPos());
-        pagerAdapterTest.startCarousel();
     }
 
     @Override
