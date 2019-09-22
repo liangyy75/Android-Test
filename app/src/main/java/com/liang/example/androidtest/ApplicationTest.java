@@ -6,6 +6,8 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.appcompat.app.AppCompatDelegate;
+
 import com.liang.example.remote.RemoteMsgManager;
 import com.liang.example.shell.ShellMsgHandler;
 import com.liang.example.shelltest.RemoteShellService;
@@ -26,6 +28,10 @@ import com.liang.example.utils.ApiManager;
  */
 public class ApplicationTest extends Application {
     private static final String TAG = "ApplicationTest";
+
+    static {
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+    }
 
     @Override
     public void onCreate() {

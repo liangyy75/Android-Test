@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="?attr/actionBarSize"
-    android:height="?attr/actionBarSize"
+    android:width="@dimen/dimen50"
+    android:height="@dimen/dimen50"
     android:viewportWidth="50"
     android:viewportHeight="50">
-    <path
-        android:fillColor="@color/colorTheme"
-        android:pathData="h50v50h-50v-50" />
+    <!--<path-->
+    <!--    android:fillColor="@color/colorTheme"-->
+    <!--    android:pathData="h50v50h-50v-50" />-->
     <!--<path-->
     <!--    android:pathData="M13.75, 24.25-->
     <!--    c0, -13, 20, -13, 20, 0-->

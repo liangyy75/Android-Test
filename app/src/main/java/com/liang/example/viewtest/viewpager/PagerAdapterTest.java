@@ -444,19 +444,22 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        ApiManager.LOGGER.d(TAG, "onPageScrolled(pos: %d, posOff: %f, posOffPx: %d)", position, positionOffset, positionOffsetPixels);
         pageChangePos = position;
     }
 
     @Override
     public void onPageSelected(int position) {
+        ApiManager.LOGGER.d(TAG, "onPageSelected(pos: %d)", position);
         pageChangePos = position;
     }
 
     @Override
     public void onPageScrollStateChanged(int state) {
+        ApiManager.LOGGER.d(TAG, "onPageScrollStateChanged(state: %d)", state);
         if (carousel && state == ViewPager.SCROLL_STATE_IDLE) {
             int count = dataSet.size();
-            ApiManager.LOGGER.d(TAG, "adjust pageChangePos: %d", pageChangePos);
+            ApiManager.LOGGER.d(TAG, "onPageScrollStateChanged -- adjust pageChangePos: %d", pageChangePos);
             if (pageChangePos == count + 1) {
                 viewPager.setCurrentItem(1, false);
             } else if (pageChangePos == 0) {
@@ -574,3 +577,19 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         }
     }
 }
+
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.000000, posOffPx: 0)
+// [PagerAdapterTest.java/459 PagerAdapterTest/onPageScrollStateChanged] - onPageScrollStateChanged(state: 1)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.022567, posOffPx: 16)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.149506, posOffPx: 106)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.480959, posOffPx: 341)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.574048, posOffPx: 406)
+// [PagerAdapterTest.java/459 PagerAdapterTest/onPageScrollStateChanged] - onPageScrollStateChanged(state: 2)
+// [PagerAdapterTest.java/453 PagerAdapterTest/onPageSelected] - onPageSelected(pos: 1)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.730606, posOffPx: 518)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.925247, posOffPx: 656)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.980254, posOffPx: 695)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 0, posOff: 0.997179, posOffPx: 707)
+// [PagerAdapterTest.java/447 PagerAdapterTest/onPageScrolled] - onPageScrolled(pos: 1, posOff: 0.000000, posOffPx: 0)
+// [PagerAdapterTest.java/459 PagerAdapterTest/onPageScrollStateChanged] - onPageScrollStateChanged(state: 0)
+// 一段记录，或许可以用来做动画？

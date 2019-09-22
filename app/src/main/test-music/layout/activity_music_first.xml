@@ -22,13 +22,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
-                <ImageButton
+                <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/music_first_navigation_ib"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_alignParentStart="true"
-                    android:background="@drawable/music_about"
-                    android:contentDescription="@string/navigation_icon_button" />
+                    android:background="@color/colorTransparent"
+                    android:contentDescription="@string/navigation_icon_button"
+                    app:srcCompat="@drawable/music_about" />
 
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/music_first_tab_layout1"
