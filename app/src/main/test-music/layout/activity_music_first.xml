@@ -23,7 +23,7 @@
                 android:layout_height="match_parent">
 
                 <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/music_first_navigation_ib"
+                    android:id="@+id/music_first_navigation_iv"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_alignParentStart="true"
@@ -32,27 +32,36 @@
                     app:srcCompat="@drawable/music_about" />
 
                 <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/music_first_tab_layout1"
+                    android:id="@+id/music_first_tab_layout"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_centerInParent="true"
                     android:background="@color/colorTransparent" />
 
-                <androidx.appcompat.widget.SearchView
+                <!--<androidx.appcompat.widget.SearchView
                     android:id="@+id/music_first_search_view"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_alignParentEnd="true"
-                    app:searchIcon="@drawable/music_search" />
+                    app:searchIcon="@drawable/music_search" />-->
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/music_first_search_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_alignParentEnd="true"
+                    android:background="@color/colorTransparent"
+                    android:contentDescription="@string/search_icon_button"
+                    app:srcCompat="@drawable/music_search" />
             </RelativeLayout>
         </androidx.appcompat.widget.Toolbar>
 
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/music_first_tab_layout2"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:tabIndicatorColor="@android:color/white"
-            app:tabMode="scrollable" />
+        <!--<com.google.android.material.tabs.TabLayout-->
+        <!--    android:id="@+id/music_first_tab_layout2"-->
+        <!--    android:layout_width="match_parent"-->
+        <!--    android:layout_height="?attr/actionBarSize"-->
+        <!--    app:tabIndicatorColor="@android:color/white"-->
+        <!--    app:tabMode="scrollable" />-->
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.viewpager.widget.ViewPager
