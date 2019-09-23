@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_first);
 
-        findViewById(R.id.music_first_navigation_iv).setOnClickListener((v) -> ToastApiKt.showToast("click navigation button"));
-        findViewById(R.id.music_first_search_view).setOnClickListener((v) -> ToastApiKt.showToast("click search button"));
+        findViewById(R.id.music_first_navigation_iv).setOnClickListener((v) -> ToastApiKt.showToastWithLog("click navigation button"));
+        findViewById(R.id.music_first_search_view).setOnClickListener((v) -> ToastApiKt.showToastWithLog("click search button"));
         tabLayout = findViewById(R.id.music_first_tab_layout);
         ViewPager viewPager = findViewById(R.id.music_first_view_pager);
         List<String> pageTitles = new ArrayList<>(Arrays.asList("我的", "发现", "云村", "视频"));

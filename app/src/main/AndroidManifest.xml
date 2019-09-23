@@ -260,6 +260,9 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.liang.example.viewtest.MainActivity" />
         </activity>
+        <activity
+            android:name="com.liang.example.viewtest.surfaceview.MainActivity"
+            android:label="@string/view_surfaceview_test" />
 
         <!-- Logger Configuration -->
         <meta-data

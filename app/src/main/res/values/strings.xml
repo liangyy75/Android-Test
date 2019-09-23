@@ -51,4 +51,5 @@
     <string name="input_position">input position</string>
     <string name="set_item">Set Item</string>
     <string name="input_value">input value</string>
+    <string name="view_surfaceview_test">Test SurfaceView</string>
 </resources>

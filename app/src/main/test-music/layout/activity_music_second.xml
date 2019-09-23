@@ -2,11 +2,41 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
+    android:gravity="center_horizontal"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Music Second" />
+    <!--<androidx.drawerlayout.widget.DrawerLayout-->
+    <!--    android:layout_width="match_parent"-->
+    <!--    android:layout_height="wrap_content"/>-->
+
+    <!--&lt;!&ndash;https://ahsensaeed.com/bottom-navigation-view-android-example/&ndash;&gt;-->
+    <!--<com.google.android.material.bottomnavigation.BottomNavigationView-->
+    <!--    android:layout_width="match_parent"-->
+    <!--    android:layout_height="@dimen/dimen50"-->
+    <!--    android:layout_alignParentBottom="true" />-->
+
+    <ProgressBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
+
+    <SeekBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
+
+    <androidx.appcompat.widget.AppCompatSeekBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
+
+    <RatingBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
+
+    <androidx.appcompat.widget.AppCompatRatingBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
+
+    <!--https://www.jianshu.com/p/66927fbd749b-->
+    <androidx.core.widget.ContentLoadingProgressBar
+        android:layout_width="@dimen/dimen50"
+        android:layout_height="@dimen/dimen50"/>
 </LinearLayout>
