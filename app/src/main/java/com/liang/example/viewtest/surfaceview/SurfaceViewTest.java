@@ -1,7 +1,6 @@
 package com.liang.example.viewtest.surfaceview;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -13,7 +12,6 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
     private static final String TAG = "SurfaceViewTest";
 
     private SurfaceHolder mSurfaceHolder;
-    private Canvas mCanvas;
     private boolean mIsDrawing;
     private SurfaceViewHolder surfaceViewHolder;
     private long duration;
@@ -46,7 +44,7 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
 
     public void setSurfaceViewHolder(SurfaceViewHolder surfaceViewHolder) {
         this.surfaceViewHolder = surfaceViewHolder;
-        this.surfaceViewHolder.init(this);
+        this.surfaceViewHolder.init(this, mSurfaceHolder);
         // // 设置一些参数方便后面绘图
         // setFocusable(true);
         // setKeepScreenOn(true);
@@ -75,7 +73,7 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
     public void run() {
         while (mIsDrawing) {
             long start = System.currentTimeMillis();
-            surfaceViewHolder.run(this);
+            surfaceViewHolder.run(this, mSurfaceHolder);
             long cost = System.currentTimeMillis() - start;
             if (cost < duration) {
                 try {
@@ -96,9 +94,9 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
     }
 
     public interface SurfaceViewHolder {
-        void init(SurfaceView surfaceView);
+        void init(SurfaceView surfaceView, SurfaceHolder surfaceHolder);
 
-        void run(SurfaceView surfaceView);
+        void run(SurfaceView surfaceView, SurfaceHolder surfaceHolder);
 
         default void surfaceCreated(SurfaceView surfaceView, SurfaceHolder holder) {
         }
