@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/dimen20">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <!--android:gravity="center_horizontal"-->
+
+        <TextView
+            android:id="@+id/test_view_anim_obj"
+            android:layout_width="@dimen/dimen300"
+            android:layout_height="@dimen/dimen300"
+            android:background="@color/colorTheme"
+            android:gravity="center"
+            android:text="@string/text"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/font100" />
+
+        <Button
+            android:id="@+id/test_view_anim_scale"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/scale"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/test_view_anim_alpha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/alpha"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/test_view_anim_translate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/translate"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/test_view_anim_rotate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/rotate"
+            android:textAllCaps="false" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/test_view_anim_check_scale"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/scale" />
+
+            <CheckBox
+                android:id="@+id/test_view_anim_check_alpha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/alpha" />
+
+            <CheckBox
+                android:id="@+id/test_view_anim_check_translate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/translate" />
+
+            <CheckBox
+                android:id="@+id/test_view_anim_check_rotate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/rotate" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/test_view_anim_set"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/set"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</ScrollView>

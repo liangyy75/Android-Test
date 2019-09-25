@@ -52,4 +52,11 @@
     <string name="set_item">Set Item</string>
     <string name="input_value">input value</string>
     <string name="view_surfaceview_test">Test SurfaceView</string>
+    <string name="scale">scale</string>
+    <string name="alpha">alpha</string>
+    <string name="translate">translate</string>
+    <string name="rotate">rotate</string>
+    <string name="text">text</string>
+    <string name="view_anim_test">Test Anim</string>
+    <string name="set">set</string>
 </resources>

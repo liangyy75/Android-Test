@@ -708,64 +708,58 @@ public class Shell {
             try {
                 process = runWithEnv(shell, environment);
                 stdin = new DataOutputStream(process.getOutputStream());
-                stdout = new StreamGobbler(process.getInputStream(), new StreamGobbler.OnLineListener() {
-                    @Override
-                    public void onLine(String line) {
-                        synchronized (Interactive.this) {
-                            if (command == null) {
-                                return;
+                stdout = new StreamGobbler(process.getInputStream(), line -> {
+                    synchronized (Interactive.this) {
+                        if (command == null) {
+                            return;
+                        }
+                        String contentPart = line;
+                        String markerPart = null;
+                        int markerIndex = line.indexOf(command.marker);
+                        if (markerIndex == 0) {
+                            contentPart = null;
+                            markerPart = line;
+                        } else if (markerIndex > 0) {
+                            contentPart = line.substring(0, markerIndex);
+                            markerPart = line.substring(markerIndex);
+                        }
+                        if (contentPart != null) {
+                            addBuffer(contentPart);
+                            processLine(contentPart, onStdoutLineListener);
+                            processLine(contentPart, command.onCommandLineListener);
+                        }
+                        if (markerPart != null) {
+                            try {
+                                lastExitCode = Integer.valueOf(markerPart.substring(command.marker.length() + 1),
+                                        10);
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                            String contentPart = line;
-                            String markerPart = null;
-                            int markerIndex = line.indexOf(command.marker);
-                            if (markerIndex == 0) {
-                                contentPart = null;
-                                markerPart = line;
-                            } else if (markerIndex > 0) {
-                                contentPart = line.substring(0, markerIndex);
-                                markerPart = line.substring(markerIndex);
-                            }
-                            if (contentPart != null) {
-                                addBuffer(contentPart);
-                                processLine(contentPart, onStdoutLineListener);
-                                processLine(contentPart, command.onCommandLineListener);
-                            }
-                            if (markerPart != null) {
-                                try {
-                                    lastExitCode = Integer.valueOf(markerPart.substring(command.marker.length() + 1),
-                                            10);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                lastMarkerStdout = command.marker;
-                                processMarker();
-                            }
+                            lastMarkerStdout = command.marker;
+                            processMarker();
                         }
                     }
                 });
-                stderr = new StreamGobbler(process.getErrorStream(), new StreamGobbler.OnLineListener() {
-                    @Override
-                    public void onLine(String line) {
-                        synchronized (Interactive.this) {
-                            if (command == null) {
-                                return;
-                            }
-                            String contentPart = line;
-                            int markerIndex = line.indexOf(command.marker);
-                            if (markerIndex == 0) {
-                                contentPart = null;
-                            } else if (markerIndex > 0) {
-                                contentPart = line.substring(0, markerIndex);
-                            }
-                            if (contentPart != null) {
-                                if (wantSTDERR)
-                                    addBuffer(contentPart);
-                                processLine(contentPart, onStderrLineListener);
-                            }
-                            if (markerIndex >= 0) {
-                                lastMarkerStderr = command.marker;
-                                processMarker();
-                            }
+                stderr = new StreamGobbler(process.getErrorStream(), line -> {
+                    synchronized (Interactive.this) {
+                        if (command == null) {
+                            return;
+                        }
+                        String contentPart = line;
+                        int markerIndex = line.indexOf(command.marker);
+                        if (markerIndex == 0) {
+                            contentPart = null;
+                        } else if (markerIndex > 0) {
+                            contentPart = line.substring(0, markerIndex);
+                        }
+                        if (contentPart != null) {
+                            if (wantSTDERR)
+                                addBuffer(contentPart);
+                            processLine(contentPart, onStderrLineListener);
+                        }
+                        if (markerIndex >= 0) {
+                            lastMarkerStderr = command.marker;
+                            processMarker();
                         }
                     }
                 });
