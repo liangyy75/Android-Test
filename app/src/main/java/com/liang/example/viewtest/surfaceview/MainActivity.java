@@ -1,5 +1,6 @@
 package com.liang.example.viewtest.surfaceview;
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -14,6 +15,7 @@ import android.view.View;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
 import com.liang.example.utils.ScreenApiKt;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     SurfaceViewTest surfaceViewTest1;
     SurfaceViewTest surfaceViewTest2;
+    FloatingActionButton floatingActionButton;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -121,24 +124,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.test_surfaceview_float_button).setOnClickListener(new View.OnClickListener() {
+        floatingActionButton = findViewById(R.id.test_surfaceview_float_button);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
             private boolean flag = false;
 
             @Override
             public void onClick(View v) {
-                View view1, view2;
+                View leaveView, showView;
+                float start = 0f;
                 if (flag) {
-                    view1 = surfaceViewTest1;
-                    view2 = surfaceViewTest2;
+                    leaveView = surfaceViewTest1;
+                    showView = surfaceViewTest2;
+                    start = 180f;
                 } else {
-                    view2 = surfaceViewTest1;
-                    view1 = surfaceViewTest2;
+                    showView = surfaceViewTest1;
+                    leaveView = surfaceViewTest2;
                 }
                 flag = !flag;
-                view1.setTranslationX(screenWidthPixels);
-                view2.setTranslationX(0);
-                view1.animate().setDuration(1000).translationX(0).start();
-                view2.animate().setDuration(1000).translationX(-screenWidthPixels).start();
+                leaveView.setTranslationX(screenWidthPixels);
+                showView.setTranslationX(0);
+                leaveView.animate().setDuration(1000).translationX(0).start();
+                showView.animate().setDuration(1000).translationX(-screenWidthPixels).start();
+                ObjectAnimator.ofFloat(floatingActionButton, "rotation", start, start + 180).setDuration(1000).start();
             }
         });
     }

@@ -8,7 +8,7 @@ import android.view.SurfaceView;
 import com.liang.example.utils.ApiManager;
 
 // https://www.jianshu.com/p/b037249e6d31
-public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callback2, Runnable {
     private static final String TAG = "SurfaceViewTest";
 
     private SurfaceHolder mSurfaceHolder;
@@ -38,7 +38,6 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
 
     private void init(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         mSurfaceHolder = getHolder();
-        // 注册回调方法
         mSurfaceHolder.addCallback(this);
     }
 
@@ -70,6 +69,16 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
     }
 
     @Override
+    public void surfaceRedrawNeeded(SurfaceHolder holder) {
+        surfaceViewHolder.surfaceRedrawNeeded(this, holder);
+    }
+
+    @Override
+    public void surfaceRedrawNeededAsync(SurfaceHolder holder, Runnable drawingFinished) {
+        surfaceViewHolder.surfaceRedrawNeededAsync(this, holder, drawingFinished);
+    }
+
+    @Override
     public void run() {
         while (mIsDrawing) {
             long start = System.currentTimeMillis();
@@ -94,7 +103,8 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
     }
 
     public interface SurfaceViewHolder {
-        void init(SurfaceView surfaceView, SurfaceHolder surfaceHolder);
+        default void init(SurfaceView surfaceView, SurfaceHolder surfaceHolder) {
+        }
 
         void run(SurfaceView surfaceView, SurfaceHolder surfaceHolder);
 
@@ -105,6 +115,14 @@ public class SurfaceViewTest extends SurfaceView implements SurfaceHolder.Callba
         }
 
         default void surfaceDestroyed(SurfaceView surfaceView, SurfaceHolder holder) {
+        }
+
+        default void surfaceRedrawNeeded(SurfaceView surfaceView, SurfaceHolder holder) {
+        }
+
+        default void surfaceRedrawNeededAsync(SurfaceView surfaceView, SurfaceHolder holder, Runnable drawingFinished) {
+            surfaceRedrawNeeded(surfaceView, holder);
+            drawingFinished.run();
         }
     }
 }

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="@dimen/dimen50"
-    android:height="@dimen/dimen50"
+    android:layout_width="@dimen/dimen50"
+    android:layout_height="@dimen/dimen50"
     android:viewportWidth="50"
     android:viewportHeight="50">
     <!--<path-->
     <!--    android:fillColor="@color/colorTheme"-->
     <!--    android:pathData="h50v50h-50v-50" />-->
     <path
-        android:pathData="M40, 25h-30l10, -10m-10, 10l10, 10"
+        android:pathData="M10, 25h30l-10, 10m10, -10l-10, -10"
         android:strokeWidth="3"
         android:strokeColor="@android:color/black"
         android:strokeLineCap="round"
