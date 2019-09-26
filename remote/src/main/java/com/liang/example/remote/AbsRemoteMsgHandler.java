@@ -1,7 +1,7 @@
 package com.liang.example.remote;
 
+import com.liang.example.remoteutils.JsonApiKt;
 import com.liang.example.typebuilder.TypeBuilder;
-import com.liang.example.utils.JsonApiKt;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;

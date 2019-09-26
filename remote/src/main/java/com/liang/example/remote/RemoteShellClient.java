@@ -1,7 +1,7 @@
 package com.liang.example.remote;
 
 import com.google.gson.reflect.TypeToken;
-import com.liang.example.utils.JsonApiKt;
+import com.liang.example.remoteutils.JsonApiKt;
 
 import java.util.Map;
 

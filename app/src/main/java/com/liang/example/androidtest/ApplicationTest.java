@@ -8,6 +8,7 @@ import android.util.Log;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
+import com.liang.example.nativeremote.RemoteManager;
 import com.liang.example.remote.RemoteMsgManager;
 import com.liang.example.shell.ShellMsgHandler;
 import com.liang.example.shelltest.RemoteShellService;
@@ -39,13 +40,18 @@ public class ApplicationTest extends Application {
         Log.d(TAG, "onCreate");
         ApiManager.init(this);
 
-        RemoteMsgManager.setLogger(ApiManager.LOGGER);
+        // RemoteMsgManager.setLogger(ApiManager.LOGGER);
         RemoteMsgManager
                 .getInstance()
                 .addMsgHandler(new ShellMsgHandler())
                 .addMsgHandler(new TestMsgHandler())
                 .setUid(Long.parseLong(getString(R.string.uid_value)))
                 .setGuid(getString(R.string.guid_value));
+
+        RemoteManager.getInstance().setUid(Long.parseLong(getString(R.string.uid_value)));
+        RemoteManager.getInstance().setGuid(getString(R.string.guid_value));
+        RemoteManager.getInstance().setServerUrl("172.169.211.11");
+        ApiManager.LOGGER.d(TAG, "RemoteManager.startManager: %s", String.valueOf(RemoteManager.getInstance().startRemoteClient()));
 
         // [Android O Preview 之 通知渠道（Notification Channels）](https://www.jianshu.com/p/92afa56aee05)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

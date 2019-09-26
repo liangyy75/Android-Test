@@ -2,8 +2,9 @@ package com.liang.example.remote;
 
 import android.content.Context;
 
-import com.liang.example.utils.logger.LoggerInter;
-import com.liang.example.utils.logger.NullableLogger;
+import com.liang.example.remoteutils.JsonApiKt;
+import com.liang.example.remoteutils.Logger;
+import com.liang.example.remoteutils.NullableLogger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,11 +25,12 @@ public class RemoteMsgManager {
     private long uid;
     private String guid;
     private Map<String, AbsRemoteMsgHandler> msgHandlerMap = new HashMap<>();
-    public static LoggerInter logger = new NullableLogger();
+    public static Logger logger = new NullableLogger(true);
     // private ExecutorService executorService;
 
     private RemoteMsgManager() {
         // executorService = Executors.newFixedThreadPool(MAX_CACHED_CONSOLE);
+        JsonApiKt.init();
     }
 
     private static volatile RemoteMsgManager INSTANCE = null;
@@ -44,11 +46,11 @@ public class RemoteMsgManager {
         return INSTANCE;
     }
 
-    public static void setLogger(LoggerInter logger) {
+    public static void setLogger(Logger logger) {
         RemoteMsgManager.logger = logger;
     }
 
-    public static void setInnerLogger(LoggerInter logger) {
+    public static void setInnerLogger(Logger logger) {
         if (logger instanceof NullableLogger) {
             ((NullableLogger) RemoteMsgManager.logger).setLogger(logger);
         } else {
