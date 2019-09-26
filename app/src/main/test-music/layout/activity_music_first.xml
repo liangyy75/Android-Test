@@ -1,72 +1,85 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/music_first_drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white">
+    android:orientation="vertical">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="0dp">
+        android:layout_height="match_parent"
+        android:background="@android:color/white">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/music_first_toolbar"
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/music_first_view_pager"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/colorTheme"
-            app:contentInsetStart="0dp"
-            app:layout_scrollFlags="scroll|enterAlways">
+            android:layout_height="match_parent" />
 
-            <RelativeLayout
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="0dp">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/music_first_toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/colorTheme"
+                app:contentInsetStart="0dp"
+                app:layout_scrollFlags="scroll|enterAlways">
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/music_first_navigation_iv"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_alignParentStart="true"
-                    android:background="@color/colorTransparent"
-                    android:contentDescription="@string/navigation_icon_button"
-                    app:srcCompat="@drawable/music_about" />
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-                <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/music_first_tab_layout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_centerInParent="true"
-                    android:background="@color/colorTransparent" />
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/music_first_navigation_iv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_alignParentStart="true"
+                        android:background="@color/colorTransparent"
+                        android:contentDescription="@string/navigation_icon_button"
+                        app:srcCompat="@drawable/music_about" />
 
-                <!--<androidx.appcompat.widget.SearchView
-                    android:id="@+id/music_first_search_view"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_alignParentEnd="true"
-                    app:searchIcon="@drawable/music_search" />-->
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/music_first_search_view"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_alignParentEnd="true"
+                        android:background="@color/colorTransparent"
+                        android:contentDescription="@string/search_icon_button"
+                        app:srcCompat="@drawable/music_search" />
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/music_first_search_view"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_alignParentEnd="true"
-                    android:background="@color/colorTransparent"
-                    android:contentDescription="@string/search_icon_button"
-                    app:srcCompat="@drawable/music_search" />
-            </RelativeLayout>
-        </androidx.appcompat.widget.Toolbar>
+                    <!--<androidx.appcompat.widget.SearchView
+                        android:id="@+id/music_first_search_view"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_alignParentEnd="true"
+                        app:searchIcon="@drawable/music_search" />-->
 
-        <!--<com.google.android.material.tabs.TabLayout-->
-        <!--    android:id="@+id/music_first_tab_layout2"-->
-        <!--    android:layout_width="match_parent"-->
-        <!--    android:layout_height="?attr/actionBarSize"-->
-        <!--    app:tabIndicatorColor="@android:color/white"-->
-        <!--    app:tabMode="scrollable" />-->
-    </com.google.android.material.appbar.AppBarLayout>
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/music_first_tab_layout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/colorTransparent" />
+                </RelativeLayout>
+            </androidx.appcompat.widget.Toolbar>
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/music_first_view_pager"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+            <!--<com.google.android.material.tabs.TabLayout-->
+            <!--    android:id="@+id/music_first_tab_layout2"-->
+            <!--    android:layout_width="match_parent"-->
+            <!--    android:layout_height="?attr/actionBarSize"-->
+            <!--    app:tabIndicatorColor="@android:color/white"-->
+            <!--    app:tabMode="scrollable" />-->
+        </com.google.android.material.appbar.AppBarLayout>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <include
+        layout="@layout/activity_music_drawer"
+        android:layout_width="@dimen/dimen280"
+        android:layout_height="match_parent"
+        android:layout_gravity="start" />
+</androidx.drawerlayout.widget.DrawerLayout>

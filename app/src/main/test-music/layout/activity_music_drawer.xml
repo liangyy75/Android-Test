@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/dimen280"
+    android:layout_height="match_parent"
+    android:layout_gravity="start"
+    android:background="@android:color/white"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dimen200"
+                android:background="@color/coloreeeeee"
+                android:padding="@dimen/dimen20">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="@string/qian_dao"
+                    tools:ignore="RelativeOverlap" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="@dimen/dimen60"
+                    android:layout_height="@dimen/dimen60"
+                    android:layout_centerVertical="true"
+                    android:shape="ring"
+                    app:cardCornerRadius="@dimen/dimen30"
+                    app:cardElevation="0dp"
+                    app:cardPreventCornerOverlap="true"
+                    app:cardUseCompatPadding="false">
+
+                    <ImageView
+                        android:id="@+id/music_first_user"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ic_launcher_background"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_launcher_foreground"
+                        tools:ignore="ContentDescription" />
+                </androidx.cardview.widget.CardView>
+            </RelativeLayout>
+
+            <LinearLayout
+                android:id="@+id/music_first_bar1"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dimen50"
+                android:orientation="vertical" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/music_first_bar2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dimen50"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/music_first_night"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/music_moon"
+            android:gravity="center_vertical"
+            android:paddingStart="@dimen/dimen8"
+            android:text="@string/ye_jian_mo_shi"
+            tools:ignore="RtlSymmetry" />
+
+        <TextView
+            android:id="@+id/music_first_config"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/music_config"
+            android:gravity="center_vertical"
+            android:paddingStart="@dimen/dimen18"
+            android:text="@string/she_zhi"
+            tools:ignore="RtlSymmetry" />
+
+        <TextView
+            android:id="@+id/music_first_logout"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/music_back"
+            android:gravity="center_vertical"
+            android:paddingStart="@dimen/dimen18"
+            android:text="@string/tui_chu"
+            tools:ignore="RtlSymmetry" />
+    </LinearLayout>
+</LinearLayout>

@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
@@ -35,8 +37,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_first);
 
-        findViewById(R.id.music_first_navigation_iv).setOnClickListener((v) -> ToastApiKt.showToastWithLog("click navigation button"));
+        DrawerLayout drawerLayout = findViewById(R.id.music_first_drawer_layout);
+        findViewById(R.id.music_first_navigation_iv).setOnClickListener((View v) -> {
+            ToastApiKt.showToastWithLog("click navigation button");
+            drawerLayout.openDrawer(GravityCompat.START);
+        });
         findViewById(R.id.music_first_search_view).setOnClickListener((v) -> ToastApiKt.showToastWithLog("click search button"));
+
         tabLayout = findViewById(R.id.music_first_tab_layout);
         ViewPager viewPager = findViewById(R.id.music_first_view_pager);
         List<String> pageTitles = new ArrayList<>(Arrays.asList("我的", "发现", "云村", "视频"));

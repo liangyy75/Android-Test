@@ -59,4 +59,8 @@
     <string name="text">text</string>
     <string name="view_anim_test">Test Anim</string>
     <string name="set">set</string>
+    <string name="ye_jian_mo_shi">夜间模式</string>
+    <string name="she_zhi">设置</string>
+    <string name="tui_chu">退出</string>
+    <string name="qian_dao">签到</string>
 </resources>
