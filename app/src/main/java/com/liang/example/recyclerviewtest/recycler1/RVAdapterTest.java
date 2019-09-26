@@ -53,12 +53,12 @@ import java.util.List;
  * <p>
  * 可以实现的功能
  * 1. adapter + viewHolder + onItemClickListener
- * 2. Footer + Header + EmptyView
+ * 2. Footer + Header + EmptyView  TODO: emptyView
  * 3. 上拉刷新和下载加载
  * 4. 多Item布局 + AdapterDataObserver
  * 5. ItemDecoration + ItemAnimator + LayoutManager
  * 6. onScrollListener + onItemTouchListener
- * 7.
+ * 7. TODO: TreeView
  */
 public abstract class RVAdapterTest<T> extends RecyclerView.Adapter<RVViewHolderTest> {
     private List<T> datas;

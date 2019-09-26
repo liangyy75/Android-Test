@@ -5,6 +5,7 @@ import android.os.Build
 import android.view.View
 import android.view.ViewOutlineProvider
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
 
 // [Android里把View切换圆角的方法](https://blog.csdn.net/wujiang_android/article/details/90710120)
 
@@ -25,3 +26,8 @@ fun clipViewCornerByDp(view: View, pixel: Int) {
                 outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), pixel.toFloat())
     }
 }
+
+// fun test() {
+//     RoundedBitmapDrawableFactory.create()
+// }
+// [Android 必知必会-使用 supportV4 的 RoundedBitmapDrawable 实现圆角](https://blog.csdn.net/ys743276112/article/details/52316588)

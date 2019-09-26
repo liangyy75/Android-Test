@@ -12,9 +12,9 @@
 
         <TextView
             android:id="@+id/test_view_anim_obj"
-            android:layout_width="@dimen/dimen300"
-            android:layout_height="@dimen/dimen300"
-            android:background="@color/colorTheme"
+            android:layout_width="@dimen/dimen260"
+            android:layout_height="@dimen/dimen260"
+            android:background="@android:color/black"
             android:gravity="center"
             android:text="@string/text"
             android:textColor="@android:color/white"
@@ -50,6 +50,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/dimen10"
             android:text="@string/rotate"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/test_view_anim_color"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dimen10"
+            android:text="@string/color"
             android:textAllCaps="false" />
 
         <LinearLayout
@@ -89,6 +97,14 @@
                 android:layout_weight="1"
                 android:checked="true"
                 android:text="@string/rotate" />
+
+            <CheckBox
+                android:id="@+id/test_view_anim_check_color"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/color" />
         </LinearLayout>
 
         <Button

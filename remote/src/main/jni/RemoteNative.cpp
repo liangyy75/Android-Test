@@ -16,3 +16,4 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
 }
 #ifdef __cplusplus
 }
+#endif
