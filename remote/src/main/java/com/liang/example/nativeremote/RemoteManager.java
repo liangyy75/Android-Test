@@ -1,5 +1,7 @@
 package com.liang.example.nativeremote;
 
+import com.liang.example.remote.RemoteMsgManager;
+
 public class RemoteManager {
     private static final String TAG = "RemoteManager";
     private static volatile RemoteManager instance;
@@ -47,10 +49,12 @@ public class RemoteManager {
     }
 
     public boolean startRemoteClient() {
+        RemoteMsgManager.logger.d(TAG, "startRemoteClient -- uid: %d, guid: %s, serverUrl: %s", uid, guid, serverUrl);
         return startRemoteClient(uid, guid, serverUrl);
     }
 
     public boolean stopRemoteClient() {
+        RemoteMsgManager.logger.d(TAG, "stopRemoteClient -- uid: %d, guid: %s, serverUrl: %s", uid, guid, serverUrl);
         return stopRemoteClient(serverUrl);
     }
 
