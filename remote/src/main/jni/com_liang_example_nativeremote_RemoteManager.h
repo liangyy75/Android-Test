@@ -21,7 +21,7 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sta
  * Signature: ()V
  */
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_stopRemoteClient
-        (JNIEnv *, jobject, jstring);
+        (JNIEnv *, jobject, jlong, jstring, jstring);
 
 #ifdef __cplusplus
 }

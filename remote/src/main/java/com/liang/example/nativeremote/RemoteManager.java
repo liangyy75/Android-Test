@@ -55,10 +55,10 @@ public class RemoteManager {
 
     public boolean stopRemoteClient() {
         RemoteMsgManager.logger.d(TAG, "stopRemoteClient -- uid: %d, guid: %s, serverUrl: %s", uid, guid, serverUrl);
-        return stopRemoteClient(serverUrl);
+        return stopRemoteClient(uid, guid, serverUrl);
     }
 
     private native boolean startRemoteClient(long uid, String guid, String serverUrl);
 
-    private native boolean stopRemoteClient(String serverUrl);
+    private native boolean stopRemoteClient(long uid, String guid, String serverUrl);
 }

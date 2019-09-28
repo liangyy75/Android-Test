@@ -2,10 +2,15 @@
 #ifndef _Included_WSClient
 #define _Included_WSClient
 
+#include "Utils.hpp"
 #include <string>
 #include <vector>
 
+#define WS_CLIENT_TAG_HPP "WSClientHpp"
+#define WS_CLIENT_TAG_CPP "WSClientCpp"
+
 namespace ws {
+
     class WebSocket;
 
     struct Callback_Imp {
@@ -67,6 +72,7 @@ namespace ws {
         void pollWithHandle(int timeout = 0) {
             poll(timeout);
             ConnectionState state = getReadyState();
+            L_T_D(WS_CLIENT_TAG_HPP, "pollWithHandle -- state: %d", state);
             if (state == OPEN || state == CONNECTING) {
                 if (callback != nullptr) {
                     _dispatch(*callback);
@@ -79,26 +85,32 @@ namespace ws {
 
         template<class Callable>
         void setCallable(Callable *callable) {
+            L_T_D(WS_CLIENT_TAG_HPP, "setCallable");
             this->callback = new _Callback<Callable>(callable);
         }  // 设置 callback
         void dispatch() {
+            L_T_D(WS_CLIENT_TAG_HPP, "dispatch");
             _dispatch(*(this->callback));
         }  // 派分消息给设置的 callback
         template<class Callable>
         void dispatch(Callable *callable) {
+            L_T_D(WS_CLIENT_TAG_HPP, "dispatch(callable)");
             _Callback<Callable> callback(callable);
             _dispatch(callback);
         }  // 派分消息给传入的 callback
 
         template<class Callable>
         void setByteCallback(Callable *callable) {
+            L_T_D(WS_CLIENT_TAG_HPP, "setByteCallback");
             this->bytesCallback = new _BytesCallback<Callable>(callable);
         }  // 设置 byteCallback
         void dispatchBinary() {
+            L_T_D(WS_CLIENT_TAG_HPP, "dispatchBinary");
             _dispatchBinary(*(this->bytesCallback));
         }  // 派分消息给设置的 byteCallback
         template<class Callable>
         void dispatchBinary(Callable *callable) {
+            L_T_D(WS_CLIENT_TAG_HPP, "dispatchBinary(callable)");
             _BytesCallback<Callable> callback(callable);
             _dispatchBinary(callback);
         }  // 派分消息给传入的 byteCallback

@@ -9,7 +9,7 @@ import threading
 import time
 from base64 import b64encode
 from hashlib import sha1
-from socket import error as SocketError, socket
+from socket import error as SocketError, socket, AF_INET, SOCK_DGRAM
 from socketserver import StreamRequestHandler, TCPServer, ThreadingMixIn
 from typing import Union, Tuple
 
@@ -684,19 +684,37 @@ class RemoteShellServer:
         self.remote_server.run_forever()
 
 
+def get_host_ip():
+    ip = None
+    try:
+        s = socket(AF_INET, SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+    return ip
+
+
 # TODO: 通用的 Channel WebSocket Server，为一些Client分类，分通道
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="WebSocket Simple Server Tool", add_help=True)
-    parser.add_argument("-ho", "--host", type=str, default='172.18.33.203',
-                        help="Websocket host. ex. 172.18.33.203")
+    # parser.add_argument("-ho", "--host", type=str, default='172.18.33.203',
+    #                     help="Websocket host. ex. 172.18.33.203")
     parser.add_argument("-p", "--port", type=int, default=9001, help="Port for websocket listening")
     parser.add_argument("-l", "--log_files", type=str, default="./server_logs",
                         help="Folder for log files")
     args = parser.parse_args()
-    print('parse_args: host({}), port({}), log_files({})'.format(
-        args.host, args.port, args.log_files))
+    print('parse_args: port({}), log_files({})'.format(args.port, args.log_files))
 
     define_log(args.log_files, 10)
-    RemoteShellServer(args.port, args.host).start()
+
+    # 这个是服务器，本来就该用自身ip的，🙈
+    host = get_host_ip()
+    if host is None:
+        logging.debug("get ip error!!!")
+    else:
+        logging.debug("host is " + host)
+        print("host is " + host)
+        RemoteShellServer(args.port, host).start()
 
 # pyinstaller -F .\remote_server.py

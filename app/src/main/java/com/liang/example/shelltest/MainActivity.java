@@ -22,6 +22,7 @@ import com.liang.example.androidtest.R;
 import com.liang.example.apttest.bind.InjectUtils;
 import com.liang.example.apttest.bind.InjectView;
 import com.liang.example.apttest.bind.OnClick;
+import com.liang.example.nativeremote.RemoteManager;
 import com.liang.example.remote.RemoteMsgManager;
 import com.liang.example.remote.WakeLockUtil;
 import com.liang.example.utils.ApiManager;
@@ -75,11 +76,15 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             final long uid = Long.parseLong(uidStr);
-            RemoteMsgManager
-                    .getInstance()
-                    .setUid(uid)
-                    .setGuid(guid)
-                    .startRemoteClient(serverUrl, MainActivity.this, "remote");
+            // RemoteMsgManager
+            //         .getInstance()
+            //         .setUid(uid)
+            //         .setGuid(guid)
+            //         .startRemoteClient(serverUrl, MainActivity.this, "remote");
+            RemoteManager.getInstance().setUid(uid);
+            RemoteManager.getInstance().setGuid(guid);
+            RemoteManager.getInstance().setServerUrl(serverUrl);
+            RemoteManager.getInstance().startRemoteClient();
             Toast.makeText(MainActivity.this, "Starting remote client", Toast.LENGTH_LONG).show();
         } catch (NumberFormatException e) {
             Toast.makeText(MainActivity.this, "Uid should be integer", Toast.LENGTH_LONG).show();
@@ -90,7 +95,8 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.test_stop)
     public void stopTest(View view) {
         ApiManager.LOGGER.d(TAG, "stop test event");
-        RemoteMsgManager.getInstance().closeRemoteClient();
+        // RemoteMsgManager.getInstance().closeRemoteClient();
+        RemoteManager.getInstance().stopRemoteClient();
     }
 
     // TODO: permission utils
