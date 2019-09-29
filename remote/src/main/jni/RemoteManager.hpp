@@ -62,17 +62,17 @@ namespace remote {
 
         void send(ws::WebSocket &webSocket, json11::Json &data) {
             json11::Json jsonObj = json11::Json::object{
-                    {"output", this->resType},
-                    {"data",   data},
+                    {"type", this->resType},
+                    {"data", data},
             };
             webSocket.send(jsonObj.dump());
         }  // 应该用这个方法来发送
 
-        virtual void onOpen(RemoteClient *remoteClient) = 0;  //
+        virtual void onOpen(RemoteClient *remoteClient) {};  //
         virtual void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) = 0;  // 必须实现的方法
-        virtual void onError(ws::WebSocket &webSocket, std::exception &ex) = 0;  //
-        virtual void onFatalError(std::exception &ex) = 0;  //
-        virtual void onClose() = 0;
+        virtual void onError(ws::WebSocket &webSocket, std::exception &ex) {};  //
+        virtual void onFatalError(std::exception &ex) {};  //
+        virtual void onClose() {};
     };
 
     struct ComByRC {

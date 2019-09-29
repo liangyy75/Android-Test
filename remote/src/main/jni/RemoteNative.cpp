@@ -3,6 +3,7 @@
 #include "Json.hpp"
 #include "WSClient.hpp"
 #include "RemoteManager.hpp"
+#include "ShellMsgHandler.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,18 +17,6 @@ constexpr int JTC_BUF_LEN = 100;
 class EchoMsgHandler : public remote::MsgHandler {
 public:
     EchoMsgHandler() : remote::MsgHandler("echoReq", "echoRes") {}
-
-    void onClose() override {}
-
-    void onOpen(remote::RemoteClient *remoteClient) override {}
-
-    void onError(ws::WebSocket &webSocket, std::exception &ex) override {
-        L_T_E(TAG_RN, "error occurred in EchoMsgHandler: %s", ex.what());
-    }
-
-    void onFatalError(std::exception &ex) override {
-        L_T_E(TAG_RN, "error occurred in EchoMsgHandler: %s", ex.what());
-    }
 
     void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
         L_T_D(TAG_RN, "received msg: %s, and data: %s", msg.c_str(), data.dump().c_str());

@@ -26,10 +26,12 @@ void *remote::wsPoll(void *data) {
                 state = remoteClient->webSocket->getReadyState();
                 sleep(1);
             }
+            L_T_E(RM_TAG_CPP, "begin close");
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
                 it->second->onClose();
             }
         } catch (std::exception &ex) {
+            L_T_E(RM_TAG_CPP, "fatal error: %s", ex.what());
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
                 it->second->onFatalError(ex);
             }
@@ -81,6 +83,7 @@ void remote::handleMsg(ws::WebSocket &webSocket, const std::string &message) {
             L_T_D(RM_TAG_CPP, "exception occurred while parse json: %s, or the jsonString have no 'type' key", err.c_str());
         }
     } catch (std::exception &ex) {
+        L_T_E(RM_TAG_CPP, "exception: %s", ex.what());
         for (auto it = handlers.begin(); it != handlers.end(); it++) {
             it->second->onError(webSocket, ex);
         }
