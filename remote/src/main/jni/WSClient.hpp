@@ -72,7 +72,7 @@ namespace ws {
         void pollWithHandle(int timeout = 0) {
             poll(timeout);
             ConnectionState state = getReadyState();
-            L_T_D(WS_CLIENT_TAG_HPP, "pollWithHandle -- state: %d", state);
+            // L_T_D(WS_CLIENT_TAG_HPP, "pollWithHandle -- state: %d", state);
             if (state == OPEN || state == CONNECTING) {
                 if (callback != nullptr) {
                     _dispatch(*callback);

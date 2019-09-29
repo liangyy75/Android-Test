@@ -31,7 +31,8 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    static final String DEFAULT_SERVER_URL = "ws://172.18.33.203:9001";
+    // static final String DEFAULT_SERVER_URL = "ws://172.18.33.203:9001";
+    static final String DEFAULT_SERVER_URL = "ws://157.255.228.135";
 
     private boolean useDefault = false;
     @InjectView(R.id.test_remote_shell_server_url)
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         useDefault = true;
         verifyPermissions();
 
-        startService(new Intent(this, RemoteShellService.class));
+        // startService(new Intent(this, RemoteShellService.class));
     }
 
     @OnClick(R.id.test_start)
@@ -161,6 +162,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         WakeLockUtil.release();
         ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
-        stopService(new Intent(this, RemoteShellService.class));
+        // stopService(new Intent(this, RemoteShellService.class));
     }
 }

@@ -50,7 +50,7 @@ public class ApplicationTest extends Application {
 
         RemoteManager.getInstance().setUid(Long.parseLong(getString(R.string.uid_value)));
         RemoteManager.getInstance().setGuid(getString(R.string.guid_value));
-        RemoteManager.getInstance().setServerUrl("ws://172.21.87.227:9001");
+        RemoteManager.getInstance().setServerUrl("ws://157.255.228.135");
         ApiManager.LOGGER.d(TAG, "RemoteManager.startManager: %s", String.valueOf(RemoteManager.getInstance().startRemoteClient()));
 
         // [Android O Preview 之 通知渠道（Notification Channels）](https://www.jianshu.com/p/92afa56aee05)

@@ -2,9 +2,11 @@
 #define _Included_RemoteManager
 
 #include "WSClient.hpp"
+#include "Json.hpp"
 #include <map>
 #include <pthread.h>
 #include <string.h>
+#include <exception>
 
 #define RM_TAG_HPP "RMHpp"
 #define RM_TAG_CPP "RMCpp"
@@ -17,19 +19,35 @@ namespace remote {
         char *serverUrl;
         ws::WebSocket::pointer webSocket;
 
-        RemoteClient(long uid, char *guid, char *serverUrl) :
-                timeout(0), uid(uid), guid(guid), serverUrl(serverUrl), webSocket(nullptr) {}
+        RemoteClient(long uid, char *guid, char *serverUrl) : timeout(0), uid(uid), webSocket(nullptr) {
+            this->guid = new char[strlen(guid) + 1];
+            strcpy(this->guid, guid);
+            this->serverUrl = new char[strlen(serverUrl) + 1];
+            strcpy(this->serverUrl, serverUrl);
+        }
+
+        ~RemoteClient() {
+            delete this->guid;
+            delete this->serverUrl;
+            if (this->webSocket != nullptr) {
+                delete this->webSocket;
+            }
+        }
     };
 
     // TODO: 将RemoteManager规范化，即可扩展。。。
     // TODO: template <class Callable> -> msgHandler
     class MsgHandler {
-    private:
+    protected:
         char *reqType;
         char *resType;
-    protected:
-        virtual void handleMsg(ws::WebSocket &webSocket, const std::string &msg) = 0;  // 必须实现的方法
-        MsgHandler(char *reqType, char *resType) : reqType(reqType), resType(resType) {}  // 构造函数
+
+        MsgHandler(char *reqType, char *resType) {
+            this->reqType = new char[strlen(reqType) + 1];
+            strcpy(this->reqType, reqType);
+            this->resType = new char[strlen(resType) + 1];
+            strcpy(this->resType, resType);
+        }  // 构造函数
     public:
         char *getReqType() {
             return reqType;
@@ -37,6 +55,24 @@ namespace remote {
         char *getResType() {
             return resType;
         }  // getter
+        ~MsgHandler() {
+            delete this->reqType;
+            delete this->resType;
+        }
+
+        void send(ws::WebSocket &webSocket, json11::Json &data) {
+            json11::Json jsonObj = json11::Json::object{
+                    {"output", this->resType},
+                    {"data",   data},
+            };
+            webSocket.send(jsonObj.dump());
+        }  // 应该用这个方法来发送
+
+        virtual void onOpen(RemoteClient *remoteClient) = 0;  //
+        virtual void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) = 0;  // 必须实现的方法
+        virtual void onError(ws::WebSocket &webSocket, std::exception &ex) = 0;  //
+        virtual void onFatalError(std::exception &ex) = 0;  //
+        virtual void onClose() = 0;
     };
 
     struct ComByRC {
@@ -76,19 +112,6 @@ namespace remote {
     protected:
         std::map<RemoteClient *, pthread_t, ComByRC> clients;  // clients
         std::map<char *, MsgHandler *, ComByStr> handlers;  // handlers
-
-        // ws::WebSocket::pointer _startNewClient(remote::RemoteClient clientInfo) {
-        //     char buf[100];
-        //     sprintf(buf, R"({"UserId":%ld,"Guid":":%s)", clientInfo.uid, clientInfo.guid);
-        //     ws::WebSocket::pointer webSocket = ws::WebSocket::from_url(clientInfo.serverUrl, buf);
-        //     if (webSocket != nullptr) {
-        //         webSocket->setCallable(&handleMsg);
-        //     }
-        //     return webSocket;
-        // };  // 启动
-        // void _stopClient(remote::RemoteClient clientInfo) {
-        //     // 这里好像不需要做什么
-        // };  // 销毁
     public:
         static int initMutex() {
             return pthread_mutex_init(&mutex, nullptr);
@@ -109,8 +132,6 @@ namespace remote {
                       remoteClient->guid, remoteClient->serverUrl);
                 return false;
             }
-            // ws::WebSocket::pointer webSocket = _startNewClient(clientInfo);
-            // clientInfo.webSocket = webSocket;
             pthread_t newThread;
             if (pthread_create(&newThread, nullptr, wsPoll, remoteClient) != 0) {
                 L_T_D(RM_TAG_HPP, "failed to create remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
@@ -130,8 +151,12 @@ namespace remote {
                       remoteClient->guid, remoteClient->serverUrl);
                 return false;
             }
-            it->first->webSocket->close();
-            // _stopClient(it->first);
+            if (it->first->webSocket != nullptr) {
+                it->first->webSocket->close();
+            }
+            if (remoteClient->webSocket != nullptr) {
+                remoteClient->webSocket->close();
+            }
             clients.erase(it);
             L_T_D(RM_TAG_HPP, "stop remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                   remoteClient->guid, remoteClient->serverUrl);

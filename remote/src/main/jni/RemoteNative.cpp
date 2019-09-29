@@ -1,5 +1,6 @@
 #include "com_liang_example_nativeremote_RemoteManager.h"
 #include "Utils.hpp"
+#include "Json.hpp"
 #include "WSClient.hpp"
 #include "RemoteManager.hpp"
 
@@ -7,16 +8,49 @@
 extern "C" {
 #endif
 
+#define TAG_RN "RemoteNativeCpp"
+
+constexpr int JTC_BUF_LEN = 100;
+
+// [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
+class EchoMsgHandler : public remote::MsgHandler {
+public:
+    EchoMsgHandler() : remote::MsgHandler("echoReq", "echoRes") {}
+
+    void onClose() override {}
+
+    void onOpen(remote::RemoteClient *remoteClient) override {}
+
+    void onError(ws::WebSocket &webSocket, std::exception &ex) override {
+        L_T_E(TAG_RN, "error occurred in EchoMsgHandler: %s", ex.what());
+    }
+
+    void onFatalError(std::exception &ex) override {
+        L_T_E(TAG_RN, "error occurred in EchoMsgHandler: %s", ex.what());
+    }
+
+    void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
+        L_T_D(TAG_RN, "received msg: %s, and data: %s", msg.c_str(), data.dump().c_str());
+        json11::Json jsonObj = json11::Json::object{
+                {"command", "msg from EchoMsgHandler: " + data["command"].dump()},
+        };
+        this->send(webSocket, jsonObj);
+        // 这么简单的消息处理当然不用另起一个线程，但是如果是Shell/...等其他复杂的指令处理是需要另起线程的
+    }
+};
+
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_startRemoteClient
         (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
-    const char *guidStr = jniEnv->GetStringUTFChars(guid, JNI_FALSE);
-    const char *serverUrlStr = jniEnv->GetStringUTFChars(serverUrl, JNI_FALSE);
-    char guidBuf[100];
-    char serverUrlBuf[100];
+    const char *guidStr = jniEnv->GetStringUTFChars(guid, nullptr);
+    const char *serverUrlStr = jniEnv->GetStringUTFChars(serverUrl, nullptr);
+    char guidBuf[JTC_BUF_LEN];
+    char serverUrlBuf[JTC_BUF_LEN];
     strcpy(guidBuf, guidStr);
     strcpy(serverUrlBuf, serverUrlStr);
-    // remote::RemoteManager::getInstance()->startNewClient((long) uid, guidBuf, serverUrlBuf);
-    remote::RemoteManager::getInstance()->startNewClient(50042533l, "0e74af97aa48135d0c5528db29dbb6fe", "ws://172.21.87.227:9001");
+    remote::MsgHandler *msgHandler = new EchoMsgHandler();
+    remote::RemoteManager::getInstance()->addMsgHandler(msgHandler);
+    remote::RemoteManager::getInstance()->startNewClient((long) uid, guidBuf, serverUrlBuf);
+    // remote::RemoteManager::getInstance()->startNewClient(50042533l, "0e74af97aa48135d0c5528db29dbb6fe", "ws://157");
     jniEnv->ReleaseStringUTFChars(guid, guidStr);
     jniEnv->ReleaseStringUTFChars(serverUrl, serverUrlStr);
     return JNI_TRUE;
@@ -26,8 +60,8 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
         (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
     const char *guidStr = jniEnv->GetStringUTFChars(guid, nullptr);
     const char *serverUrlStr = jniEnv->GetStringUTFChars(serverUrl, nullptr);
-    char guidBuf[100];
-    char serverUrlBuf[100];
+    char guidBuf[JTC_BUF_LEN];
+    char serverUrlBuf[JTC_BUF_LEN];
     strcpy(guidBuf, guidStr);
     strcpy(serverUrlBuf, serverUrlStr);
     remote::RemoteManager::getInstance()->stopClient((long) uid, guidBuf, serverUrlBuf);
@@ -41,5 +75,5 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
 
 // TODO: WSClient的多线程安全问题，可以使用封装在Utils.hpp里面
 // RemoteManager的线程安全懒汉单例模式 -- https://zhuanlan.zhihu.com/p/37469260
-// TODO: cJson / json11
+// cJson / json11 -- [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
 // TODO: RemoteShell.hpp / RemoteShell.cpp

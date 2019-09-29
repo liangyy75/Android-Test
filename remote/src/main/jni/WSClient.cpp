@@ -142,7 +142,7 @@ namespace {
         }
 
         void poll(int timeout) override {
-            L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin timeout: %d", timeout);
+            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin timeout: %d", timeout);
             if (state == CLOSED) {
                 if (timeout > 0) {
                     timeval tv = {timeout / MILLI_TIME_STEP, (timeout % MILLI_TIME_STEP) * MILLI_TIME_STEP};
@@ -161,7 +161,7 @@ namespace {
                 if (!txBuf.empty()) { FD_SET(sockFd, &writeFds); }
                 select(sockFd + 1, &readFds, &writeFds, nullptr, timeout > 0 ? &tv : nullptr);
             }
-            L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin receive");
+            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin receive");
             while (true) {
                 unsigned N = rxBuf.size();
                 ssize_t ret;
@@ -180,7 +180,7 @@ namespace {
                     rxBuf.resize(N + ret);
                 }
             }
-            L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin send");
+            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin send");
             while (!txBuf.empty()) {
                 int ret = ::send(sockFd, (char *) &txBuf[0], txBuf.size(), 0);
                 if (ret < 0 && (socketerrno == SOCKET_EWOULDBLOCK || socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
