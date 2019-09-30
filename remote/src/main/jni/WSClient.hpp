@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#define WS_CLIENT_TAG_HPP "WSClientHpp"
-#define WS_CLIENT_TAG_CPP "WSClientCpp"
+#define TAG_WS_CLIENT_HPP "WSClientHpp"
+#define TAG_WS_CLIENT_CPP "WSClientCpp"
 
 namespace ws {
 
@@ -85,32 +85,32 @@ namespace ws {
 
         template<class Callable>
         void setCallable(Callable *callable) {
-            L_T_D(WS_CLIENT_TAG_HPP, "setCallable");
+            L_T_D(TAG_WS_CLIENT_HPP, "setCallable");
             this->callback = new _Callback<Callable>(callable);
         }  // 设置 callback
         void dispatch() {
-            L_T_D(WS_CLIENT_TAG_HPP, "dispatch");
+            L_T_D(TAG_WS_CLIENT_HPP, "dispatch");
             _dispatch(*(this->callback));
         }  // 派分消息给设置的 callback
         template<class Callable>
         void dispatch(Callable *callable) {
-            L_T_D(WS_CLIENT_TAG_HPP, "dispatch(callable)");
+            L_T_D(TAG_WS_CLIENT_HPP, "dispatch(callable)");
             _Callback<Callable> callback(callable);
             _dispatch(callback);
         }  // 派分消息给传入的 callback
 
         template<class Callable>
         void setByteCallback(Callable *callable) {
-            L_T_D(WS_CLIENT_TAG_HPP, "setByteCallback");
+            L_T_D(TAG_WS_CLIENT_HPP, "setByteCallback");
             this->bytesCallback = new _BytesCallback<Callable>(callable);
         }  // 设置 byteCallback
         void dispatchBinary() {
-            L_T_D(WS_CLIENT_TAG_HPP, "dispatchBinary");
+            L_T_D(TAG_WS_CLIENT_HPP, "dispatchBinary");
             _dispatchBinary(*(this->bytesCallback));
         }  // 派分消息给设置的 byteCallback
         template<class Callable>
         void dispatchBinary(Callable *callable) {
-            L_T_D(WS_CLIENT_TAG_HPP, "dispatchBinary(callable)");
+            L_T_D(TAG_WS_CLIENT_HPP, "dispatchBinary(callable)");
             _BytesCallback<Callable> callback(callable);
             _dispatchBinary(callback);
         }  // 派分消息给传入的 byteCallback

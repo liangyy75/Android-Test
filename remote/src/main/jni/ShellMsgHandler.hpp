@@ -9,6 +9,8 @@
 #include "RemoteManager.hpp"
 
 #define TAG_SMH "ShellMsgHandlerHpp"
+char SHELL_REQ[] = "shellReq";
+char SHELL_RES[] = "shellRes";
 
 class ShellMsgHandler : public remote::MsgHandler {
 protected:
@@ -21,7 +23,7 @@ protected:
     }
 
 public:
-    ShellMsgHandler() : MsgHandler("shellReq", "shellRes") {}
+    ShellMsgHandler() : MsgHandler(SHELL_REQ, SHELL_RES) {}
 
     void onOpen(remote::RemoteClient *remoteClient) override {
         prepareShell();

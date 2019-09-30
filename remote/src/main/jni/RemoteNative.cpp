@@ -6,17 +6,21 @@
 #include "ShellMsgHandler.hpp"
 
 #ifdef __cplusplus
+
 extern "C" {
 #endif
 
-#define TAG_RN "RemoteNativeCpp"
+// #define TAG_RN "RemoteNativeCpp"
+constexpr char TAG_RN[] = "RemoteNativeCpp";
+char ECHO_REQ[] = "echoReq";
+char ECHO_RES[] = "echoRes";
 
 constexpr int JTC_BUF_LEN = 100;
 
 // [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
 class EchoMsgHandler : public remote::MsgHandler {
 public:
-    EchoMsgHandler() : remote::MsgHandler("echoReq", "echoRes") {}
+    EchoMsgHandler() : remote::MsgHandler(ECHO_REQ, ECHO_RES) {}
 
     void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
         L_T_D(TAG_RN, "received msg: %s, and data: %s", msg.c_str(), data.dump().c_str());
@@ -36,8 +40,8 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sta
     char serverUrlBuf[JTC_BUF_LEN];
     strcpy(guidBuf, guidStr);
     strcpy(serverUrlBuf, serverUrlStr);
-    remote::MsgHandler *msgHandler = new EchoMsgHandler();
-    remote::RemoteManager::getInstance()->addMsgHandler(msgHandler);
+    remote::RemoteManager::getInstance()->addMsgHandler(new EchoMsgHandler());
+    remote::RemoteManager::getInstance()->addMsgHandler(new ShellMsgHandler());
     remote::RemoteManager::getInstance()->startNewClient((long) uid, guidBuf, serverUrlBuf);
     // remote::RemoteManager::getInstance()->startNewClient(50042533l, "0e74af97aa48135d0c5528db29dbb6fe", "ws://157");
     jniEnv->ReleaseStringUTFChars(guid, guidStr);

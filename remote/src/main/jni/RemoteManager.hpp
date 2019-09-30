@@ -8,8 +8,8 @@
 #include <string.h>
 #include <exception>
 
-#define RM_TAG_HPP "RMHpp"
-#define RM_TAG_CPP "RMCpp"
+#define TAG_RM_HPP "RMHpp"
+#define TAG_RM_CPP "RMCpp"
 
 namespace remote {
     struct RemoteClient {
@@ -55,7 +55,7 @@ namespace remote {
         char *getResType() {
             return resType;
         }  // getter
-        ~MsgHandler() {
+        virtual ~MsgHandler() {
             delete this->reqType;
             delete this->resType;
         }
@@ -97,7 +97,7 @@ namespace remote {
 
         RemoteManager() {};  // 为了单例模式
         RemoteManager(const RemoteManager &other) {}  // 为了单例模式
-        RemoteManager &operator=(const RemoteManager &) {}  // 为了单例模式
+        RemoteManager &operator=(const RemoteManager &) { return *this; }  // 为了单例模式
         ~RemoteManager() {
             for (auto it = clients.begin(); it != clients.end();) {
                 delete it->first;
@@ -128,18 +128,18 @@ namespace remote {
 
         bool startNewClient(RemoteClient *remoteClient) {
             if (clients.find(remoteClient) != clients.end()) {
-                L_T_D(RM_TAG_HPP, "have created remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
+                L_T_D(TAG_RM_HPP, "have created remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                       remoteClient->guid, remoteClient->serverUrl);
                 return false;
             }
             pthread_t newThread;
             if (pthread_create(&newThread, nullptr, wsPoll, remoteClient) != 0) {
-                L_T_D(RM_TAG_HPP, "failed to create remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
+                L_T_D(TAG_RM_HPP, "failed to create remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                       remoteClient->guid, remoteClient->serverUrl);
                 return false;
             }
             clients.insert(std::pair<RemoteClient *, pthread_t>(remoteClient, newThread));
-            L_T_D(RM_TAG_HPP, "successfully create remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
+            L_T_D(TAG_RM_HPP, "successfully create remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                   remoteClient->guid, remoteClient->serverUrl);
             return true;
         }
@@ -147,7 +147,7 @@ namespace remote {
         bool stopClient(RemoteClient *remoteClient) {
             auto it = clients.find(remoteClient);
             if (it == clients.end()) {
-                L_T_D(RM_TAG_HPP, "no such remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
+                L_T_D(TAG_RM_HPP, "no such remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                       remoteClient->guid, remoteClient->serverUrl);
                 return false;
             }
@@ -158,7 +158,7 @@ namespace remote {
                 remoteClient->webSocket->close();
             }
             clients.erase(it);
-            L_T_D(RM_TAG_HPP, "stop remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
+            L_T_D(TAG_RM_HPP, "stop remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                   remoteClient->guid, remoteClient->serverUrl);
             return true;
         }
@@ -173,7 +173,7 @@ namespace remote {
                 return false;
             }
             handlers.insert(std::pair<char *, MsgHandler *>(reqType, msgHandler));
-            L_T_D(RM_TAG_HPP, "addMsgHandler: reqType(%s)", reqType);
+            L_T_D(TAG_RM_HPP, "addMsgHandler: reqType(%s)", reqType);
             return true;
         }  // 添加消息处理类
         bool removeMsgHandler(MsgHandler *msgHandler) {

@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstdint>
+#include <pthread.h>
 
 #ifndef _SOCKET_T_DEFINED
 typedef int socket_t;
@@ -49,19 +50,19 @@ namespace {
         hints.ai_socktype = SOCK_STREAM;
         snprintf(sport, SPORT_LEN, "%d", port);
         if ((ret = getaddrinfo(hostname.c_str(), sport, &hints, &result)) != 0) {
-            L_T_E(WS_CLIENT_TAG_CPP, "hostname_connect -- getAddressInfo: %s", gai_strerror(ret));
+            L_T_E(TAG_WS_CLIENT_CPP, "hostname_connect -- getAddressInfo: %s", gai_strerror(ret));
             return 1;
         }
-        L_T_D(WS_CLIENT_TAG_CPP, "begin create socket");
+        L_T_D(TAG_WS_CLIENT_CPP, "begin create socket");
         for (p = result; p != nullptr; p = p->ai_next) {
             sockFd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-            L_T_D(WS_CLIENT_TAG_CPP, "during create socket -- sockFd: %d", sockFd);
+            L_T_D(TAG_WS_CLIENT_CPP, "during create socket -- sockFd: %d", sockFd);
             if (sockFd == INVALID_SOCKET) {
-                L_T_D(WS_CLIENT_TAG_CPP, "during create socket -- invalid sockFd: %d", sockFd);
+                L_T_D(TAG_WS_CLIENT_CPP, "during create socket -- invalid sockFd: %d", sockFd);
                 continue;
             }
             if (connect(sockFd, p->ai_addr, p->ai_addrlen) != SOCKET_ERROR) {
-                L_T_D(WS_CLIENT_TAG_CPP, "during create socket -- connect sockFd: %d successfully", sockFd);
+                L_T_D(TAG_WS_CLIENT_CPP, "during create socket -- connect sockFd: %d successfully", sockFd);
                 break;
             }
             closeSocket(sockFd);
@@ -89,10 +90,10 @@ namespace {
     private:
         std::vector<uint8_t> rxBuf;  // received buffer
         std::vector<uint8_t> txBuf;  // send buffer
-        std::vector<uint8_t> receivedData;
+        std::vector<uint8_t> receivedData;  // true received data
 
-        socket_t sockFd;
-        ConnectionState state;
+        socket_t sockFd;  // true socket's fileId
+        ConnectionState state;  // state
         bool useMask;
         bool isRxBad;
     public:
@@ -133,8 +134,7 @@ namespace {
             uint8_t masking_key[4];
         };
 
-        _RealWebSocket(socket_t sockfd, bool useMask)
-                : sockFd(sockfd), state(OPEN), useMask(useMask), isRxBad(false) {
+        _RealWebSocket(socket_t sockfd, bool useMask) : sockFd(sockfd), state(OPEN), useMask(useMask), isRxBad(false) {
         }
 
         ConnectionState getReadyState() const override {
@@ -148,7 +148,7 @@ namespace {
                     timeval tv = {timeout / MILLI_TIME_STEP, (timeout % MILLI_TIME_STEP) * MILLI_TIME_STEP};
                     select(0, nullptr, nullptr, nullptr, &tv);
                 }
-                L_T_D(WS_CLIENT_TAG_CPP, "poll -- state is 'closed'");
+                L_T_D(TAG_WS_CLIENT_CPP, "poll -- state is 'closed'");
                 return;
             }
             if (timeout > 0) {
@@ -174,7 +174,7 @@ namespace {
                     rxBuf.resize(N);
                     closeSocket(sockFd);
                     state = CLOSED;
-                    L_T_D(WS_CLIENT_TAG_CPP, ret < 0 ? "poll -- recv -- Connection error!" : "poll -- recv -- Connection closed!");
+                    L_T_D(TAG_WS_CLIENT_CPP, ret < 0 ? "poll -- recv -- Connection error!" : "poll -- recv -- Connection closed!");
                     return;
                 } else {
                     rxBuf.resize(N + ret);
@@ -188,7 +188,7 @@ namespace {
                 } else if (ret <= 0) {
                     closeSocket(sockFd);
                     state = CLOSED;
-                    L_T_D(WS_CLIENT_TAG_CPP, ret < 0 ? "poll -- send -- Connection error!" : "poll -- send -- Connection closed!");
+                    L_T_D(TAG_WS_CLIENT_CPP, ret < 0 ? "poll -- send -- Connection error!" : "poll -- send -- Connection closed!");
                     break;
                 } else {
                     txBuf.erase(txBuf.begin(), txBuf.begin() + ret);
@@ -197,7 +197,7 @@ namespace {
             if (txBuf.empty() && state == CLOSING) {
                 closeSocket(sockFd);
                 state = CLOSED;
-                L_T_D(WS_CLIENT_TAG_CPP, "poll -- now close connection");
+                L_T_D(TAG_WS_CLIENT_CPP, "poll -- now close connection");
             }
         }  // 轮询发送和接受消息
 
@@ -212,7 +212,7 @@ namespace {
                 explicit CallbackAdapter(Callback_Imp &callable) : callable(callable) {}  // 2
                 void operator()(ws::WebSocket &webSocket, const std::vector<uint8_t> &message) override {
                     std::string stringMessage(message.begin(), message.end());
-                    L_T_D(WS_CLIENT_TAG_CPP, "_dispatch -- msg: %s", stringMessage.c_str());
+                    L_T_D(TAG_WS_CLIENT_CPP, "_dispatch -- msg: %s", stringMessage.c_str());
                     callable(webSocket, stringMessage);
                 }
             };
@@ -222,7 +222,7 @@ namespace {
 
         virtual void _dispatchBinary(BytesCallback_Imp &callable) {
             if (isRxBad) {
-                L_T_E(WS_CLIENT_TAG_CPP, "_dispatchBinary -- isRxBad is true");
+                L_T_E(TAG_WS_CLIENT_CPP, "_dispatchBinary -- isRxBad is true");
                 return;
             }
             while (true) {
@@ -265,7 +265,7 @@ namespace {
                         // if it were valid. So just close() and return immediately
                         // for now.
                         isRxBad = true;
-                        L_T_E(WS_CLIENT_TAG_CPP, "_dispatchBinary -- Frame has invalid frame length. Closing.");
+                        L_T_E(TAG_WS_CLIENT_CPP, "_dispatchBinary -- Frame has invalid frame length. Closing.");
                         close();
                         return;
                     }
@@ -299,17 +299,18 @@ namespace {
                         receivedData.erase(receivedData.begin(), receivedData.end());
                         std::vector<uint8_t>().swap(receivedData);// free memory
                     }
-                    L_T_D(WS_CLIENT_TAG_CPP, "_dispatchBinary -- received data frame");
+                    L_T_D(TAG_WS_CLIENT_CPP, "_dispatchBinary -- received data frame");
                 } else if (ws.opcode == WsHeaderType::PING) {
                     if (ws.mask) { for (size_t j = 0; j != ws.N; ++j) { rxBuf[j + ws.header_size] ^= ws.masking_key[j & 0x3]; }}
                     std::string data(rxBuf.begin() + ws.header_size, rxBuf.begin() + ws.header_size + (size_t) ws.N);
                     sendData(WsHeaderType::PONG, data.size(), data.begin(), data.end());
-                    L_T_D(WS_CLIENT_TAG_CPP, "_dispatchBinary -- received ping frame");
+                    L_T_D(TAG_WS_CLIENT_CPP, "_dispatchBinary -- received ping frame");
                 } else if (ws.opcode == WsHeaderType::PONG) {
-                    L_T_D(WS_CLIENT_TAG_CPP, "_dispatchBinary -- received pong frame");
-                } else if (ws.opcode == WsHeaderType::CLOSE) { close(); }
-                else {
-                    L_T_E(WS_CLIENT_TAG_CPP, "_dispatchBinary -- Got unexpected WebSocket message.");
+                    L_T_D(TAG_WS_CLIENT_CPP, "_dispatchBinary -- received pong frame");
+                } else if (ws.opcode == WsHeaderType::CLOSE) {
+                    close();
+                } else {
+                    L_T_E(TAG_WS_CLIENT_CPP, "_dispatchBinary -- Got unexpected WebSocket message.");
                     close();
                 }
                 rxBuf.erase(rxBuf.begin(), rxBuf.begin() + ws.header_size + (size_t) ws.N);
@@ -319,27 +320,27 @@ namespace {
         void sendPing() override {
             std::string empty;
             sendData(WsHeaderType::PING, empty.size(), empty.begin(), empty.end());
-            L_T_D(WS_CLIENT_TAG_CPP, "sendPing");
+            L_T_D(TAG_WS_CLIENT_CPP, "sendPing");
         }
 
         void sendPong() override {
             std::string empty;
             sendData(WsHeaderType::PING, empty.size(), empty.begin(), empty.end());
-            L_T_D(WS_CLIENT_TAG_CPP, "sendPong");
+            L_T_D(TAG_WS_CLIENT_CPP, "sendPong");
         }
 
         void send(const std::string &message) {
-            L_T_D(WS_CLIENT_TAG_CPP, "send -- msg: %s", message.c_str());
+            L_T_D(TAG_WS_CLIENT_CPP, "send -- msg: %s", message.c_str());
             sendData(WsHeaderType::TEXT_FRAME, message.size(), message.begin(), message.end());
         }
 
         void sendBinary(const std::string &message) {
-            L_T_D(WS_CLIENT_TAG_CPP, "sendBinary -- msg: %s", message.c_str());
+            L_T_D(TAG_WS_CLIENT_CPP, "sendBinary -- msg: %s", message.c_str());
             sendData(WsHeaderType::BINARY_FRAME, message.size(), message.begin(), message.end());
         }
 
         void sendBinary(const std::vector<uint8_t> &message) {
-            L_T_D(WS_CLIENT_TAG_CPP, "sendBinary -- msg: %s", std::string(message.begin(), message.end()).c_str());
+            L_T_D(TAG_WS_CLIENT_CPP, "sendBinary -- msg: %s", std::string(message.begin(), message.end()).c_str());
             sendData(WsHeaderType::BINARY_FRAME, message.size(), message.begin(), message.end());
         }
 
@@ -347,13 +348,13 @@ namespace {
         void sendData(WsHeaderType::OpCodeType type, uint64_t message_size, Iterator message_begin, Iterator message_end) {
             const uint8_t masking_key[4] = {0x12, 0x34, 0x56, 0x78};
             if (state == CLOSING || state == CLOSED) {
-                L_T_D(WS_CLIENT_TAG_CPP, "sendData -- state is 'closing' or 'closed', so return");
+                L_T_D(TAG_WS_CLIENT_CPP, "sendData -- state is 'closing' or 'closed', so return");
                 return;
             }
             std::vector<uint8_t> header;
             header.assign(2 + (message_size >= 126 ? 2 : 0) + (message_size >= 65536 ? 6 : 0) + (useMask ? 4 : 0), 0);
             header[0] = 0x80 | type;
-            L_T_D(WS_CLIENT_TAG_CPP, "sendData -- useMask: %d", useMask);
+            L_T_D(TAG_WS_CLIENT_CPP, "sendData -- useMask: %d", useMask);
             if (message_size < 126) {
                 header[1] = (message_size & 0xff) | (useMask ? 0x80 : 0);
                 if (useMask) {
@@ -362,7 +363,7 @@ namespace {
                     header[4] = masking_key[2];
                     header[5] = masking_key[3];
                 }
-                L_T_D(WS_CLIENT_TAG_CPP, "sendData -- msg_size < 126");
+                L_T_D(TAG_WS_CLIENT_CPP, "sendData -- msg_size < 126");
             } else if (message_size < 65536) {
                 header[1] = 126 | (useMask ? 0x80 : 0);
                 header[2] = (message_size >> 8) & 0xff;
@@ -373,7 +374,7 @@ namespace {
                     header[6] = masking_key[2];
                     header[7] = masking_key[3];
                 }
-                L_T_D(WS_CLIENT_TAG_CPP, "sendData -- msg_size < 65536");
+                L_T_D(TAG_WS_CLIENT_CPP, "sendData -- msg_size < 65536");
             } else {
                 header[1] = 127 | (useMask ? 0x80 : 0);
                 header[2] = (message_size >> 56) & 0xff;
@@ -390,7 +391,7 @@ namespace {
                     header[12] = masking_key[2];
                     header[13] = masking_key[3];
                 }
-                L_T_D(WS_CLIENT_TAG_CPP, "sendData -- msg_size >= 65536");
+                L_T_D(TAG_WS_CLIENT_CPP, "sendData -- msg_size >= 65536");
             }
             // N.B. - txBuf will keep growing until it can be transmitted over the socket:
             txBuf.insert(txBuf.end(), header.begin(), header.end());
@@ -409,7 +410,11 @@ namespace {
             uint8_t closeFrame[6] = {0x88, 0x80, 0x00, 0x00, 0x00, 0x00};  // last 4 bytes are a masking key
             std::vector<uint8_t> header(closeFrame, closeFrame + 6);
             txBuf.insert(txBuf.end(), header.begin(), header.end());
-            L_T_D(WS_CLIENT_TAG_CPP, "close");
+            L_T_D(TAG_WS_CLIENT_CPP, "close");
+        }
+
+        ~_RealWebSocket() {
+            close();
         }
     };
 
@@ -418,11 +423,11 @@ namespace {
         int port;
         char path[512];
         if (url.size() >= 512) {
-            L_T_E(WS_CLIENT_TAG_CPP, "create ws -- url size limit exceeded: %s", url.c_str());
+            L_T_E(TAG_WS_CLIENT_CPP, "create ws -- url size limit exceeded: %s", url.c_str());
             return nullptr;
         }
         if (origin.size() >= 200) {
-            L_T_E(WS_CLIENT_TAG_CPP, "create ws -- origin size limit exceeded: %s", origin.c_str());
+            L_T_E(TAG_WS_CLIENT_CPP, "create ws -- origin size limit exceeded: %s", origin.c_str());
             return nullptr;
         }
         if (sscanf(url.c_str(), "ws://%[^:/]:%d/%s", host, &port, path) == 3) {
@@ -434,16 +439,16 @@ namespace {
             port = 80;
             path[0] = '\0';
         } else {
-            L_T_W(WS_CLIENT_TAG_CPP, "create ws -- Could not parse WebSocket url: %s", url.c_str());
+            L_T_W(TAG_WS_CLIENT_CPP, "create ws -- Could not parse WebSocket url: %s", url.c_str());
             return nullptr;
         }
-        L_T_D(WS_CLIENT_TAG_CPP, "ws: connecting: host=%s port=%d path=/%s", host, port, path);
+        L_T_D(TAG_WS_CLIENT_CPP, "ws: connecting: host=%s port=%d path=/%s", host, port, path);
         socket_t sockFd = hostname_connect(host, port);
         if (sockFd == INVALID_SOCKET) {
-            L_T_D(WS_CLIENT_TAG_CPP, "create ws -- Unable to connect to %s:%d", host, port);
+            L_T_D(TAG_WS_CLIENT_CPP, "create ws -- Unable to connect to %s:%d", host, port);
             return nullptr;
         } else {
-            L_T_D(WS_CLIENT_TAG_CPP, "create ws -- create socket_t successfully");
+            L_T_D(TAG_WS_CLIENT_CPP, "create ws -- create socket_t successfully");
         }
         {
             // XXX: this should be done non-blocking,
@@ -478,11 +483,11 @@ namespace {
             }
             line[i] = 0;
             if (i == 1023) {
-                L_T_E(WS_CLIENT_TAG_CPP, "create ws -- Got invalid status line connecting to: %s", url.c_str());
+                L_T_E(TAG_WS_CLIENT_CPP, "create ws -- Got invalid status line connecting to: %s", url.c_str());
                 return nullptr;
             }
             if (sscanf(line, "HTTP/1.1 %d", &status) != 1 || status != 101) {
-                L_T_E(WS_CLIENT_TAG_CPP, "create ws -- Got bad status connecting to %s: %s", url.c_str(), line);
+                L_T_E(TAG_WS_CLIENT_CPP, "create ws -- Got bad status connecting to %s: %s", url.c_str(), line);
                 return nullptr;
             }
             while (true) {
@@ -495,7 +500,7 @@ namespace {
         int flag = 1;
         setsockopt(sockFd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag)); // Disable Nagle's algorithm
         fcntl(sockFd, F_SETFL, O_NONBLOCK);
-        L_T_D(WS_CLIENT_TAG_CPP, "create ws -- Connected to: %s", url.c_str());
+        L_T_D(TAG_WS_CLIENT_CPP, "create ws -- Connected to: %s", url.c_str());
         return ws::WebSocket::pointer(new _RealWebSocket(sockFd, useMask));
     }
 }  // end of module-only namespace
