@@ -11,8 +11,8 @@ import java.util.Arrays;
  */
 public class ShellMsgHandler extends AbsRemoteMsgHandler<ShellPushReqMsg, ShellPushResMsg> {
     private static final String TAG = "ShellMsgHandler";
-    private static final String TYPE_REMOTE_SHELL_REQ = "shell";
-    private static final String TYPE_REMOTE_SHELL_RES = "output";
+    private static final String TYPE_REMOTE_SHELL_REQ = "shellReq";
+    private static final String TYPE_REMOTE_SHELL_RES = "shellRes";
     private static final long EXECUTE_INTERVAL = 20 * 1000;
 
     private Shell.Console shell = null;

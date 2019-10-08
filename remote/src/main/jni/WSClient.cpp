@@ -28,8 +28,10 @@ typedef int socket_t;
 #define SOCKET_EAGAIN_EINPROGRESS EAGAIN
 #define SOCKET_EWOULDBLOCK EWOULDBLOCK
 
-#include "WSClient.hpp"
+#include "ThreadSafeQueue.hpp"
+#include "ThreadSafeQueue2.hpp"
 #include "Utils.hpp"
+#include "WSClient.hpp"
 
 using ws::Callback_Imp;
 using ws::BytesCallback_Imp;

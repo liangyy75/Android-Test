@@ -77,15 +77,15 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             final long uid = Long.parseLong(uidStr);
-            // RemoteMsgManager
-            //         .getInstance()
-            //         .setUid(uid)
-            //         .setGuid(guid)
-            //         .startRemoteClient(serverUrl, MainActivity.this, "remote");
-            RemoteManager.getInstance().setUid(uid);
-            RemoteManager.getInstance().setGuid(guid);
-            RemoteManager.getInstance().setServerUrl(serverUrl);
-            RemoteManager.getInstance().startRemoteClient();
+            RemoteMsgManager
+                    .getInstance()
+                    .setUid(uid)
+                    .setGuid(guid)
+                    .startRemoteClient(serverUrl, MainActivity.this, "remote");
+            // RemoteManager.getInstance().setUid(uid);
+            // RemoteManager.getInstance().setGuid(guid);
+            // RemoteManager.getInstance().setServerUrl(serverUrl);
+            // RemoteManager.getInstance().startRemoteClient();
             Toast.makeText(MainActivity.this, "Starting remote client", Toast.LENGTH_LONG).show();
         } catch (NumberFormatException e) {
             Toast.makeText(MainActivity.this, "Uid should be integer", Toast.LENGTH_LONG).show();
@@ -96,8 +96,8 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.test_stop)
     public void stopTest(View view) {
         ApiManager.LOGGER.d(TAG, "stop test event");
-        // RemoteMsgManager.getInstance().closeRemoteClient();
-        RemoteManager.getInstance().stopRemoteClient();
+        RemoteMsgManager.getInstance().closeRemoteClient();
+        // RemoteManager.getInstance().stopRemoteClient();
     }
 
     // TODO: permission utils

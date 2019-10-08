@@ -41,7 +41,7 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sta
     strcpy(guidBuf, guidStr);
     strcpy(serverUrlBuf, serverUrlStr);
     remote::RemoteManager::getInstance()->addMsgHandler(new EchoMsgHandler());
-    remote::RemoteManager::getInstance()->addMsgHandler(new ShellMsgHandler());
+    remote::RemoteManager::getInstance()->addMsgHandler(new shell::ShellMsgHandler());
     remote::RemoteManager::getInstance()->startNewClient((long) uid, guidBuf, serverUrlBuf);
     // remote::RemoteManager::getInstance()->startNewClient(50042533l, "0e74af97aa48135d0c5528db29dbb6fe", "ws://157");
     jniEnv->ReleaseStringUTFChars(guid, guidStr);
@@ -69,4 +69,4 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
 // TODO: WSClient的多线程安全问题，可以使用封装在Utils.hpp里面
 // RemoteManager的线程安全懒汉单例模式 -- https://zhuanlan.zhihu.com/p/37469260
 // cJson / json11 -- [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
-// TODO: RemoteShell.hpp / RemoteShell.cpp
+// TODO: RemoteShell.hpp

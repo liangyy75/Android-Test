@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 @SuppressWarnings("unused")
 public class Shell {
-    static final String[] AVAILABLE_TEST_COMMANDS = new String[] { "echo -BOC-", "id" };
+    static final String[] AVAILABLE_TEST_COMMANDS = new String[]{"echo -BOC-", "id"};
 
     public static CommandResult run(String shell, String... commands) {
         return run(shell, commands, null);
@@ -160,7 +160,7 @@ public class Shell {
 
     public static class SU {
         private static Boolean isSELinuxEnforcing = null;
-        private static String[] suVersion = new String[] { null, null };
+        private static String[] suVersion = new String[]{null, null};
         private static volatile Console console;
 
         public static Console getConsole() throws ShellNotFoundException {
@@ -388,7 +388,7 @@ public class Shell {
         }
 
         public Builder addCommand(String command, int code, OnCommandResultListener onCommandResultListener) {
-            return addCommand(new String[] { command }, code, onCommandResultListener);
+            return addCommand(new String[]{command}, code, onCommandResultListener);
         }
 
         public Builder addCommand(List<String> commands) {
@@ -499,12 +499,12 @@ public class Shell {
         }
 
         public void addCommand(String command, int code, OnCommandResultListener resultListener) {
-            addCommand(new String[] { command }, code, resultListener);
+            addCommand(new String[]{command}, code, resultListener);
         }
 
         public void addCommand(String command, int code,
                                OnCommandLineListener onCommandLineListener) {
-            addCommand(new String[] { command }, code, onCommandLineListener);
+            addCommand(new String[]{command}, code, onCommandLineListener);
         }
 
         public void addCommand(List<String> commands) {

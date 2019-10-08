@@ -222,7 +222,7 @@ class AbsRemoteController(metaclass=ABCMeta):
 class ShellRemoteController(AbsRemoteController):
 
     def __init__(self):
-        super(ShellRemoteController, self).__init__("shell", "output")
+        super(ShellRemoteController, self).__init__("shellReq", "shellRes")
 
     def parse_command(self, command: str) -> dict:
         return {"shell": [command]}
