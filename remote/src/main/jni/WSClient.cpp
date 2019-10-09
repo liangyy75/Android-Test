@@ -30,6 +30,7 @@ typedef int socket_t;
 
 #include "ThreadSafeQueue.hpp"
 #include "ThreadSafeQueue2.hpp"
+#include "ThreadSafeQueue3.hpp"
 #include "Utils.hpp"
 #include "WSClient.hpp"
 
@@ -91,7 +92,7 @@ namespace {
     class _RealWebSocket : public ws::WebSocket {
     private:
         std::vector<uint8_t> rxBuf;  // received buffer
-        std::vector<uint8_t> txBuf;  // send buffer
+        std::vector<uint8_t> txBuf;  // send buffer --> TODO: send buffer queue
         std::vector<uint8_t> receivedData;  // true received data
 
         socket_t sockFd;  // true socket's fileId

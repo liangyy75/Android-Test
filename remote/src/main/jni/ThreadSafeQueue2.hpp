@@ -1,5 +1,5 @@
-#ifndef ANDROID_TEST_THREADSAFE_QUEUE2
-#define ANDROID_TEST_THREADSAFE_QUEUE2
+#ifndef ANDROID_TEST_THREADSAFE_QUEUE2_HPP
+#define ANDROID_TEST_THREADSAFE_QUEUE2_HPP
 
 #include <mutex>
 #include <queue>
@@ -17,18 +17,18 @@ private:
     QueueNode *tail;
 
     QueueNode *getTail() {  // 返回tail用于判断head == tail
-        std::lock_guard<std::mutex> tail_lock(tailMutex);
+        std::lock_guard<std::mutex> tailLock(tailMutex);
         return tail;
     }
 
     std::unique_ptr<QueueNode> popHead() {  // 删除队首元素并返回该元素
-        std::lock_guard<std::mutex> head_lock(headMutex);
+        std::lock_guard<std::mutex> headLock(headMutex);
         if (head.get() == getTail()) {  // 判断队是否为空，get_tail()必选在head_mutex保护下，试想多个线程都在pop那么会出现什么情形?
             return nullptr;
         }
-        std::unique_ptr<QueueNode> old_head = std::move(head);
-        head = std::move(old_head->next);
-        return old_head;
+        std::unique_ptr<QueueNode> oldHead = std::move(head);
+        head = std::move(oldHead->next);
+        return oldHead;
     }
 
 public:
@@ -39,8 +39,8 @@ public:
     ThreadSafeQueue2 &operator=(const ThreadSafeQueue2 &other) = delete;
 
     std::shared_ptr<T> tryPop() {
-        std::unique_ptr<QueueNode> old_head = popHead();
-        return old_head ? old_head->data : std::shared_ptr<T>();
+        std::unique_ptr<QueueNode> oldHead = popHead();
+        return oldHead ? oldHead->data : std::shared_ptr<T>();
     }
 
     void push(T value) {  // 向队列添加一个元素，T的实例在临界区外创建即使抛出异常queue也没有被修改，而且加速多个线程的添加操作
@@ -49,7 +49,7 @@ public:
         std::unique_ptr<QueueNode> p(new QueueNode());
         // 创建一个虚拟节点，tail始终指向一个虚拟节点从而和head分开(队列中有元素时)，防止队列中只有元素时pop和top都操作的tail和head(若没有虚拟节点此时tail和head都是同一个节点)
         QueueNode *const newTail = p.get();
-        std::lock_guard<std::mutex> tail_lock(tailMutex);
+        std::lock_guard<std::mutex> tailLock(tailMutex);
         tail->data = newData;
         tail->next = std::move(p);
         tail = newTail;
