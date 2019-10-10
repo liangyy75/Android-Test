@@ -25,6 +25,7 @@ void *remote::wsPoll(void *data) {
                 L_T_D(TAG_RM_CPP, "wsPoll continue, state is %d", state);
                 remoteClient->webSocket->pollWithHandle(remoteClient->timeout);
                 state = remoteClient->webSocket->getReadyState();
+                sleep(1);
             }
             L_T_D(TAG_RM_CPP, "begin close");
             for (auto it = handlers.begin(); it != handlers.end(); it++) {

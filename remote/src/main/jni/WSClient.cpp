@@ -28,9 +28,6 @@ typedef int socket_t;
 #define SOCKET_EAGAIN_EINPROGRESS EAGAIN
 #define SOCKET_EWOULDBLOCK EWOULDBLOCK
 
-#include "ThreadSafeQueue.hpp"
-#include "ThreadSafeQueue2.hpp"
-#include "ThreadSafeQueue3.hpp"
 #include "Utils.hpp"
 #include "WSClient.hpp"
 
@@ -92,8 +89,9 @@ namespace {
     class _RealWebSocket : public ws::WebSocket {
     private:
         std::vector<uint8_t> rxBuf;  // received buffer
-        std::vector<uint8_t> txBuf;  // send buffer --> TODO: send buffer queue
+        // std::vector<uint8_t> txBuf;  // send buffer
         std::vector<uint8_t> receivedData;  // true received data
+        MutexVector<uint8_t> txBuf;
 
         socket_t sockFd;  // true socket's fileId
         ConnectionState state;  // state
@@ -185,16 +183,22 @@ namespace {
             }
             // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin send");
             while (!txBuf.empty()) {
-                int ret = ::send(sockFd, (char *) &txBuf[0], txBuf.size(), 0);
+                txBuf.lock();
+                std::vector<uint8_t> v = txBuf.getVector();
+                int ret = ::send(sockFd, (char *) &v[0], v.size(), 0);
                 if (ret < 0 && (socketerrno == SOCKET_EWOULDBLOCK || socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
+                    txBuf.unlock();
                     break;
                 } else if (ret <= 0) {
                     closeSocket(sockFd);
                     state = CLOSED;
                     L_T_D(TAG_WS_CLIENT_CPP, ret < 0 ? "poll -- send -- Connection error!" : "poll -- send -- Connection closed!");
+                    txBuf.unlock();
                     break;
                 } else {
-                    txBuf.erase(txBuf.begin(), txBuf.begin() + ret);
+                    // txBuf.erase(txBuf.begin(), txBuf.begin() + ret);
+                    txBuf.normalErase(ret);
+                    txBuf.unlock();
                 }
             }
             if (txBuf.empty() && state == CLOSING) {
@@ -397,14 +401,16 @@ namespace {
                 L_T_D(TAG_WS_CLIENT_CPP, "sendData -- msg_size >= 65536");
             }
             // N.B. - txBuf will keep growing until it can be transmitted over the socket:
-            txBuf.insert(txBuf.end(), header.begin(), header.end());
-            txBuf.insert(txBuf.end(), message_begin, message_end);
+            txBuf.lock();
+            txBuf.normalInsertEnd(header.begin(), header.end());  // txBuf.insert(txBuf.end(), header.begin(), header.end());
+            txBuf.normalInsertEnd(message_begin, message_end);  // txBuf.insert(txBuf.end(), message_begin, message_end);
             if (useMask) {
-                size_t message_offset = txBuf.size() - message_size;
+                size_t message_offset = txBuf.normalSize() - message_size;
                 for (size_t i = 0; i != message_size; ++i) {
-                    txBuf[message_offset + i] ^= masking_key[i & 0x3];
+                    txBuf.normalXor(message_offset + i, masking_key[i & 0x3]);  // txBuf[message_offset + i] ^= masking_key[i & 0x3];
                 }
             }
+            txBuf.unlock();
         }
 
         void close() override {
@@ -412,7 +418,8 @@ namespace {
             state = CLOSING;
             uint8_t closeFrame[6] = {0x88, 0x80, 0x00, 0x00, 0x00, 0x00};  // last 4 bytes are a masking key
             std::vector<uint8_t> header(closeFrame, closeFrame + 6);
-            txBuf.insert(txBuf.end(), header.begin(), header.end());
+            // txBuf.insert(txBuf.end(), header.begin(), header.end());
+            txBuf.insertEnd(header);
             L_T_D(TAG_WS_CLIENT_CPP, "close");
         }
 
