@@ -1,12 +1,13 @@
 #ifndef _Included_RemoteManager
 #define _Included_RemoteManager
 
-#include "WSClient.hpp"
-#include "Json.hpp"
+#include <exception>
 #include <map>
 #include <pthread.h>
 #include <string.h>
-#include <exception>
+#include "HandlerJniHelper.hpp"
+#include "Json.hpp"
+#include "WSClient.hpp"
 
 #define TAG_RM_HPP "RMHpp"
 #define TAG_RM_CPP "RMCpp"
@@ -154,9 +155,6 @@ namespace remote {
             if (it->first->webSocket != nullptr) {
                 it->first->webSocket->close();
             }
-            if (remoteClient->webSocket != nullptr) {
-                remoteClient->webSocket->close();
-            }
             clients.erase(it);
             L_T_D(TAG_RM_HPP, "stop remote client: uid(%ld), guid(%s), serverUrl(%s)", remoteClient->uid,
                   remoteClient->guid, remoteClient->serverUrl);
@@ -169,7 +167,7 @@ namespace remote {
 
         bool addMsgHandler(MsgHandler *msgHandler) {
             char *reqType = msgHandler->getReqType();
-            if (handlers.find(reqType) == handlers.end()) {
+            if (handlers.find(reqType) != handlers.end()) {
                 return false;
             }
             handlers.insert(std::pair<char *, MsgHandler *>(reqType, msgHandler));

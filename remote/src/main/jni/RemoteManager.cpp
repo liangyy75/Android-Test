@@ -22,7 +22,7 @@ void *remote::wsPoll(void *data) {
                 it->second->onOpen(remoteClient);
             }
             while (state != ws::WebSocket::CLOSED && state != ws::WebSocket::CLOSING) {
-                L_T_D(TAG_RM_CPP, "wsPoll continue, state is %d", state);
+                // L_T_D(TAG_RM_CPP, "wsPoll continue, state is %d", state);
                 remoteClient->webSocket->pollWithHandle(remoteClient->timeout);
                 state = remoteClient->webSocket->getReadyState();
                 sleep(1);
@@ -74,6 +74,7 @@ void remote::handleMsg(ws::WebSocket &webSocket, const std::string &message) {
             const char *trueType = value.string_value().c_str();
             L_T_D(TAG_RM_CPP, "parse json successfully, and type is '%s'", trueType);
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
+                L_T_D(TAG_RM_CPP, "iterate req type: %s", it->second->getReqType());
                 if (strcmp(it->second->getReqType(), trueType) == 0) {
                     json11::Json data = jsonObj["data"];
                     it->second->handleMsg(webSocket, message, data);

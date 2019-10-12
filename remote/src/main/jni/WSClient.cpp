@@ -143,7 +143,7 @@ namespace {
         }
 
         void poll(int timeout) override {
-            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin timeout: %d", timeout);
+            // L_T_D(TAG_WS_CLIENT_CPP, "poll -- begin timeout: %d", timeout);
             if (state == CLOSED) {
                 if (timeout > 0) {
                     timeval tv = {timeout / MILLI_TIME_STEP, (timeout % MILLI_TIME_STEP) * MILLI_TIME_STEP};
@@ -162,7 +162,7 @@ namespace {
                 if (!txBuf.empty()) { FD_SET(sockFd, &writeFds); }
                 select(sockFd + 1, &readFds, &writeFds, nullptr, timeout > 0 ? &tv : nullptr);
             }
-            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin receive");
+            // L_T_D(TAG_WS_CLIENT_CPP, "poll -- begin receive");
             while (true) {
                 unsigned N = rxBuf.size();
                 ssize_t ret;
@@ -181,7 +181,7 @@ namespace {
                     rxBuf.resize(N + ret);
                 }
             }
-            // L_T_D(WS_CLIENT_TAG_CPP, "poll -- begin send");
+            // L_T_D(TAG_WS_CLIENT_CPP, "poll -- begin send");
             while (!txBuf.empty()) {
                 txBuf.lock();
                 std::vector<uint8_t> v = txBuf.getVector();
@@ -402,6 +402,7 @@ namespace {
             }
             // N.B. - txBuf will keep growing until it can be transmitted over the socket:
             txBuf.lock();
+            L_T_D(TAG_WS_CLIENT_CPP, "sendData -- begin adding data to txBuf");
             txBuf.normalInsertEnd(header.begin(), header.end());  // txBuf.insert(txBuf.end(), header.begin(), header.end());
             txBuf.normalInsertEnd(message_begin, message_end);  // txBuf.insert(txBuf.end(), message_begin, message_end);
             if (useMask) {
@@ -410,6 +411,7 @@ namespace {
                     txBuf.normalXor(message_offset + i, masking_key[i & 0x3]);  // txBuf[message_offset + i] ^= masking_key[i & 0x3];
                 }
             }
+            L_T_D(TAG_WS_CLIENT_CPP, "sendData -- end adding data to txBuf");
             txBuf.unlock();
         }
 
