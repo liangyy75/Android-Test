@@ -13,6 +13,11 @@ public class RemoteManager {
         System.loadLibrary("remote-jni");
     }
 
+    private RemoteManager() {
+        // init(true, true);
+        init(true, true);
+    }
+
     public static RemoteManager getInstance() {
         if (instance == null) {
             synchronized (RemoteManager.class) {
@@ -48,9 +53,9 @@ public class RemoteManager {
         return serverUrl;
     }
 
-    public boolean startRemoteClient() {
+    public void startRemoteClient() {
         RemoteMsgManager.logger.d(TAG, "startRemoteClient -- uid: %d, guid: %s, serverUrl: %s", uid, guid, serverUrl);
-        return startRemoteClient(uid, guid, serverUrl);
+        startRemoteClient(uid, guid, serverUrl);
     }
 
     public boolean stopRemoteClient() {
@@ -58,7 +63,22 @@ public class RemoteManager {
         return stopRemoteClient(uid, guid, serverUrl);
     }
 
-    private native boolean startRemoteClient(long uid, String guid, String serverUrl);
+    private native void init(boolean useShell, boolean useEcho);
+
+    private native void startRemoteClient(long uid, String guid, String serverUrl);
 
     private native boolean stopRemoteClient(long uid, String guid, String serverUrl);
+
+    public native boolean hasRemoteClient(long uid, String guid, String serverUrl);
+
+    public native boolean addRemoteMsgHandler(AbsRemoteMsgHandler handler);
+
+    public native boolean removeRemoteMsgHandler(String reqType);
+
+    public native boolean hasRemoteMsgHandler(String reqType);
+
+
+    public native Object getObjectFromJni(String className, String jsonStr);
+
+    public native String getStringFromJni(Object obj, String className);
 }

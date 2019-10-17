@@ -74,6 +74,7 @@ namespace {
 
     class _DummyWebSocket : public ws::WebSocket {
     public:
+        _DummyWebSocket(std::string url) : ws::WebSocket(url) {}  //
         void poll(int timeout) override {}  // 1
         void send(const std::string &message) override {}  // 2
         void sendBinary(const std::string &message) override {}  // 3
@@ -135,7 +136,8 @@ namespace {
             uint8_t masking_key[4];
         };
 
-        _RealWebSocket(socket_t sockfd, bool useMask) : sockFd(sockfd), state(OPEN), useMask(useMask), isRxBad(false) {
+        _RealWebSocket(std::string url, socket_t sockfd, bool useMask) :
+                ws::WebSocket(url), sockFd(sockfd), state(OPEN), useMask(useMask), isRxBad(false) {
         }
 
         ConnectionState getReadyState() const override {
@@ -513,13 +515,13 @@ namespace {
         setsockopt(sockFd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag)); // Disable Nagle's algorithm
         fcntl(sockFd, F_SETFL, O_NONBLOCK);
         L_T_D(TAG_WS_CLIENT_CPP, "create ws -- Connected to: %s", url.c_str());
-        return ws::WebSocket::pointer(new _RealWebSocket(sockFd, useMask));
+        return ws::WebSocket::pointer(new _RealWebSocket(url, sockFd, useMask));
     }
 }  // end of module-only namespace
 
 namespace ws {
     WebSocket::pointer WebSocket::create_dummy() {
-        static pointer dummy = pointer(new _DummyWebSocket);
+        static pointer dummy = pointer(new _DummyWebSocket(std::string()));
         return dummy;
     }
 

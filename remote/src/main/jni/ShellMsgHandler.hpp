@@ -13,10 +13,12 @@
 #include "RemoteManager.hpp"
 
 #define TAG_SMH "ShellMsgHandlerHpp"
+#define SHELL_REQ "shellReq"
+#define SHELL_RES "shellRes"
 
 namespace shell {
-    char SHELL_REQ[] = "shellReq";
-    char SHELL_RES[] = "shellRes";
+    // char SHELL_REQ[] = "shellReq";
+    // char SHELL_RES[] = "shellRes";
 
     constexpr int COM_MAX_NUM = 10;  // cd ../ && cat smg.txt | wc -c || echo "some error" 这样的就有3个指令，{"cd ../", "cat smg.txt | wc -c", "echo \"some error\""}
     constexpr int COM_BUF_SIZE = 256;
@@ -58,7 +60,7 @@ namespace shell {
 
     void *executeCommandInPThread(void *data);
 
-    class ShellMsgHandler : public remote::MsgHandler {
+    class ShellMsgHandler : public remote::RemoteMsgHandler {
     private:
         char curPath[COM_BUF_SIZE];
         char remoteCommand[COM_MAX_NUM * COM_BUF_SIZE + 1];  // 获取的远程输入指令
@@ -88,7 +90,6 @@ namespace shell {
         }
 
         void closeShell() {
-            // TODO
         }
 
         // 以&&和||分割命令，返回分割得到的字符串个数
@@ -334,7 +335,7 @@ namespace shell {
         }
 
     public:
-        ShellMsgHandler() : MsgHandler(SHELL_REQ, SHELL_RES) {
+        ShellMsgHandler() : RemoteMsgHandler((char *) SHELL_REQ, (char *) SHELL_RES) {
             pthread_mutex_init(&singleMutex, nullptr);
             resultLen = 0;
             sendResult[0] = '\0';
@@ -449,10 +450,6 @@ namespace shell {
             return RESULT_NORMAL;
         }
     };
-
-    void *executeCommandInPThread(void *data) {
-        // TODO: 问题是如何将 webSocket 传入到 executeCommandInPThread 中(考虑使用struct，但是这个好像非常不靠谱)，而且使用多个shell的话，那么多个result也是必须的了
-    }
 }
 
 #endif //ANDROID_TEST_SHELLMSGHANDLER_HPP

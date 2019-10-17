@@ -5,9 +5,9 @@
 #include "WSClient.hpp"
 #include "RemoteManager.hpp"
 #include "ShellMsgHandler.hpp"
+#include "HandlerJniHelper.hpp"
 
 #ifdef __cplusplus
-
 extern "C" {
 #endif
 
@@ -16,12 +16,10 @@ constexpr char TAG_RN[] = "RemoteNativeCpp";
 char ECHO_REQ[] = "echoReq";
 char ECHO_RES[] = "echoRes";
 
-constexpr int JTC_BUF_LEN = 100;
-
 // [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
-class EchoMsgHandler : public remote::MsgHandler {
+class EchoMsgHandler : public remote::RemoteMsgHandler {
 public:
-    EchoMsgHandler() : remote::MsgHandler(ECHO_REQ, ECHO_RES) {}
+    EchoMsgHandler() : remote::RemoteMsgHandler(ECHO_REQ, ECHO_RES) {}
 
     void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
         L_T_D(TAG_RN, "received msg: %s, and data: %s", msg.c_str(), data.dump().c_str());
@@ -33,86 +31,97 @@ public:
     }
 };
 
-JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_startRemoteClient
-        (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
-    // const char *command = "/system/bin/sh -c ps && cd /sdcard && ls && ls >> smg.txt";
-    // FILE *fp;
-    // char buffer[80];
-    // fp = popen(command, "r");
-    // L_T_D(TAG_SMH, "testCommandResult: begin");
-    // while (fgets(buffer, sizeof(buffer), fp)) {
-    //     L_T_D(TAG_SMH, "testCommandResult: %s", buffer);
-    // }
-    // pclose(fp);
-    // L_T_D(TAG_SMH, "testCommandResult: end");
-    //
-    // int fd[2];
-    // pid_t pid;
-    // int status;
-    // int n, count;
-    // if (pipe(fd) < 0 || (pid = fork()) < 0) {
-    //     status = -1;
-    //     L_T_E(TAG_SMH, "testCommandResult: pipe error or fork error");
-    // } else if (pid == 0) {
-    //     close(fd[0]);
-    //     if (fd[1] != STDOUT_FILENO) {
-    //         if (dup2(fd[1], STDOUT_FILENO) != STDOUT_FILENO) {
-    //             L_T_E(TAG_SMH, "testCommandResult: executing error1");
-    //         }
-    //         close(fd[1]);
-    //     }
-    //     L_T_D(TAG_SMH, "testCommandResult: executing command");
-    //     execl("/system/bin/sh", "sh", "-c", "cd /sdcard && echo \"msg\" >> smg.txt", (char *) 0);
-    // } else {
-    //     close(fd[1]);
-    //     if (waitpid(pid, nullptr, 0) > 0) {
-    //         L_T_E(TAG_SMH, "testCommandResult: executing error");
-    //     }
-    //     count = 0;
-    //     char buf[80 * 1000];
-    //     while ((n = read(fd[0], buf + count, 80 * 1000)) > 0 && count < 80 * 1000) {
-    //         count += n;
-    //     }
-    //     L_T_D(TAG_SMH, "testCommandResult: result -- %s", buf);
-    //     close(fd[0]);
-    // }
-
-    const char *guidStr = jniEnv->GetStringUTFChars(guid, nullptr);
-    const char *serverUrlStr = jniEnv->GetStringUTFChars(serverUrl, nullptr);
+remote::RemoteClient *makeRemoteClient(JNIEnv *jniEnv, jlong uid, jstring guid, jstring serverUrl) {
     char guidBuf[JTC_BUF_LEN];
     char serverUrlBuf[JTC_BUF_LEN];
-    strcpy(guidBuf, guidStr);
-    strcpy(serverUrlBuf, serverUrlStr);
-    remote::RemoteManager::getInstance()->addMsgHandler(new EchoMsgHandler());
-    remote::RemoteManager::getInstance()->addMsgHandler(new shell::ShellMsgHandler());
-    remote::RemoteManager::getInstance()->startNewClient((long) uid, guidBuf, serverUrlBuf);
-    jniEnv->ReleaseStringUTFChars(guid, guidStr);
-    jniEnv->ReleaseStringUTFChars(serverUrl, serverUrlStr);
-    return JNI_TRUE;
+    jStringToCharArray(jniEnv, guid, guidBuf);
+    jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
+    auto *remoteClient = new remote::RemoteClient((long) uid, guidBuf, serverUrlBuf);
+    return remoteClient;
+}
+
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_RemoteManager_init
+        (JNIEnv *jniEnv, jobject obj, jboolean useShell, jboolean useEcho) {
+    if (useEcho) {
+        remote::RemoteManager::getInstance()->addMsgHandler(new EchoMsgHandler());
+    }
+    if (useShell) {
+        remote::RemoteManager::getInstance()->addMsgHandler(new shell::ShellMsgHandler());
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_RemoteManager_startRemoteClient
+        (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
+    remote::RemoteManager::getInstance()->startNewClient(makeRemoteClient(jniEnv, uid, guid, serverUrl));
 }
 
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_stopRemoteClient
         (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
-    const char *guidStr = jniEnv->GetStringUTFChars(guid, nullptr);
-    const char *serverUrlStr = jniEnv->GetStringUTFChars(serverUrl, nullptr);
-    char guidBuf[JTC_BUF_LEN];
+    return boolToJBoolean(remote::RemoteManager::getInstance()->stopClient(makeRemoteClient(jniEnv, uid, guid, serverUrl)));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClient
+        (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
+    return boolToJBoolean(remote::RemoteManager::getInstance()->hasClient(makeRemoteClient(jniEnv, uid, guid, serverUrl)));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_addRemoteMsgHandler
+        (JNIEnv *jniEnv, jobject obj, jobject msgHandler) {
+    return boolToJBoolean(remote::RemoteManager::getInstance()->addMsgHandler(remote::jObjectToJavaMsgHandler(jniEnv, msgHandler)));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_removeRemoteMsgHandler
+        (JNIEnv *jniEnv, jobject obj, jstring reqType) {
+    char reqTypeBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, reqType, reqTypeBuf);
+    return boolToJBoolean(remote::RemoteManager::getInstance()->removeMsgHandler(reqTypeBuf));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteMsgHandler
+        (JNIEnv *jniEnv, jobject obj, jstring reqType) {
+    char reqTypeBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, reqType, reqTypeBuf);
+    return boolToJBoolean(remote::RemoteManager::getInstance()->hasMsgHandler(reqTypeBuf));
+}
+
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendObj
+        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jobject resObj, jstring resClass) {
     char serverUrlBuf[JTC_BUF_LEN];
-    strcpy(guidBuf, guidStr);
-    strcpy(serverUrlBuf, serverUrlStr);
-    remote::RemoteManager::getInstance()->stopClient((long) uid, guidBuf, serverUrlBuf);
-    jniEnv->ReleaseStringUTFChars(guid, guidStr);
-    jniEnv->ReleaseStringUTFChars(serverUrl, serverUrlStr);
-    return JNI_TRUE;
+    char resClassBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
+    jStringToCharArray(jniEnv, resClass, resClassBuf);
+    replace(resClassBuf, '.', '/');
+    std::string strMsg = jObjectToJson11(jniEnv, resObj, resClassBuf).dump();
+    remote::RemoteManager::getInstance()->sendToServerUrl(serverUrlBuf, strMsg);
 }
 
-JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_send__Ljava_lang_Object_2
-        (JNIEnv *, jobject, jobject) {
-    // TODO:
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendMsg
+        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jstring msg) {
+    char serverUrlBuf[JTC_BUF_LEN];
+    char msgBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
+    jStringToCharArray(jniEnv, msg, msgBuf);
+    std::string strMsg = std::string(serverUrlBuf);
+    remote::RemoteManager::getInstance()->sendToServerUrl(serverUrlBuf, strMsg);
 }
 
-JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_send__Ljava_lang_String_2
-        (JNIEnv *, jobject, jstring) {
-    // TODO:
+JNIEXPORT jobject JNICALL Java_com_liang_example_nativeremote_RemoteManager_getObjectFromJni
+        (JNIEnv *jniEnv, jobject thisObj, jstring className, jstring jsonStr) {
+    char jsonStrBuf[JTC_BUF_LEN * 10];
+    char classNameBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, jsonStr, jsonStrBuf);
+    jStringToCharArray(jniEnv, className, classNameBuf);
+    std::string err;
+    json11::Json json = json11::Json::parse(jsonStrBuf, err);
+    return json11ToJObject(jniEnv, json, classNameBuf);
+}
+
+JNIEXPORT jstring JNICALL Java_com_liang_example_nativeremote_RemoteManager_getStringFromJni
+        (JNIEnv *jniEnv, jobject thisObj, jobject transformObj, jstring className) {
+    char classNameBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, className, classNameBuf);
+    json11::Json json = jObjectToJson11(jniEnv, transformObj, classNameBuf);
+    return jniEnv->NewStringUTF(json.dump().c_str());
 }
 
 #ifdef __cplusplus
@@ -130,3 +139,37 @@ JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_s
 //     memory -- ? 四大智能指针如何替换？
 //     initializer_list -- 只要改变 json11:Json 类以及其他 container 的初始化方法
 //     mutex -- pthread_mutex_t
+
+// 现有逻辑
+// 1. 提供了 ws::WebSocket ，能够进行 c++ 层的 WebSocket 连接，主要接口有
+//     1. poll: 不断循环从后台拉取消息并发送消息给后台
+//     2. dispatch / dispatchBinary: 将拉取到的消息进行处理，需要传入处理函数
+//         或者使用 setCallable / setByteCallable 这两个函数设置的处理函数，但这个时候需要调用 pollWithHandle
+//         注意，不要同时 setCallable 和 setByteCallable ，两者只会调用其一，而且 setCallable 的优先级高于 setByteCallable
+//     3. send / sendBinary / sendPing / sendPong / close
+//     4. 基本使用
+//     ```cpp
+//     ws::WebSocket::pointer webSocket = WebSocket::from_url("ws://localhost:8126/foo");
+//     webSocket->send("First message.");
+//     webSocket->send("Second message.");
+//     bool flag = false;
+//     while (webSocket->getReadyState() != ws::WebSocket::CLOSED) {
+//         ws->poll();
+//         ws->dispatch(flag ? &handle_message1 : &handle_message2);
+//     }
+//     delete webSocket;
+//     ```
+//     ```cpp
+//     ws::WebSocket::pointer webSocket = WebSocket::from_url("ws://localhost:8126/foo");
+//     webSocket->send("First message.");
+//     webSocket->send("Second message.");
+//     webSocket->setCallable(&handle_message);
+//     while (webSocket->getReadyState() != ws::WebSocket::CLOSED) {
+//         ws->pollWithHandle();
+//     }
+//     delete webSocket;
+//     ```
+
+// 2. json11::Json
+// 3. utils
+// 4.

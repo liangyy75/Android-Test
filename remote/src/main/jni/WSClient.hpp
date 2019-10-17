@@ -2,9 +2,9 @@
 #ifndef _Included_WSClient
 #define _Included_WSClient
 
-#include "Utils.hpp"
 #include <string>
 #include <vector>
+#include "Utils.hpp"
 
 #define TAG_WS_CLIENT_HPP "WSClientHpp"
 #define TAG_WS_CLIENT_CPP "WSClientCpp"
@@ -23,6 +23,7 @@ namespace ws {
 
     class WebSocket {
     protected:
+        std::string url;
         Callback_Imp *callback = nullptr;
         BytesCallback_Imp *bytesCallback = nullptr;
 
@@ -56,6 +57,7 @@ namespace ws {
         static pointer from_url_no_mask(const std::string &url, const std::string &origin = std::string());  // url with no mask
 
         // Interfaces:
+        WebSocket(std::string url) { this->url = url; }  // 构造函数
         virtual ~WebSocket() {
             delete this->bytesCallback;
             delete this->callback;
@@ -76,8 +78,7 @@ namespace ws {
             if (state == OPEN || state == CONNECTING) {
                 if (callback != nullptr) {
                     _dispatch(*callback);
-                }
-                if (bytesCallback != nullptr) {
+                } else if (bytesCallback != nullptr) {
                     _dispatchBinary(*bytesCallback);
                 }
             }
@@ -114,6 +115,10 @@ namespace ws {
             _BytesCallback<Callable> callback(callable);
             _dispatchBinary(callback);
         }  // 派分消息给传入的 byteCallback
+
+        std::string getUrl() {
+            return this->url.c_str();
+        }  // 获取url
     protected:
         virtual void _dispatch(Callback_Imp &callable) = 0;  // 只有继承的类需要且必须重写
         virtual void _dispatchBinary(BytesCallback_Imp &callable) = 0;  // 只有继承的类需要且必须重写

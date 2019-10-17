@@ -7,21 +7,68 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * Class:     com_liang_example_nativeremote_RemoteManager
+ * Method:    init
+ * Signature: (ZZ)V
+ */
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_RemoteManager_init
+        (JNIEnv *, jobject, jboolean, jboolean);
+
 /*
  * Class:     com_liang_example_nativeremote_RemoteManager
  * Method:    startRemoteClient
- * Signature: ()V
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_startRemoteClient
+JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_RemoteManager_startRemoteClient
         (JNIEnv *, jobject, jlong, jstring, jstring);
 
 /*
  * Class:     com_liang_example_nativeremote_RemoteManager
  * Method:    stopRemoteClient
- * Signature: ()V
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_stopRemoteClient
         (JNIEnv *, jobject, jlong, jstring, jstring);
+
+/*
+ * Class:     com_liang_example_nativeremote_RemoteManager
+ * Method:    hasRemoteClient
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClient
+        (JNIEnv *, jobject, jlong, jstring, jstring);
+
+/*
+ * Class:     com_liang_example_nativeremote_RemoteManager
+ * Method:    addRemoteMsgHandler
+ * Signature: (Lcom/liang/example/nativeremote/AbsRemoteMsgHandler;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_addRemoteMsgHandler
+        (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     com_liang_example_nativeremote_RemoteManager
+ * Method:    removeRemoteMsgHandler
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_removeRemoteMsgHandler
+        (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_liang_example_nativeremote_RemoteManager
+ * Method:    hasRemoteMsgHandler
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteMsgHandler
+        (JNIEnv *, jobject, jstring);
+
+JNIEXPORT jobject JNICALL Java_com_liang_example_nativeremote_RemoteManager_getObjectFromJni
+        (JNIEnv *, jobject, jstring, jstring);
+
+JNIEXPORT jstring JNICALL Java_com_liang_example_nativeremote_RemoteManager_getStringFromJni
+        (JNIEnv *, jobject, jobject, jstring);
 
 #ifdef __cplusplus
 }

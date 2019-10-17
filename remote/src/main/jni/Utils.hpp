@@ -1,6 +1,9 @@
 #include <android/log.h>
+#include <jni.h>
 #include <mutex>
 #include <vector>
+#include <map>
+#include "Json.hpp"
 
 #ifndef LOG_TAG
 #define LOG_TAG "REMOTE_JNI"
@@ -18,6 +21,8 @@
 #define L_T_W(TAG, ...) __android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)  // 定义L_T_W类型
 #define L_T_E(TAG, ...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)  // 定义L_T_E类型
 #define L_T_F(TAG, ...) __android_log_print(ANDROID_LOG_FATAL, TAG, __VA_ARGS__)  // 定义L_T_F类型
+
+#define JTC_BUF_LEN 100
 
 template<class T>
 class MutexVector {
@@ -85,5 +90,40 @@ public:
         mVector[pos] ^= t;
     }
 };
+
+struct ComByStr {
+    bool operator()(const char *a, const char *b) const {
+        return strcmp(a, b) < 0;
+    }
+};
+
+void replace(char *str, char o, char n);
+
+bool startsWith(const char *str, const char *start);
+
+jboolean boolToJBoolean(bool value);
+
+void jStringToCharArray(JNIEnv *jniEnv, jstring jStr, char buf[]);
+
+jobject getFieldFromJObject(JNIEnv *jniEnv, jobject obj, char name[], char signature[]);
+
+void getFieldIdsFromJClass(JNIEnv *jniEnv, const char *className, std::map<const char *, jobject, ComByStr> *fieldsMap);
+
+jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *className);
+
+json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className);
+
+// 为了跨线程使用jni，只能这样了
+
+void getFieldsFromJClass(JNIEnv *jniEnv, std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
+                         const char *className, std::map<const char *, jclass, ComByStr>* targetClasses, jclass fieldClass, jclass classClass);
+
+jobject
+json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, std::map<const char *, std::map<const char *, jobject>> *allFieldsMap,
+                std::map<const char *, jclass> targetClasses, const char *className, jclass fieldClass, jclass classClass);
+
+json11::Json
+jObjectToJson11(JNIEnv *jniEnv, jobject obj, std::map<const char *, std::map<const char *, jobject>> *allFieldsMap,
+                std::map<const char *, jclass> targetClasses, const char *className, jclass fieldClass, jclass classClass);
 
 #endif

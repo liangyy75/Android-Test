@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include "RemoteManager.hpp"
 #include "Json.hpp"
+#include "Utils.hpp"
 
 void *remote::wsPoll(void *data) {
     auto *remoteClient = (RemoteClient *) data;
@@ -11,7 +12,7 @@ void *remote::wsPoll(void *data) {
     // 将webSocket的创建搬到这里，如果在_startNewClient中进行会发送段错误
     remoteClient->webSocket = ws::WebSocket::from_url(remoteClient->serverUrl);
     if (remoteClient->webSocket != nullptr) {
-        std::map<char *, remote::MsgHandler *, remote::ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
+        std::map<char *, remote::RemoteMsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
         try {
             remoteClient->webSocket->setCallable(&handleMsg);
             remoteClient->webSocket->send(buf);
@@ -21,11 +22,17 @@ void *remote::wsPoll(void *data) {
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
                 it->second->onOpen(remoteClient);
             }
+            int count = 0;
             while (state != ws::WebSocket::CLOSED && state != ws::WebSocket::CLOSING) {
                 // L_T_D(TAG_RM_CPP, "wsPoll continue, state is %d", state);
                 remoteClient->webSocket->pollWithHandle(remoteClient->timeout);
                 state = remoteClient->webSocket->getReadyState();
                 sleep(1);
+                ++count;
+                if (count == PING_INTERVAL) {
+                    count = 0;
+                    remoteClient->webSocket->sendPing();
+                }
             }
             L_T_D(TAG_RM_CPP, "begin close");
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
@@ -64,7 +71,7 @@ remote::RemoteManager *remote::RemoteManager::getInstance() {  // 懒汉式线�
 // TODO: 支持协议替换，现在只支持Json
 void remote::handleMsg(ws::WebSocket &webSocket, const std::string &message) {
     L_T_D(TAG_RM_CPP, "handleMsg: msg(%s)", message.c_str());
-    std::map<char *, remote::MsgHandler *, remote::ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
+    std::map<char *, remote::RemoteMsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
     try {
         std::string err;
         const auto jsonObj = json11::Json::parse(message, err);
@@ -74,7 +81,7 @@ void remote::handleMsg(ws::WebSocket &webSocket, const std::string &message) {
             const char *trueType = value.string_value().c_str();
             L_T_D(TAG_RM_CPP, "parse json successfully, and type is '%s'", trueType);
             for (auto it = handlers.begin(); it != handlers.end(); it++) {
-                L_T_D(TAG_RM_CPP, "iterate req type: %s", it->second->getReqType());
+                // L_T_D(TAG_RM_CPP, "iterate req type: %s", it->second->getReqType());
                 if (strcmp(it->second->getReqType(), trueType) == 0) {
                     json11::Json data = jsonObj["data"];
                     it->second->handleMsg(webSocket, message, data);

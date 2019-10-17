@@ -5,14 +5,17 @@
 #include <map>
 #include <pthread.h>
 #include <string.h>
-#include "HandlerJniHelper.hpp"
 #include "Json.hpp"
 #include "WSClient.hpp"
+#include "Utils.hpp"
 
 #define TAG_RM_HPP "RMHpp"
 #define TAG_RM_CPP "RMCpp"
 
 namespace remote {
+    constexpr int PING_INTERVAL = 30;
+
+    // RemoteClient虽然有很多属性，但主要还是应该要看serverUrl和webSocket的
     struct RemoteClient {
         int timeout;
         long uid;
@@ -36,14 +39,20 @@ namespace remote {
         }
     };
 
+    struct ComByRC {
+        bool operator()(const RemoteClient *a, const RemoteClient *b) const {
+            return a->uid < b->uid || strcmp(a->guid, b->guid) < 0 || strcmp(a->serverUrl, b->serverUrl) < 0;
+        }
+    };
+
     // TODO: 将RemoteManager规范化，即可扩展。。。
     // TODO: template <class Callable> -> msgHandler
-    class MsgHandler {
+    class RemoteMsgHandler {
     protected:
         char *reqType;
         char *resType;
 
-        MsgHandler(char *reqType, char *resType) {
+        RemoteMsgHandler(char *reqType, char *resType) {
             this->reqType = new char[strlen(reqType) + 1];
             strcpy(this->reqType, reqType);
             this->resType = new char[strlen(resType) + 1];
@@ -56,7 +65,7 @@ namespace remote {
         char *getResType() {
             return resType;
         }  // getter
-        virtual ~MsgHandler() {
+        virtual ~RemoteMsgHandler() {
             delete this->reqType;
             delete this->resType;
         }
@@ -69,23 +78,11 @@ namespace remote {
             webSocket.send(jsonObj.dump());
         }  // 应该用这个方法来发送
 
-        virtual void onOpen(RemoteClient *remoteClient) {};  //
+        virtual void onOpen(RemoteClient *remoteClient) {}  //
         virtual void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) = 0;  // 必须实现的方法
-        virtual void onError(ws::WebSocket &webSocket, std::exception &ex) {};  //
-        virtual void onFatalError(std::exception &ex) {};  //
-        virtual void onClose() {};
-    };
-
-    struct ComByRC {
-        bool operator()(const RemoteClient *a, const RemoteClient *b) const {
-            return a->uid < b->uid || strcmp(a->guid, b->guid) < 0 || strcmp(a->serverUrl, b->serverUrl) < 0;
-        }
-    };
-
-    struct ComByStr {
-        bool operator()(const char *a, const char *b) const {
-            return strcmp(a, b) < 0;
-        }
+        virtual void onError(ws::WebSocket &webSocket, std::exception &ex) {}  //
+        virtual void onFatalError(std::exception &ex) {}  //
+        virtual void onClose() {}
     };
 
     void *wsPoll(void *data);
@@ -112,7 +109,7 @@ namespace remote {
         } // destroy lock and release
     protected:
         std::map<RemoteClient *, pthread_t, ComByRC> clients;  // clients
-        std::map<char *, MsgHandler *, ComByStr> handlers;  // handlers
+        std::map<char *, RemoteMsgHandler *, ComByStr> handlers;  // handlers
     public:
         static int initMutex() {
             return pthread_mutex_init(&mutex, nullptr);
@@ -126,6 +123,9 @@ namespace remote {
         bool stopClient(long uid, char *guid, char *serverUrl) {
             return stopClient(new RemoteClient(uid, guid, serverUrl));
         }  // 销毁新Client
+        RemoteClient *getClient(long uid, char *guid, char *serverUrl) {
+            return getValidClient(new RemoteClient(uid, guid, serverUrl));
+        }
 
         bool startNewClient(RemoteClient *remoteClient) {
             if (clients.find(remoteClient) != clients.end()) {
@@ -161,20 +161,43 @@ namespace remote {
             return true;
         }
 
+        RemoteClient *getValidClient(RemoteClient *remoteClient) {
+            auto it = clients.find(remoteClient);
+            return it != clients.end() ? it->first : nullptr;
+        }
+
+        void sendToServerUrl(char *serverUrl, std::string msg) {
+            for (auto it = clients.begin(); it != clients.end(); it++) {
+                if (strcmp(serverUrl, it->first->serverUrl) == 0) {
+                    it->first->webSocket->send(msg);
+                    break;
+                }
+            }
+        }
+
         std::map<RemoteClient *, pthread_t, ComByRC> getClients() {
             return clients;
         }
 
-        bool addMsgHandler(MsgHandler *msgHandler) {
-            char *reqType = msgHandler->getReqType();
-            if (handlers.find(reqType) != handlers.end()) {
+        bool hasClient(RemoteClient *remoteClient) {
+            return clients.find(remoteClient) != clients.end();
+        }
+
+        bool addMsgHandler(RemoteMsgHandler *msgHandler) {
+            if (!msgHandler) {
+                L_T_D(TAG_RM_HPP, "addMsgHandler: msgHandler is nullptr");
                 return false;
             }
-            handlers.insert(std::pair<char *, MsgHandler *>(reqType, msgHandler));
+            char *reqType = msgHandler->getReqType();
+            if (handlers.find(reqType) != handlers.end()) {
+                L_T_D(TAG_RM_HPP, "addMsgHandler: msgHandler's type(%s) has been added", reqType);
+                return false;
+            }
+            handlers.insert(std::pair<char *, RemoteMsgHandler *>(reqType, msgHandler));
             L_T_D(TAG_RM_HPP, "addMsgHandler: reqType(%s)", reqType);
             return true;
         }  // 添加消息处理类
-        bool removeMsgHandler(MsgHandler *msgHandler) {
+        bool removeMsgHandler(RemoteMsgHandler *msgHandler) {
             return removeMsgHandler(msgHandler->getReqType());
         }  // 删除消息处理类
         bool removeMsgHandler(char *reqType) {
@@ -185,10 +208,13 @@ namespace remote {
             handlers.erase(it);
             return true;
         }  // 删除消息处理类
-        std::map<char *, MsgHandler *, ComByStr> getMsgHandlers() {
+        bool hasMsgHandler(char *reqType) {
+            return handlers.find(reqType) != handlers.end();
+        }  // 是否有某个消息处理类
+        std::map<char *, RemoteMsgHandler *, ComByStr> getMsgHandlers() {
             return handlers;
         }  // 获取所有的消息处理类
-        MsgHandler *getMsgHandler(char *reqType) {
+        RemoteMsgHandler *getMsgHandler(char *reqType) {
             return handlers[reqType];
         }  // 获取单个消息处理类
     };

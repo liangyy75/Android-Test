@@ -22,7 +22,9 @@ import com.liang.example.androidtest.R;
 import com.liang.example.apttest.bind.InjectUtils;
 import com.liang.example.apttest.bind.InjectView;
 import com.liang.example.apttest.bind.OnClick;
+import com.liang.example.nativeremote.AbsRemoteMsgHandler;
 import com.liang.example.nativeremote.RemoteManager;
+import com.liang.example.nativeremote.TestMsgHandler;
 import com.liang.example.remote.RemoteMsgManager;
 import com.liang.example.remote.WakeLockUtil;
 import com.liang.example.utils.ApiManager;
@@ -42,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     @InjectView(R.id.test_remote_shell_guid)
     private EditText guidEditText;
 
+    // AbsRemoteMsgHandler msgHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
         verifyPermissions();
 
         // startService(new Intent(this, RemoteShellService.class));
+
+        AbsRemoteMsgHandler msgHandler = new TestMsgHandler();
+        RemoteManager.getInstance().addRemoteMsgHandler(msgHandler);
     }
 
     @OnClick(R.id.test_start)
@@ -95,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
 
     @OnClick(R.id.test_stop)
     public void stopTest(View view) {
-        ApiManager.LOGGER.d(TAG, "stop test event");
         // RemoteMsgManager.getInstance().closeRemoteClient();
-        RemoteManager.getInstance().stopRemoteClient();
+        boolean result = RemoteManager.getInstance().stopRemoteClient();
+        ApiManager.LOGGER.d(TAG, "stop test event and result is %s", String.valueOf(result));
     }
 
     // TODO: permission utils
@@ -140,14 +147,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         ApiManager.LOGGER.d(TAG, "onPause");
-        startService(new Intent(this, RemoteShellService.class));
+        // startService(new Intent(this, RemoteShellService.class));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         ApiManager.LOGGER.d(TAG, "onStop");
-        startService(new Intent(this, RemoteShellService.class));
+        // startService(new Intent(this, RemoteShellService.class));
     }
 
     @Override
@@ -163,5 +170,6 @@ public class MainActivity extends AppCompatActivity {
         WakeLockUtil.release();
         ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
         // stopService(new Intent(this, RemoteShellService.class));
+        // RemoteManager.getInstance().removeRemoteMsgHandler(msgHandler.getReqTypeStr());
     }
 }
