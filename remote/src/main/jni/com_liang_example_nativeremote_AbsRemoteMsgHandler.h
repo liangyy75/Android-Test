@@ -8,10 +8,10 @@ extern "C" {
 #endif
 
 JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendObj
-        (JNIEnv *, jobject, jstring, jobject, jstring);
+        (JNIEnv *, jobject, jstring, jobject, jstring, jstring);
 
 JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendMsg
-        (JNIEnv *, jobject, jstring, jstring);
+        (JNIEnv *, jobject, jstring, jstring, jstring);
 
 #ifdef __cplusplus
 }

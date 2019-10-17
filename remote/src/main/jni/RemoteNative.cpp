@@ -85,18 +85,24 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_has
 }
 
 JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendObj
-        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jobject resObj, jstring resClass) {
+        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jobject resObj, jstring resClass, jstring resType) {
     char serverUrlBuf[JTC_BUF_LEN];
     char resClassBuf[JTC_BUF_LEN];
+    char resTypeBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
     jStringToCharArray(jniEnv, resClass, resClassBuf);
+    jStringToCharArray(jniEnv, resType, resTypeBuf);
     replace(resClassBuf, '.', '/');
-    std::string strMsg = jObjectToJson11(jniEnv, resObj, resClassBuf).dump();
+    json11::Json result = json11::Json::object{
+            {"type", resTypeBuf},
+            {"data", jObjectToJson11(jniEnv, resObj, resClassBuf)}
+    };
+    std::string strMsg = result.dump();
     remote::RemoteManager::getInstance()->sendToServerUrl(serverUrlBuf, strMsg);
 }
 
 JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_AbsRemoteMsgHandler_sendMsg
-        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jstring msg) {
+        (JNIEnv *jniEnv, jobject obj, jstring serverUrl, jstring msg, jstring resType) {
     char serverUrlBuf[JTC_BUF_LEN];
     char msgBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
@@ -111,16 +117,40 @@ JNIEXPORT jobject JNICALL Java_com_liang_example_nativeremote_RemoteManager_getO
     char classNameBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, jsonStr, jsonStrBuf);
     jStringToCharArray(jniEnv, className, classNameBuf);
+    replace(classNameBuf, '.', '/');
     std::string err;
     json11::Json json = json11::Json::parse(jsonStrBuf, err);
-    return json11ToJObject(jniEnv, json, classNameBuf);
+    // return json11ToJObject(jniEnv, json, classNameBuf);
+
+    auto *classFieldsMap = new std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr>();
+    auto *targetClasses = new std::map<const char *, jclass, ComByStr>();
+    auto globalFieldClass = (jclass) jniEnv->NewGlobalRef(jniEnv->FindClass("java/lang/reflect/Field"));
+    auto globalClassClass = (jclass) jniEnv->NewGlobalRef(jniEnv->FindClass("java/lang/Class"));
+    getFieldsFromJClass(jniEnv, classFieldsMap, classNameBuf, targetClasses, globalFieldClass, globalClassClass);
+    jobject result = json11ToJObject(jniEnv, json, classFieldsMap, targetClasses, classNameBuf, globalFieldClass,
+                                     globalClassClass);
+    // remote::JavaMsgHandler::release(jniEnv, reqClassFieldsMap, reqTargetClasses);
+    // jniEnv->DeleteGlobalRef(globalFieldClass);
+    // jniEnv->DeleteGlobalRef(globalClassClass);
+    return result;
 }
 
 JNIEXPORT jstring JNICALL Java_com_liang_example_nativeremote_RemoteManager_getStringFromJni
         (JNIEnv *jniEnv, jobject thisObj, jobject transformObj, jstring className) {
     char classNameBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, className, classNameBuf);
-    json11::Json json = jObjectToJson11(jniEnv, transformObj, classNameBuf);
+    // json11::Json json = jObjectToJson11(jniEnv, transformObj, classNameBuf);
+
+    auto *classFieldsMap = new std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr>();
+    auto *targetClasses = new std::map<const char *, jclass, ComByStr>();
+    auto globalFieldClass = (jclass) jniEnv->NewGlobalRef(jniEnv->FindClass("java/lang/reflect/Field"));
+    auto globalClassClass = (jclass) jniEnv->NewGlobalRef(jniEnv->FindClass("java/lang/Class"));
+    getFieldsFromJClass(jniEnv, classFieldsMap, classNameBuf, targetClasses, globalFieldClass, globalClassClass);
+    json11::Json json = jObjectToJson11(jniEnv, transformObj, classFieldsMap, classNameBuf, globalFieldClass, globalClassClass);
+    // remote::JavaMsgHandler::release(jniEnv, reqClassFieldsMap, reqTargetClasses);
+    // jniEnv->DeleteGlobalRef(globalFieldClass);
+    // jniEnv->DeleteGlobalRef(globalClassClass);
+
     return jniEnv->NewStringUTF(json.dump().c_str());
 }
 
@@ -132,7 +162,7 @@ JNIEXPORT jstring JNICALL Java_com_liang_example_nativeremote_RemoteManager_getS
 // RemoteManager的线程安全懒汉单例模式 -- https://zhuanlan.zhihu.com/p/37469260
 // cJson / json11 -- [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
 // RemoteShell.hpp -- TODO: 多线程的Shell
-// TODO: 扩展要在java层
+// 扩展要在java层
 // TODO: 多协议扩展 -- 不仅仅是 json
 // TODO: posix c++ 替换 c++ 11
 //     stack / vector / string / map -- 自己实现(其他还好，就是map会很难，当然如果不用红黑树当我没说！！！)

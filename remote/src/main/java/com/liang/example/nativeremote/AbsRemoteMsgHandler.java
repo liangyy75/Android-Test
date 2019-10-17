@@ -56,14 +56,14 @@ public abstract class AbsRemoteMsgHandler<Req, Res> {
     public abstract void onMessage(String serverUrl, Req req);
 
     public void send(String serverUrl, Res res) {
-        sendObj(serverUrl, res, resClassStr);
+        sendObj(serverUrl, res, resClassStr, resTypeStr);
     }
 
     public void send(String serverUrl, String msg) {
-        sendMsg(serverUrl, msg);
+        sendMsg(serverUrl, msg, resTypeStr);
     }
 
-    private native void sendObj(String serverUrl, Object res, String resClassStr);
+    private native void sendObj(String serverUrl, Object res, String resClassStr, String resTypeStr);
 
-    private native void sendMsg(String serverUrl, String msg);
+    private native void sendMsg(String serverUrl, String msg, String resTypeStr);
 }

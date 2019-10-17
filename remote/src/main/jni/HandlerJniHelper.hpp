@@ -48,11 +48,6 @@ namespace remote {
 
             jniEnv->GetJavaVM(&(this->globalJvm));
             this->globalMsgHandler = jniEnv->NewGlobalRef(msgHandler);
-            // char onMessageSignature[JTC_BUF_LEN];
-            // sprintf(onMessageSignature, "(Ljava/lang/String;L%s;)V", reqClassStrTemp);  // 不考虑基本类型
-            // this->handleMsgId = jniEnv->GetMethodID(cls, "onMessage", onMessageSignature);
-
-            // L_T_D(TAG_HJH, "JavaMsgHandler -- reqClassStr: %s, resClassStr: %s", reqClassStr, resClassStr);
         }
 
         static void
@@ -80,6 +75,8 @@ namespace remote {
                 release(jniEnv, reqClassFieldsMap, reqTargetClasses);
                 release(jniEnv, resClassFieldsMap, resTargetClasses);
                 jniEnv->DeleteGlobalRef(globalMsgHandler);
+                jniEnv->DeleteGlobalRef(globalFieldClass);
+                jniEnv->DeleteGlobalRef(globalClassClass);
             };
             globalJvm = nullptr;
             delete[] reqClassStr;
@@ -101,6 +98,7 @@ namespace remote {
         void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
             JNIEnv *jniEnv;
             if (globalJvm->AttachCurrentThread(&jniEnv, nullptr) == JNI_OK) {
+                jstring jServerUrl = jniEnv->NewStringUTF(webSocket.getUrl().c_str());
                 jstring jMsg = jniEnv->NewStringUTF(msg.c_str());
                 jclass cls = jniEnv->GetObjectClass(globalMsgHandler);
                 char reqClassStrTemp[JTC_BUF_LEN];
@@ -108,9 +106,8 @@ namespace remote {
                 replace(reqClassStrTemp, '.', '/');
                 this->handleMsgId = jniEnv->GetMethodID(
                         cls, "onMessage", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V");  // 泛型的本质
-                L_T_D(TAG_HJH, "handleMsg -- reqClassStrTemp: %s, reqClassStr: %s", reqClassStrTemp, reqClassStr);
-                jniEnv->CallVoidMethod(globalMsgHandler, handleMsgId, webSocket.getUrl().c_str(), jMsg,
-                                       json11ToJObject(jniEnv, data, reqClassStrTemp));
+                jniEnv->CallVoidMethod(globalMsgHandler, handleMsgId, jServerUrl, jMsg, json11ToJObject(
+                        jniEnv, data, reqClassFieldsMap, reqTargetClasses, reqClassStrTemp, globalFieldClass, globalClassClass));
                 globalJvm->DetachCurrentThread();
             } else {
                 L_T_D(TAG_HJH, "handleMsg -- get jniEnv failed, and msg is (%s), json data is (%s)", msg.c_str(), data.dump().c_str());

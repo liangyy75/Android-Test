@@ -9,11 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 class TestReq {
-    String a;
+    String command;
 }
 
 class TestRes {
-    String b;
+    String command;
 }
 
 class TestB {
@@ -196,9 +196,9 @@ public class TestMsgHandler extends AbsRemoteMsgHandler<TestReq, TestRes> {
 
     @Override
     public void onMessage(String serverUrl, TestReq testReq) {
-        Log.d(TAG, "onMessage -- testReq.a: " + testReq.a);
+        Log.d(TAG, "onMessage -- testReq.a: " + testReq.command);
         TestRes testRes = new TestRes();
-        testRes.b = testReq.a;
+        testRes.command = testReq.command;
         send(serverUrl, testRes);
     }
 

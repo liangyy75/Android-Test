@@ -116,14 +116,17 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
 // 为了跨线程使用jni，只能这样了
 
 void getFieldsFromJClass(JNIEnv *jniEnv, std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
-                         const char *className, std::map<const char *, jclass, ComByStr>* targetClasses, jclass fieldClass, jclass classClass);
+                         const char *className, std::map<const char *, jclass, ComByStr> *targetClasses, jclass fieldClass,
+                         jclass classClass);
 
 jobject
-json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, std::map<const char *, std::map<const char *, jobject>> *allFieldsMap,
-                std::map<const char *, jclass> targetClasses, const char *className, jclass fieldClass, jclass classClass);
+json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
+                std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
+                std::map<const char *, jclass, ComByStr> *targetClasses, const char *className, jclass fieldClass, jclass classClass);
 
 json11::Json
-jObjectToJson11(JNIEnv *jniEnv, jobject obj, std::map<const char *, std::map<const char *, jobject>> *allFieldsMap,
-                std::map<const char *, jclass> targetClasses, const char *className, jclass fieldClass, jclass classClass);
+jObjectToJson11(JNIEnv *jniEnv, jobject obj,
+                std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
+                const char *className, jclass fieldClass, jclass classClass);
 
 #endif

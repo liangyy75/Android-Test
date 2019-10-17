@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     @InjectView(R.id.test_remote_shell_guid)
     private EditText guidEditText;
 
-    // AbsRemoteMsgHandler msgHandler;
+    AbsRemoteMsgHandler msgHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
         // startService(new Intent(this, RemoteShellService.class));
 
-        AbsRemoteMsgHandler msgHandler = new TestMsgHandler();
+        msgHandler = new TestMsgHandler();
         RemoteManager.getInstance().addRemoteMsgHandler(msgHandler);
     }
 
@@ -170,6 +170,6 @@ public class MainActivity extends AppCompatActivity {
         WakeLockUtil.release();
         ApiManager.LOGGER.d(TAG, "onDestroy and call wakeLock.release");
         // stopService(new Intent(this, RemoteShellService.class));
-        // RemoteManager.getInstance().removeRemoteMsgHandler(msgHandler.getReqTypeStr());
+        RemoteManager.getInstance().removeRemoteMsgHandler(msgHandler.getReqTypeStr());
     }
 }
