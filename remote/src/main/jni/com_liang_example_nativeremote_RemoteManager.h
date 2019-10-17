@@ -40,6 +40,9 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClient
         (JNIEnv *, jobject, jlong, jstring, jstring);
 
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClientByUrl
+        (JNIEnv *, jobject, jstring);
+
 /*
  * Class:     com_liang_example_nativeremote_RemoteManager
  * Method:    addRemoteMsgHandler

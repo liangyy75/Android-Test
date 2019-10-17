@@ -17,9 +17,9 @@ char ECHO_REQ[] = "echoReq";
 char ECHO_RES[] = "echoRes";
 
 // [json11 c++ 用法](https://blog.csdn.net/yangzm/article/details/71552609)
-class EchoMsgHandler : public remote::RemoteMsgHandler {
+class EchoMsgHandler : public remote::MsgHandler {
 public:
-    EchoMsgHandler() : remote::RemoteMsgHandler(ECHO_REQ, ECHO_RES) {}
+    EchoMsgHandler() : remote::MsgHandler(ECHO_REQ, ECHO_RES) {}
 
     void handleMsg(ws::WebSocket &webSocket, const std::string &msg, const json11::Json &data) override {
         L_T_D(TAG_RN, "received msg: %s, and data: %s", msg.c_str(), data.dump().c_str());
@@ -63,6 +63,13 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_sto
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClient
         (JNIEnv *jniEnv, jobject obj, jlong uid, jstring guid, jstring serverUrl) {
     return boolToJBoolean(remote::RemoteManager::getInstance()->hasClient(makeRemoteClient(jniEnv, uid, guid, serverUrl)));
+}
+
+JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClientByUrl
+        (JNIEnv * jniEnv, jobject thisObj, jstring serverUrl) {
+    char serverUrlBuf[JTC_BUF_LEN];
+    jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
+    return boolToJBoolean(remote::RemoteManager::getInstance()->hasClient(serverUrlBuf));
 }
 
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_addRemoteMsgHandler

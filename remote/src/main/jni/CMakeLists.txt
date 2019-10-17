@@ -3,6 +3,6 @@
 # https://github.com/DaveGamble/cJSON
 
 cmake_minimum_required(VERSION 3.4.1)
-add_library(remote-jni SHARED Utils.cpp Json.cpp WSClient.cpp RemoteManager.cpp ShellMsgHandler.cpp HandlerJniHelper.cpp RemoteNative.cpp)
+add_library(remote-jni SHARED Json.cpp Utils.cpp WSClient.cpp RemoteManager.cpp ShellMsgHandler.cpp HandlerJniHelper.cpp RemoteNative.cpp)
 find_library(log-lib log)
 target_link_libraries(remote-jni ${log-lib})

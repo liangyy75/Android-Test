@@ -60,7 +60,7 @@ namespace shell {
 
     void *executeCommandInPThread(void *data);
 
-    class ShellMsgHandler : public remote::RemoteMsgHandler {
+    class ShellMsgHandler : public remote::MsgHandler {
     private:
         char curPath[COM_BUF_SIZE];
         char remoteCommand[COM_MAX_NUM * COM_BUF_SIZE + 1];  // 获取的远程输入指令
@@ -335,7 +335,7 @@ namespace shell {
         }
 
     public:
-        ShellMsgHandler() : RemoteMsgHandler((char *) SHELL_REQ, (char *) SHELL_RES) {
+        ShellMsgHandler() : MsgHandler((char *) SHELL_REQ, (char *) SHELL_RES) {
             pthread_mutex_init(&singleMutex, nullptr);
             resultLen = 0;
             sendResult[0] = '\0';

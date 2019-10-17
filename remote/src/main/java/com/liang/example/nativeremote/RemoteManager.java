@@ -71,6 +71,8 @@ public class RemoteManager {
 
     public native boolean hasRemoteClient(long uid, String guid, String serverUrl);
 
+    public native boolean hasRemoteClientByUrl(String serverUrl);
+
     public native boolean addRemoteMsgHandler(AbsRemoteMsgHandler handler);
 
     public native boolean removeRemoteMsgHandler(String reqType);

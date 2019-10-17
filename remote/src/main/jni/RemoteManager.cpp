@@ -1,7 +1,5 @@
 #include <unistd.h>
 #include "RemoteManager.hpp"
-#include "Json.hpp"
-#include "Utils.hpp"
 
 void *remote::wsPoll(void *data) {
     auto *remoteClient = (RemoteClient *) data;
@@ -12,7 +10,7 @@ void *remote::wsPoll(void *data) {
     // 将webSocket的创建搬到这里，如果在_startNewClient中进行会发送段错误
     remoteClient->webSocket = ws::WebSocket::from_url(remoteClient->serverUrl);
     if (remoteClient->webSocket != nullptr) {
-        std::map<char *, remote::RemoteMsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
+        std::map<char *, remote::MsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
         try {
             remoteClient->webSocket->setCallable(&handleMsg);
             remoteClient->webSocket->send(buf);
@@ -29,7 +27,7 @@ void *remote::wsPoll(void *data) {
                 state = remoteClient->webSocket->getReadyState();
                 sleep(1);
                 ++count;
-                if (count == PING_INTERVAL) {
+                if (count >= PING_INTERVAL) {
                     count = 0;
                     remoteClient->webSocket->sendPing();
                 }
@@ -71,7 +69,7 @@ remote::RemoteManager *remote::RemoteManager::getInstance() {  // 懒汉式线�
 // TODO: 支持协议替换，现在只支持Json
 void remote::handleMsg(ws::WebSocket &webSocket, const std::string &message) {
     L_T_D(TAG_RM_CPP, "handleMsg: msg(%s)", message.c_str());
-    std::map<char *, remote::RemoteMsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
+    std::map<char *, remote::MsgHandler *, ComByStr> handlers = RemoteManager::getInstance()->getMsgHandlers();
     try {
         std::string err;
         const auto jsonObj = json11::Json::parse(message, err);

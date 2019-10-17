@@ -2,9 +2,9 @@
 #ifndef _Included_WSClient
 #define _Included_WSClient
 
+#include "Utils.hpp"
 #include <string>
 #include <vector>
-#include "Utils.hpp"
 
 #define TAG_WS_CLIENT_HPP "WSClientHpp"
 #define TAG_WS_CLIENT_CPP "WSClientCpp"
@@ -78,7 +78,8 @@ namespace ws {
             if (state == OPEN || state == CONNECTING) {
                 if (callback != nullptr) {
                     _dispatch(*callback);
-                } else if (bytesCallback != nullptr) {
+                }
+                if (bytesCallback != nullptr) {
                     _dispatchBinary(*bytesCallback);
                 }
             }

@@ -47,12 +47,12 @@ namespace remote {
 
     // TODO: 将RemoteManager规范化，即可扩展。。。
     // TODO: template <class Callable> -> msgHandler
-    class RemoteMsgHandler {
+    class MsgHandler {
     protected:
         char *reqType;
         char *resType;
 
-        RemoteMsgHandler(char *reqType, char *resType) {
+        MsgHandler(char *reqType, char *resType) {
             this->reqType = new char[strlen(reqType) + 1];
             strcpy(this->reqType, reqType);
             this->resType = new char[strlen(resType) + 1];
@@ -65,7 +65,7 @@ namespace remote {
         char *getResType() {
             return resType;
         }  // getter
-        virtual ~RemoteMsgHandler() {
+        virtual ~MsgHandler() {
             delete this->reqType;
             delete this->resType;
         }
@@ -109,7 +109,7 @@ namespace remote {
         } // destroy lock and release
     protected:
         std::map<RemoteClient *, pthread_t, ComByRC> clients;  // clients
-        std::map<char *, RemoteMsgHandler *, ComByStr> handlers;  // handlers
+        std::map<char *, MsgHandler *, ComByStr> handlers;  // handlers
     public:
         static int initMutex() {
             return pthread_mutex_init(&mutex, nullptr);
@@ -166,6 +166,15 @@ namespace remote {
             return it != clients.end() ? it->first : nullptr;
         }
 
+        RemoteClient *getClient(const char *serverUrl) {
+            for (auto it = clients.begin(); it != clients.end(); it++) {
+                if (strcmp(it->first->serverUrl, serverUrl) == 0) {
+                    return it->first;
+                }
+            }
+            return nullptr;
+        }
+
         void sendToServerUrl(char *serverUrl, std::string msg) {
             for (auto it = clients.begin(); it != clients.end(); it++) {
                 if (strcmp(serverUrl, it->first->serverUrl) == 0) {
@@ -183,7 +192,16 @@ namespace remote {
             return clients.find(remoteClient) != clients.end();
         }
 
-        bool addMsgHandler(RemoteMsgHandler *msgHandler) {
+        bool hasClient(const char *serverUrl) {
+            for (auto it = clients.begin(); it != clients.end(); it++) {
+                if (strcmp(it->first->serverUrl, serverUrl) == 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool addMsgHandler(MsgHandler *msgHandler) {
             if (!msgHandler) {
                 L_T_D(TAG_RM_HPP, "addMsgHandler: msgHandler is nullptr");
                 return false;
@@ -193,11 +211,11 @@ namespace remote {
                 L_T_D(TAG_RM_HPP, "addMsgHandler: msgHandler's type(%s) has been added", reqType);
                 return false;
             }
-            handlers.insert(std::pair<char *, RemoteMsgHandler *>(reqType, msgHandler));
+            handlers.insert(std::pair<char *, MsgHandler *>(reqType, msgHandler));
             L_T_D(TAG_RM_HPP, "addMsgHandler: reqType(%s)", reqType);
             return true;
         }  // 添加消息处理类
-        bool removeMsgHandler(RemoteMsgHandler *msgHandler) {
+        bool removeMsgHandler(MsgHandler *msgHandler) {
             return removeMsgHandler(msgHandler->getReqType());
         }  // 删除消息处理类
         bool removeMsgHandler(char *reqType) {
@@ -211,10 +229,10 @@ namespace remote {
         bool hasMsgHandler(char *reqType) {
             return handlers.find(reqType) != handlers.end();
         }  // 是否有某个消息处理类
-        std::map<char *, RemoteMsgHandler *, ComByStr> getMsgHandlers() {
+        std::map<char *, MsgHandler *, ComByStr> getMsgHandlers() {
             return handlers;
         }  // 获取所有的消息处理类
-        RemoteMsgHandler *getMsgHandler(char *reqType) {
+        MsgHandler *getMsgHandler(char *reqType) {
             return handlers[reqType];
         }  // 获取单个消息处理类
     };

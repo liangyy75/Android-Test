@@ -11,17 +11,16 @@
 namespace remote {
 #define TAG_HJH "HandlerJniHelper"
 
-    class JavaMsgHandler : public remote::RemoteMsgHandler {
+    class JavaMsgHandler : public remote::MsgHandler {
     private:
         JavaVM *globalJvm;  // 多线程共享变量
         jobject globalMsgHandler;  // 多线程共享JObject
         char *reqClassStr, *resClassStr;
         std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *reqClassFieldsMap, *resClassFieldsMap;
         std::map<const char *, jclass, ComByStr> *reqTargetClasses, *resTargetClasses;
-        jmethodID onOpenId, handleMsgId, onErrorId, onFatalErrorId, onCloseId;
         jclass globalFieldClass, globalClassClass;
     public:
-        JavaMsgHandler(char *reqType, char *resType, JNIEnv *jniEnv, jobject msgHandler) : RemoteMsgHandler(reqType, resType) {
+        JavaMsgHandler(char *reqType, char *resType, JNIEnv *jniEnv, jobject msgHandler) : MsgHandler(reqType, resType) {
             jclass cls = jniEnv->GetObjectClass(msgHandler);
             this->reqClassStr = new char[JTC_BUF_LEN];
             this->resClassStr = new char[JTC_BUF_LEN];
@@ -87,7 +86,7 @@ namespace remote {
             JNIEnv *jniEnv;
             if (globalJvm->AttachCurrentThread(&jniEnv, nullptr) == JNI_OK) {
                 jclass cls = jniEnv->GetObjectClass(globalMsgHandler);
-                this->onOpenId = jniEnv->GetMethodID(cls, "onOpen", "()V");
+                jmethodID onOpenId = jniEnv->GetMethodID(cls, "onOpen", "()V");
                 jniEnv->CallVoidMethod(globalMsgHandler, onOpenId);
                 globalJvm->DetachCurrentThread();
             } else {
@@ -104,7 +103,7 @@ namespace remote {
                 char reqClassStrTemp[JTC_BUF_LEN];
                 strcpy(reqClassStrTemp, reqClassStr);
                 replace(reqClassStrTemp, '.', '/');
-                this->handleMsgId = jniEnv->GetMethodID(
+                jmethodID handleMsgId = jniEnv->GetMethodID(
                         cls, "onMessage", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V");  // 泛型的本质
                 jniEnv->CallVoidMethod(globalMsgHandler, handleMsgId, jServerUrl, jMsg, json11ToJObject(
                         jniEnv, data, reqClassFieldsMap, reqTargetClasses, reqClassStrTemp, globalFieldClass, globalClassClass));
@@ -119,7 +118,7 @@ namespace remote {
             if (globalJvm->AttachCurrentThread(&jniEnv, nullptr) == JNI_OK) {
                 jstring errorMsg = jniEnv->NewStringUTF(ex.what());
                 jclass cls = jniEnv->GetObjectClass(globalMsgHandler);
-                this->onErrorId = jniEnv->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
+                jmethodID onErrorId = jniEnv->GetMethodID(cls, "onError", "(Ljava/lang/String;)V");
                 jniEnv->CallVoidMethod(globalMsgHandler, onErrorId, errorMsg);
                 globalJvm->DetachCurrentThread();
             } else {
@@ -132,7 +131,7 @@ namespace remote {
             if (globalJvm->AttachCurrentThread(&jniEnv, nullptr) == JNI_OK) {
                 jstring errorMsg = jniEnv->NewStringUTF(ex.what());
                 jclass cls = jniEnv->GetObjectClass(globalMsgHandler);
-                this->onFatalErrorId = jniEnv->GetMethodID(cls, "onFatalError", "(Ljava/lang/String;)V");
+                jmethodID onFatalErrorId = jniEnv->GetMethodID(cls, "onFatalError", "(Ljava/lang/String;)V");
                 jniEnv->CallVoidMethod(globalMsgHandler, onFatalErrorId, errorMsg);
                 globalJvm->DetachCurrentThread();
             } else {
@@ -144,7 +143,7 @@ namespace remote {
             JNIEnv *jniEnv;
             if (globalJvm->AttachCurrentThread(&jniEnv, nullptr) == JNI_OK) {
                 jclass cls = jniEnv->GetObjectClass(globalMsgHandler);
-                this->onOpenId = jniEnv->GetMethodID(cls, "onClose", "()V");
+                jmethodID onCloseId = jniEnv->GetMethodID(cls, "onClose", "()V");
                 jniEnv->CallVoidMethod(globalMsgHandler, onCloseId);
                 globalJvm->DetachCurrentThread();
             } else {
