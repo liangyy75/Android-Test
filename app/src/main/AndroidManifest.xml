@@ -263,10 +263,17 @@
         <activity
             android:name="com.liang.example.viewtest.surfaceview.MainActivity"
             android:label="@string/view_surfaceview_test" />
-        <activity android:name="com.liang.example.viewtest.animation.MainActivity"
-            android:label="@string/view_animation_test"/>
-        <activity android:name="com.liang.example.viewtest.animator.MainActivity"
-            android:label="@string/view_animator_test"/>
+        <activity
+            android:name="com.liang.example.viewtest.animation.MainActivity"
+            android:label="@string/view_animation_test" />
+        <activity
+            android:name="com.liang.example.viewtest.animator.MainActivity"
+            android:label="@string/view_animator_test" />
+
+        <activity android:name="com.liang.example.jetpacktest.MainActivity" />
+        <activity android:name="com.liang.example.jetpacktest.lifecycletest.FirstActivity" />
+        <activity android:name="com.liang.example.jetpacktest.viewmodeltest.FirstActivity" />
+        <activity android:name="com.liang.example.jetpacktest.livedatatest.FirstActivity" />
 
         <!-- Logger Configuration -->
         <meta-data

@@ -1,28 +1,115 @@
-#include <android/log.h>
-
 #include <mutex>
 #include <jni.h>
 #include <string.h>
+#include <android/log.h>
 #include "Json.hpp"
 
-#define JTC_BUF_LEN 100
+#define JTC_BUF_LEN 256
 
 #ifndef LOG_TAG
 #define LOG_TAG "REMOTE_JNI"
 
-#define LOG_V(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)  // 定义LOG_V类型
-#define LOG_D(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)  // 定义LOG_D类型
-#define LOG_I(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)  // 定义LOG_I类型
-#define LOG_W(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)  // 定义LOG_W类型
-#define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)  // 定义LOG_E类型
-#define LOG_F(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)  // 定义LOG_F类型
+struct LogCallback {
+    virtual int operator()(int level, const char *tag, const char *format, va_list args) = 0;
+};
 
-#define L_T_V(TAG, ...) __android_log_print(ANDROID_LOG_VERBOSE, TAG, __VA_ARGS__)  // 定义L_T_V类型
-#define L_T_D(TAG, ...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)  // 定义L_T_D类型
-#define L_T_I(TAG, ...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)  // 定义L_T_I类型
-#define L_T_W(TAG, ...) __android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)  // 定义L_T_W类型
-#define L_T_E(TAG, ...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)  // 定义L_T_E类型
-#define L_T_F(TAG, ...) __android_log_print(ANDROID_LOG_FATAL, TAG, __VA_ARGS__)  // 定义L_T_F类型
+class Logger {
+private:
+    static Logger *instance;
+
+    LogCallback *logCallback = nullptr;
+
+    Logger() = default;
+
+    Logger(const Logger &other) = delete;
+
+    Logger &operator=(const Logger &other) = delete;
+
+    ~Logger() {
+        if (logCallback) {
+            delete logCallback;
+        }
+        pthread_mutex_destroy(&mutex);
+    }
+
+protected:
+    template<class Callable>
+    struct MyLogCallback : public LogCallback {
+        Callable *callable;  // 这个Callable可以是C++11的lambda表达式或者functors以及C语言的function pointers
+        MyLogCallback(Callable *callable) : callable(callable) {}  // 构造函数
+        int operator()(int level, const char *tag, const char *format, va_list args) {
+            return callable(level, tag, format, args);
+        }
+    };
+
+public:
+    static pthread_mutex_t mutex;
+
+    static int initMutex() {
+        return pthread_mutex_init(&mutex, nullptr);
+    }
+
+    static Logger *getInstance() {
+        if (instance == nullptr) {
+            pthread_mutex_lock(&mutex);
+            if (instance == nullptr) {
+                instance = new Logger();
+            }
+            pthread_mutex_unlock(&mutex);
+        }
+        return instance;
+    }
+
+    template<class Callable>
+    void setLogCallable(Callable *callable) {
+        this->logCallback = new MyLogCallback<Callable>(callable);
+    }
+
+    int logPrint(int level, const char *tag, const char *format, va_list args) {
+        int ret = 0;
+        if (logCallback) {
+            ret = (*logCallback)(level, tag, format, args);
+        }
+        return ret;
+    }
+};
+
+typedef enum LogPriority {
+    /** For internal use only.  */
+            LOG_UNKNOWN = 0,
+    /** The default priority, for internal use only.  */
+            LOG_DEFAULT, /* only for SetMinPriority() */
+    /** Verbose logging. Should typically be disabled for a release apk. */
+            LOG_VERBOSE,
+    /** Debug logging. Should typically be disabled for a release apk. */
+            LOG_DEBUG,
+    /** Informational logging. Should typically be disabled for a release apk. */
+            LOG_INFO,
+    /** Warning logging. For use with recoverable failures. */
+            LOG_WARN,
+    /** Error logging. For use with unrecoverable failures. */
+            LOG_ERROR,
+    /** Fatal logging. For use when aborting. */
+            LOG_FATAL,
+    /** For internal use only.  */
+            LOG_SILENT, /* only for SetMinPriority(); must be last */
+} LogPriority;
+
+int __log_print(int level, const char *tag, const char *format, ...);
+
+#define LOG_V(...) __log_print(LOG_VERBOSE, LOG_TAG, __VA_ARGS__)  // 定义LOG_V类型
+#define LOG_D(...) __log_print(LOG_DEBUG, LOG_TAG, __VA_ARGS__)    // 定义LOG_D类型
+#define LOG_I(...) __log_print(LOG_INFO, LOG_TAG, __VA_ARGS__)     // 定义LOG_I类型
+#define LOG_W(...) __log_print(LOG_WARN, LOG_TAG, __VA_ARGS__)     // 定义LOG_W类型
+#define LOG_E(...) __log_print(LOG_ERROR, LOG_TAG, __VA_ARGS__)    // 定义LOG_E类型
+#define LOG_F(...) __log_print(LOG_FATAL, LOG_TAG, __VA_ARGS__)    // 定义LOG_F类型
+
+#define L_T_V(TAG, ...) __log_print(LOG_VERBOSE, TAG, __VA_ARGS__)  // 定义L_T_V类型
+#define L_T_D(TAG, ...) __log_print(LOG_DEBUG, TAG, __VA_ARGS__)    // 定义L_T_D类型
+#define L_T_I(TAG, ...) __log_print(LOG_INFO, TAG, __VA_ARGS__)     // 定义L_T_I类型
+#define L_T_W(TAG, ...) __log_print(LOG_WARN, TAG, __VA_ARGS__)     // 定义L_T_W类型
+#define L_T_E(TAG, ...) __log_print(LOG_ERROR, TAG, __VA_ARGS__)    // 定义L_T_E类型
+#define L_T_F(TAG, ...) __log_print(LOG_FATAL, TAG, __VA_ARGS__)    // 定义L_T_F类型
 
 template<class T>
 class MutexVector {

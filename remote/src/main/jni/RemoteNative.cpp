@@ -6,6 +6,7 @@
 #include "RemoteManager.hpp"
 #include "ShellMsgHandler.hpp"
 #include "HandlerJniHelper.hpp"
+#include <android/log.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,13 +41,22 @@ remote::RemoteClient *makeRemoteClient(JNIEnv *jniEnv, jlong uid, jstring guid, 
     return remoteClient;
 }
 
+int androidLog(int level, const char *tag, const char *format, va_list args) {
+    char msg[JTC_BUF_LEN * JTC_BUF_LEN];
+    vsprintf(msg, format, args);
+    return __android_log_print(level, tag, "%s", msg);
+}
+
 JNIEXPORT void JNICALL Java_com_liang_example_nativeremote_RemoteManager_init
         (JNIEnv *jniEnv, jobject obj, jboolean useShell, jboolean useEcho) {
+    Logger::getInstance()->setLogCallable(&androidLog);
     if (useEcho) {
         remote::RemoteManager::getInstance()->addMsgHandler(new EchoMsgHandler());
+        L_T_D(TAG_RN, "useEcho");
     }
     if (useShell) {
         remote::RemoteManager::getInstance()->addMsgHandler(new shell::ShellMsgHandler());
+        L_T_D(TAG_RN, "useShell");
     }
 }
 
@@ -66,7 +76,7 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_has
 }
 
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_hasRemoteClientByUrl
-        (JNIEnv * jniEnv, jobject thisObj, jstring serverUrl) {
+        (JNIEnv *jniEnv, jobject thisObj, jstring serverUrl) {
     char serverUrlBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, serverUrl, serverUrlBuf);
     return boolToJBoolean(remote::RemoteManager::getInstance()->hasClient(serverUrlBuf));

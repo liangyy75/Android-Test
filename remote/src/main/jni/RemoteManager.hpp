@@ -93,7 +93,7 @@ namespace remote {
     private:
         static RemoteManager *instance;
 
-        RemoteManager() {};  // 为了单例模式
+        RemoteManager() {}  // 为了单例模式
         RemoteManager(const RemoteManager &other) {}  // 为了单例模式
         RemoteManager &operator=(const RemoteManager &) { return *this; }  // 为了单例模式
         ~RemoteManager() {

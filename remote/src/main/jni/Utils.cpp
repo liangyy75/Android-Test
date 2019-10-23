@@ -1,6 +1,19 @@
 #include "Utils.hpp"
 #include <cstring>
 
+int ret = Logger::initMutex();
+
+pthread_mutex_t Logger::mutex;
+Logger *Logger::instance;
+
+int __log_print(int level, const char *tag, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int ret = Logger::getInstance()->logPrint(level, tag, format, args);
+    va_end(args);
+    return ret;
+}
+
 void replace(char *str, char o, char n) {
     if (!str) {
         return;

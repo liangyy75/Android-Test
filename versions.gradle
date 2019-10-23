@@ -1,0 +1,177 @@
+ext.deps = [:]
+def versions = [:]
+versions.android_gradle_plugin = '3.5.1'
+versions.greendao_gradle_plugin = '3.2.2'
+versions.kotlin = '1.3.50'
+
+versions.activity_ktx = '1.0.0-rc01'
+versions.apache_commons = '2.5'
+versions.appcompat = '1.1.0-rc01'
+versions.arch_core = '2.0.1'
+versions.atsl_core = '1.2.0'
+versions.atsl_junit = '1.1.1'
+versions.atsl_rules = '1.2.0'
+versions.atsl_runner = '1.2.0'
+versions.benchmark = '1.0.0-beta01'
+versions.constraint_layout = '2.0.0-alpha2'
+versions.core_ktx = '1.0.0'
+versions.dagger = '2.24'
+versions.dexmaker = '2.2.0'
+versions.espresso = '3.2.0'
+versions.fragment = '1.2.0-alpha02'
+versions.glide = '4.9.0'
+versions.hamcrest = '1.3'
+versions.junit = '4.13-beta-3'
+versions.lifecycle = '2.2.0-alpha03'
+versions.mockito = '2.25.0'
+versions.mockito_all = '1.10.19'
+versions.mockito_android = '2.25.0'
+versions.mockwebserver = '3.8.1'
+versions.navigation = '2.2.0-alpha01'
+versions.okhttp_logging_interceptor = '3.9.0'
+versions.paging = '2.1.0-rc01'
+versions.retrofit = '2.3.0'
+versions.robolectric = '4.2'
+versions.room = '2.1.0-alpha06'
+versions.rx_android = '2.0.1'
+versions.rxjava2 = '2.1.3'
+versions.support = '1.0.0'
+versions.timber = '4.5.1'
+versions.work = '2.1.0'
+ext.versions = versions
+
+def deps = [:]
+deps.benchmark = new Tuple("api", "androidx.benchmark:benchmark-junit4:$versions.benchmark")
+deps.benchmark_gradle = new Tuple("api", "androidx.benchmark:benchmark-gradle-plugin:$versions.benchmark")
+
+def support = [:]
+support.annotations = new Tuple("api", "androidx.annotation:annotation:$versions.support")
+support.app_compat = new Tuple("api", "androidx.appcompat:appcompat:$versions.appcompat")
+support.recyclerview = new Tuple("api", "androidx.recyclerview:recyclerview:$versions.support")
+support.cardview = new Tuple("api", "androidx.cardview:cardview:$versions.support")
+support.design = new Tuple("api", "com.google.android.material:material:$versions.support")
+support.core_utils = new Tuple("api", "androidx.legacy:legacy-support-core-utils:$versions.support")
+support.core_ktx = new Tuple("api", "androidx.core:core-ktx:$versions.core_ktx")
+support.fragment_runtime = new Tuple("api", "androidx.fragment:fragment:${versions.fragment}")
+support.fragment_runtime_ktx = new Tuple("api", "androidx.fragment:fragment-ktx:${versions.fragment}")
+support.fragment_testing = new Tuple("api", "androidx.fragment:fragment-testing:${versions.fragment}")
+deps.support = support
+
+def room = [:]
+room.runtime = new Tuple("api", "androidx.room:room-runtime:$versions.room")
+room.compiler = new Tuple("api", "androidx.room:room-compiler:$versions.room")
+room.rxjava2 = new Tuple("api", "androidx.room:room-rxjava2:$versions.room")
+room.testing = new Tuple("api", "androidx.room:room-testing:$versions.room")
+deps.room = room
+
+def lifecycle = [:]
+lifecycle.runtime = new Tuple("api", "androidx.lifecycle:lifecycle-runtime:$versions.lifecycle")
+lifecycle.java8 = new Tuple("api", "androidx.lifecycle:lifecycle-common-java8:$versions.lifecycle")
+lifecycle.compiler = new Tuple("annotationProcessor", "androidx.lifecycle:lifecycle-compiler:$versions.lifecycle")
+lifecycle.viewmodel_ktx = new Tuple("api", "androidx.lifecycle:lifecycle-viewmodel-ktx:$versions.lifecycle")
+lifecycle.livedata_ktx = new Tuple("api", "androidx.lifecycle:lifecycle-livedata-ktx:$versions.lifecycle")
+deps.lifecycle = lifecycle
+
+def activity = [:]
+activity.activity_ktx = new Tuple("api", "androidx.activity:activity-ktx:$versions.activity_ktx")
+deps.activity = activity
+
+def arch_core = [:]
+arch_core.runtime = new Tuple("api", "androidx.arch.core:core-runtime:$versions.arch_core")
+arch_core.testing = new Tuple("api", "androidx.arch.core:core-testing:$versions.arch_core")
+deps.arch_core = arch_core
+
+def retrofit = [:]
+retrofit.runtime = new Tuple("api", "com.squareup.retrofit2:retrofit:$versions.retrofit")
+retrofit.gson = new Tuple("api", "com.squareup.retrofit2:converter-gson:$versions.retrofit")
+retrofit.mock = new Tuple("api", "com.squareup.retrofit2:retrofit-mock:$versions.retrofit")
+deps.retrofit = retrofit
+deps.okhttp_logging_interceptor = new Tuple("api", "com.squareup.okhttp3:logging-interceptor:${versions.okhttp_logging_interceptor}")
+
+def dagger = [:]
+dagger.runtime = new Tuple("api", "com.google.dagger:dagger:$versions.dagger")
+dagger.android = new Tuple("api", "com.google.dagger:dagger-android:$versions.dagger")
+dagger.android_support = new Tuple("api", "com.google.dagger:dagger-android-support:$versions.dagger")
+dagger.compiler = new Tuple("api", "com.google.dagger:dagger-compiler:$versions.dagger")
+dagger.android_support_compiler = new Tuple("api", "com.google.dagger:dagger-android-processor:$versions.dagger")
+deps.dagger = dagger
+
+def espresso = [:]
+espresso.core = new Tuple("api", "androidx.test.espresso:espresso-core:$versions.espresso")
+espresso.contrib = new Tuple("api", "androidx.test.espresso:espresso-contrib:$versions.espresso")
+espresso.intents = new Tuple("api", "androidx.test.espresso:espresso-intents:$versions.espresso")
+deps.espresso = espresso
+
+def atsl = [:]
+atsl.core = new Tuple("api", "androidx.test:core:$versions.atsl_core")
+atsl.ext_junit = new Tuple("api", "androidx.test.ext:junit:$versions.atsl_junit")
+atsl.runner = new Tuple("api", "androidx.test:runner:$versions.atsl_runner")
+atsl.rules = new Tuple("api", "androidx.test:rules:$versions.atsl_rules")
+deps.atsl = atsl
+
+def mockito = [:]
+mockito.core = new Tuple("api", "org.mockito:mockito-core:$versions.mockito")
+mockito.all = new Tuple("api", "org.mockito:mockito-all:$versions.mockito_all")
+mockito.android = new Tuple("api", "org.mockito:mockito-android:$versions.mockito_android")
+deps.mockito = mockito
+
+def kotlin = [:]
+kotlin.stdlib = new Tuple("api", "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin")
+kotlin.test = new Tuple("api", "org.jetbrains.kotlin:kotlin-test-junit:$versions.kotlin")
+kotlin.plugin = new Tuple("api", "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin")
+kotlin.allopen = new Tuple("api", "org.jetbrains.kotlin:kotlin-allopen:$versions.kotlin")
+
+deps.kotlin = kotlin
+
+deps.paging_ktx = new Tuple("api", "androidx.paging:paging-runtime-ktx:$versions.paging")
+
+def glide = [:]
+glide.runtime = new Tuple("api", "com.github.bumptech.glide:glide:$versions.glide")
+glide.compiler = new Tuple("api", "com.github.bumptech.glide:compiler:$versions.glide")
+deps.glide = glide
+
+deps.dexmaker = new Tuple("api", "com.linkedin.dexmaker:dexmaker-mockito:$versions.dexmaker")
+deps.constraint_layout = new Tuple("api", "androidx.constraintlayout:constraintlayout:$versions.constraint_layout")
+deps.timber = new Tuple("api", "com.jakewharton.timber:timber:$versions.timber")
+deps.junit = new Tuple("api", "junit:junit:$versions.junit")
+deps.mock_web_server = new Tuple("api", "com.squareup.okhttp3:mockwebserver:$versions.mockwebserver")
+deps.rxjava2 = new Tuple("api", "io.reactivex.rxjava2:rxjava:$versions.rxjava2")
+deps.rx_android = new Tuple("api", "io.reactivex.rxjava2:rxandroid:$versions.rx_android")
+deps.hamcrest = new Tuple("api", "org.hamcrest:hamcrest-all:$versions.hamcrest")
+deps.android_gradle_plugin = new Tuple("api", "com.android.tools.build:gradle:$versions.android_gradle_plugin")
+deps.robolectric = new Tuple("api", "org.robolectric:robolectric:$versions.robolectric")
+
+ext.deps = deps
+
+def work = [:]
+work.runtime = new Tuple("api", "androidx.work:work-runtime:$versions.work")
+work.testing = new Tuple("api", "androidx.work:work-testing:$versions.work")
+work.firebase = new Tuple("api", "androidx.work:work-firebase:$versions.work")
+work.runtime_ktx = new Tuple("api", "androidx.work:work-runtime-ktx:$versions.work")
+deps.work = work
+
+def navigation = [:]
+navigation.runtime = new Tuple("api", "androidx.navigation:navigation-runtime:$versions.navigation")
+navigation.runtime_ktx = new Tuple("api", "androidx.navigation:navigation-runtime-ktx:$versions.navigation")
+navigation.fragment = new Tuple("api", "androidx.navigation:navigation-fragment:$versions.navigation")
+navigation.fragment_ktx = new Tuple("api", "androidx.navigation:navigation-fragment-ktx:$versions.navigation")
+navigation.ui = new Tuple("api", "androidx.navigation:navigation-ui:$versions.navigation")
+navigation.ui_ktx = new Tuple("api", "androidx.navigation:navigation-ui-ktx:$versions.navigation")
+navigation.safe_args_plugin = new Tuple("api", "androidx.navigation:navigation-safe-args-gradle-plugin:$versions.navigation")
+deps.navigation = navigation
+
+def build_versions = [:]
+build_versions.min_sdk = 14
+build_versions.target_sdk = 29
+build_versions.build_tools = '29.0.3'
+ext.build_versions = build_versions
+
+ext.deps = deps
+
+def addRepos(RepositoryHandler handler) {
+    handler.google()
+    handler.jcenter()
+    handler.maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+ext.addRepos = this.&addRepos

@@ -26,8 +26,9 @@ public class MainActivity extends AppCompatActivity {
         ApiManager.LOGGER.d(t, "onCreate -- begin creating Activity List");
         int length = cls.length;
         List<ActivityItem> dataSet = new ArrayList<>(length);
-        for (int i = 0; i < length; i++)
+        for (int i = 0; i < length; i++) {
             dataSet.add(new ActivityItem(ns[i], ds[i], as[i], crs[i], us[i], cls[i]));
+        }
 
         RecyclerView rv = a.findViewById(R.id.test_activity_list);
         rv.setHasFixedSize(true);
@@ -102,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         bindActivityList(Constants.names, Constants.descs, Constants.authors, Constants.created, Constants.updated, Constants.classes, this, "App_Main");
     }
 
