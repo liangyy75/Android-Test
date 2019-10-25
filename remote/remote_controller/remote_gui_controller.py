@@ -243,7 +243,19 @@ class TestRemoteController(AbsRemoteController):
         return result['command'] if 'command' in result.keys() else ''
 
 
-msg_controllers = [ShellRemoteController(), TestRemoteController()]
+class EchoRemoteController(AbsRemoteController):
+
+    def __init__(self):
+        super(EchoRemoteController, self).__init__("echoReq", "echoRes")
+
+    def parse_command(self, command: str) -> dict:
+        return {"command": command}
+
+    def parse_result(self, result: dict) -> str:
+        return result['command'] if 'command' in result.keys() else ''
+
+
+msg_controllers = [ShellRemoteController(), TestRemoteController(), EchoRemoteController()]
 
 
 def parse_command(req_type, message: str) -> str:

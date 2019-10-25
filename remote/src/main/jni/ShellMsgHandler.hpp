@@ -2,6 +2,15 @@
 // Created by 32494 on 2019/9/29.
 //
 
+// [[iOS Hacker] system 函数被废除的替代方法](https://www.exchen.net/ios-hacker-system-%E5%87%BD%E6%95%B0%E8%A2%AB%E5%BA%9F%E9%99%A4%E7%9A%84%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%B3%95.html)
+// [多进程编程函数posix_spawn实例](https://blog.csdn.net/Linux_ever/article/details/50295105)
+// [越狱iOS代码不再支持system()函数的解决方法](https://blog.csdn.net/sendwave/article/details/51776459)
+// [posix_spawnp and piping child output to a string](https://stackoverflow.com/questions/13893085/posix-spawnp-and-piping-child-output-to-a-string)
+// [Get output of `posix_spawn`](https://unix.stackexchange.com/questions/252901/get-output-of-posix-spawn)
+
+// [Ifdef in C using crossplatform Android/iOS doesn´t work propertly](https://stackoverflow.com/questions/35016413/ifdef-in-c-using-crossplatform-android-ios-doesn%C2%B4t-work-propertly)
+// [linux, windows, mac, ios等平台GCC预编译宏判断](https://www.jianshu.com/p/c92e8b81ad04)
+
 #ifndef ANDROID_TEST_SHELLMSGHANDLER_HPP
 #define ANDROID_TEST_SHELLMSGHANDLER_HPP
 
@@ -10,6 +19,8 @@
 #include <stack>
 #include <time.h>
 #include <unistd.h>
+#include <spawn.h>
+#include <poll.h>
 #include "RemoteManager.hpp"
 
 #define TAG_SMH "ShellMsgHandlerHpp"
@@ -45,6 +56,7 @@ namespace shell {
         ERROR_SYSTEM,
         ERROR_TIMEOUT,
         ERROR_FORK,
+        ERROR_POSIX_SPAWNP,
         ERROR_PIPE,
         ERROR_TWO_MANY_COMMAND,
         ERROR_TWO_MANY_PARAMETER,
@@ -263,12 +275,17 @@ namespace shell {
                   "executeSingleCommand -- command(%s) -- parameter numbers(include command): %d, command and it's args: [%s]",
                   command, num, comBuf);
 
+            pid_t pid;
+#ifdef __ANDROID__
+
+#include <android/api-level.h>
+
             int fd[2];
             if (pipe(fd) < 0) {
                 L_T_E(TAG_SMH, "executeSingleCommand -- error when pipe");
                 return ERROR_PIPE;
             }
-            pid_t pid = fork();
+            pid = fork();
             if (pid == -1) {
                 L_T_E(TAG_SMH, "executeSingleCommand -- error when fork");
                 return ERROR_FORK;
@@ -316,6 +333,7 @@ namespace shell {
                     L_T_E(TAG_SMH, "executeSingleCommand -- error while execute");
                     return ERROR_EXECUTE;
                 }
+
                 char readBuffer[RESULT_BUF_SIZE];
                 int ret = 0;
                 while ((ret = read(fd[0], readBuffer, RESULT_BUF_SIZE - 1)) > 0) {
@@ -330,6 +348,103 @@ namespace shell {
                 }
                 // close(fd[0]);
             }
+
+#endif
+#ifdef __APPLE__
+
+            // #include "TargetConditionals.h"
+            // #ifdef TARGET_OS_IOS
+            //             // iOS, including iPhone and iPad
+            // #elif TARGET_IPHONE_SIMULATOR
+            //             // iOS Simulator
+            // #elif TARGET_OS_MAC
+            //             // Other kinds of Mac OS
+            // #else
+            //             // Unsupported platform
+            // #endif
+
+            int exit_code;
+            int cout_pipe[2];
+            int cerr_pipe[2];
+            posix_spawn_file_actions_t action;
+            if (pipe(cout_pipe) < 0 || pipe(cerr_pipe) < 0) {
+                L_T_E(TAG_SMH, "executeSingleCommand -- error when pipe");
+                return ERROR_PIPE;
+            }
+            posix_spawn_file_actions_init(&action);
+            posix_spawn_file_actions_addclose(&action, cout_pipe[0]);
+            posix_spawn_file_actions_addclose(&action, cerr_pipe[0]);
+            posix_spawn_file_actions_adddup2(&action, cout_pipe[1], 1);
+            posix_spawn_file_actions_adddup2(&action, cerr_pipe[1], 2);
+            posix_spawn_file_actions_addclose(&action, cout_pipe[1]);
+            posix_spawn_file_actions_addclose(&action, cerr_pipe[1]);
+            char oCExecuteCommands[ARG_MAX_NUM + 3][ARG_BUF_SIZE + 1];
+            for (int i = 0; i < num; i++) {
+                strcpy(oCExecuteCommands[i + 2], executeCommands[i]);
+            }
+            strcpy(oCExecuteCommands[0], "/bin/sh\0");
+            strcpy(oCExecuteCommands[1], "-c\0");
+            if (posix_spawnp(&pid, oCExecuteCommands[0], &action, nullptr, oCExecuteCommands, nullptr) != 0) {
+                L_T_E(TAG_SMH, "executeSingleCommand -- error when posix_spawnp");
+                return ERROR_POSIX_SPAWNP;
+            }
+
+            close(cout_pipe[1]), close(cerr_pipe[1]);
+            int status;
+            int timeCounter = 0;
+            while (true) {
+                int result = waitpid(pid, &status, WNOHANG);
+                if (result == 0) {
+                    L_T_D(TAG_SMH, "executeSingleCommand -- child process is still running");
+                } else if (result == pid) {
+                    L_T_D(TAG_SMH, "executeSingleCommand -- child process has exited.");
+                    status = 0;
+                    break;
+                } else {
+                    L_T_D(TAG_SMH, "executeSingleCommand -- result = %d", result);
+                }
+                timeCounter++;
+                if (timeCounter >= SINGLE_TIMEOUT_LIMIT || time(nullptr) - startOfAllCommand >= TOTAL_TIMEOUT_LIMIT) {
+                    kill(pid, 9);
+                    // close(fd[0]);
+                    L_T_D(TAG_SMH, "executeSingleCommand -- kill child process because of timeout.");
+                    return ERROR_TIMEOUT;
+                }
+                sleep(1);
+            };
+            int exitCode = WEXITSTATUS(status);
+            if (exitCode != RESULT_NORMAL) {
+                // close(fd[0]);
+                L_T_E(TAG_SMH, "executeSingleCommand -- error while execute");
+                return ERROR_EXECUTE;
+            }
+
+            std::string buffer(1024, ' ');
+            std::vector<pollfd> plist = {
+                    {cout_pipe[0], POLLIN},
+                    {cerr_pipe[0], POLLIN}
+            };
+            for (int rval; (rval = poll(&plist[0], plist.size(), /*timeout*/ -1)) > 0;) {
+                if (plist[0].revents & POLLIN) {
+                    int bytes_read = read(cout_pipe[0], &buffer[0], buffer.length());
+                    // cout << "read " << bytes_read << " bytes from stdout.\n";
+                    // cout << buffer.substr(0, static_cast<size_t>(bytes_read)) << "\n";
+                    strcpy(sendResult + resultLen, buffer.substr(0, static_cast<size_t>(bytes_read)).c_str());
+                    resultLen += bytes_read;
+                } else if (plist[1].revents & POLLIN) {
+                    int bytes_read = read(cerr_pipe[0], &buffer[0], buffer.length());
+                    // cout << "read " << bytes_read << " bytes from stderr.\n";
+                    // cout << buffer.substr(0, static_cast<size_t>(bytes_read)) << "\n";
+                    strcpy(sendResult + resultLen, buffer.substr(0, static_cast<size_t>(bytes_read)).c_str());
+                    resultLen += bytes_read;
+                } else {
+                    break;
+                }
+            }
+            posix_spawn_file_actions_destroy(&action);
+
+#endif
+
             L_T_D(TAG_SMH, "executeSingleCommand -- execute command successfully");
             return RESULT_NORMAL;
         }
@@ -371,6 +486,7 @@ namespace shell {
             else if (result == ERROR_SYSTEM) { strcpy(errorMsg, "\nerror msg: ERROR_SYSTEM"); }
             else if (result == ERROR_TIMEOUT) { strcpy(errorMsg, "\nerror msg: ERROR_TIMEOUT"); }
             else if (result == ERROR_FORK) { strcpy(errorMsg, "\nerror msg: ERROR_FORK"); }
+            else if (result == ERROR_POSIX_SPAWNP) { strcpy(errorMsg, "\nerror msg: ERROR_POSIX_SPAWNP"); }
             else if (result == ERROR_PIPE) { strcpy(errorMsg, "\nerror msg: ERROR_PIPE"); }
             else if (result == ERROR_TWO_MANY_COMMAND) { strcpy(errorMsg, "\nerror msg: ERROR_TWO_MANY_COMMAND"); }
             else if (result == ERROR_TWO_MANY_PARAMETER) { strcpy(errorMsg, "\nerror msg: ERROR_TWO_MANY_PARAMETER"); }
