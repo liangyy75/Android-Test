@@ -10,6 +10,8 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/lib" />
+            <option value="$PROJECT_DIR$/lualib" />
+            <option value="$PROJECT_DIR$/plugins/plugin" />
             <option value="$PROJECT_DIR$/remote" />
             <option value="$PROJECT_DIR$/spi/spi_impl1" />
             <option value="$PROJECT_DIR$/spi/spi_impl2" />

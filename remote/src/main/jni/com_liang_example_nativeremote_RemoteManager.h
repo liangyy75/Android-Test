@@ -46,7 +46,7 @@ JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_has
 /*
  * Class:     com_liang_example_nativeremote_RemoteManager
  * Method:    addRemoteMsgHandler
- * Signature: (Lcom/liang/example/nativeremote/AbsRemoteMsgHandler;)Z
+ * Signature: (Lcom/liang/example/nativeremote/AbsMsgHandler;)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_liang_example_nativeremote_RemoteManager_addRemoteMsgHandler
         (JNIEnv *, jobject, jobject);

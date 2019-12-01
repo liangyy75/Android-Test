@@ -1,7 +1,24 @@
+import com.liang.example.plugin.MyGroovyPlugin
+// apply plugin: MyGroovyPlugin
+
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.greenrobot.greendao' // apply plugin
+
+class GreetingPluginExtension {
+    String msg = 'Hello from GreetingPlugin'
+}
+
+class GreetingPlugin implements Plugin<Project> {
+    @Override
+    void apply(Project project) {
+        def extension = project.extensions.create('greeting', GreetingPluginExtension)
+        project.task('hello') { doLast { println extension.msg } }
+    }
+}
+
+apply plugin: GreetingPlugin
 
 android {
     compileSdkVersion 29
@@ -37,6 +54,9 @@ android {
     compileOptions {
         sourceCompatibility = '1.8'
         targetCompatibility = '1.8'
+    }
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
     }
 }
 
@@ -85,4 +105,19 @@ dependencies {
     // annotationProcessor 'com.alibaba:arouter-compiler:1.2.1'
 
     deps.lifecycle.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
+
+    api "org.aspectj:aspectjrt:${versions.aspectj}"
+    // compileOnly "com.google.auto.value:auto-value:${versions.auto_value}"
+    annotationProcessor "com.google.auto.value:auto-value:${versions.auto_value}"
+    // apt "com.google.auto.value:auto-value:${versions.auto_value}"
+
+    annotationProcessor "com.ryanharter.auto.value:auto-value-gson:${versions.auto_value_gson}"
+    api "com.ryanharter.auto.value:auto-value-gson-runtime:${versions.auto_value_gson}"
+
+    annotationProcessor "com.ryanharter.auto.value:auto-value-parcel:${versions.auto_value_parcel}"
+    api "com.ryanharter.auto.value:auto-value-parcel-adapter:${versions.auto_value_parcel}"
+}
+
+greeting {
+    msg = 'Hello from App Setting'
 }

@@ -133,7 +133,7 @@ public class RemoteMsgManager {
     public RemoteMsgManager startRemoteClient(String serverUrl, Context context, String prefix) {
         // RemoteClient remoteClient = mActiveClients.get(serverUrl);
         // if (remoteClient != null) {
-        //     for (Map.Entry<String, AbsRemoteMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
+        //     for (Map.Entry<String, AbsMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
         //         msgHandlerEntry.getValue().setRemoteClient(remoteClient);
         //     }
         //     new Thread(remoteClient).start();
@@ -178,7 +178,7 @@ public class RemoteMsgManager {
     //         synchronized (mActiveClients) {
     //             mActiveClients.remove(serverUrl);
     //         }
-    //         for (Map.Entry<String, AbsRemoteMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
+    //         for (Map.Entry<String, AbsMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
     //             msgHandlerEntry.getValue().setRemoteClient(null);
     //         }
     //     }

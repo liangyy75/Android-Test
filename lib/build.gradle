@@ -2,8 +2,10 @@ apply plugin: 'java-library'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+
     implementation 'com.squareup:javapoet:1.11.1'
-    implementation 'org.java-websocket:Java-WebSocket:1.4.0'
+
+    implementation "com.google.auto.service:auto-service:${versions.auto_service}"
 }
 
 sourceCompatibility = "8"

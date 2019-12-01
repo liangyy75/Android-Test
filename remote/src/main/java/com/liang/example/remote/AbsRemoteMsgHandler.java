@@ -11,7 +11,7 @@ import java.lang.reflect.Type;
  * @since 2019/7/16
  */
 public abstract class AbsRemoteMsgHandler<Req, Res> {
-    private static final String TAG = "AbsRemoteMsgHandler";
+    private static final String TAG = "AbsMsgHandler";
     private RemoteClient remoteClient;
     private final Object clientLock = new Object();
     private String reqTypeStr;

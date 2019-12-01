@@ -99,7 +99,7 @@ class TestC {
     }
 }
 
-public class TestMsgHandler extends AbsRemoteMsgHandler<TestReq, TestRes> {
+public class TestMsgHandler extends AbsMsgHandler<TestReq, TestRes> {
     private static final String TAG = "TestMsgHandler";
 
     public TestMsgHandler() {

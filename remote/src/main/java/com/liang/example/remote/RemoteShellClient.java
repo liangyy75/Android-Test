@@ -53,8 +53,8 @@ class RemoteShellClient extends RemoteClient {
             RemoteMsgManager.logger.d(TAG, "cannot parse json: %s", msg);
         }
         // else {
-        //     for (Map.Entry<String, AbsRemoteMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
-        //         final AbsRemoteMsgHandler msgHandler = msgHandlerEntry.getValue();
+        //     for (Map.Entry<String, AbsMsgHandler> msgHandlerEntry : msgHandlerMap.entrySet()) {
+        //         final AbsMsgHandler msgHandler = msgHandlerEntry.getValue();
         //         Runnable task = new Runnable() {
         //             @Override
         //             public void run() {

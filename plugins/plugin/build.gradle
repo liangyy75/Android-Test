@@ -1,0 +1,45 @@
+// apply plugin: 'java-library'
+//
+// dependencies {
+//     implementation fileTree(dir: 'libs', include: ['*.jar'])
+// }
+//
+// sourceCompatibility = "7"
+// targetCompatibility = "7"
+
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+
+    implementation "org.aspectj:aspectjtools:${versions.aspectj}"
+
+    implementation 'com.android.tools.build:gradle:3.5.1'
+
+    implementation 'org.javassist:javassist:3.26.0-GA'
+}
+
+sourceCompatibility = "8"
+targetCompatibility = "8"
+
+def versionName = "1.0.0"
+group "com.liang.example.plugin"
+version versionName
+
+uploadArchives { // 当前项目可以发布到本地文件夹中
+    repositories {
+        mavenDeployer {
+            repository(url: uri("${rootDir}/plugins/repo")) // 定义本地maven仓库的地址
+            pom.groupId = "com.liang.example.plugin"
+            pom.version = "${version}"
+            pom.artifactId = 'groovy-plugin1'
+        }
+    }
+}

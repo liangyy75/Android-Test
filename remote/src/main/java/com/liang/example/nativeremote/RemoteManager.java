@@ -1,5 +1,7 @@
 package com.liang.example.nativeremote;
 
+import android.app.Application;
+
 import com.liang.example.remote.RemoteMsgManager;
 
 public class RemoteManager {
@@ -14,8 +16,6 @@ public class RemoteManager {
     }
 
     private RemoteManager() {
-        // init(true, true);
-        init(true, true);
     }
 
     public static RemoteManager getInstance() {
@@ -29,16 +29,19 @@ public class RemoteManager {
         return instance;
     }
 
-    public void setUid(long uid) {
+    public RemoteManager setUid(long uid) {
         this.uid = uid;
+        return this;
     }
 
-    public void setGuid(String guid) {
+    public RemoteManager setGuid(String guid) {
         this.guid = guid;
+        return this;
     }
 
-    public void setServerUrl(String serverUrl) {
+    public RemoteManager setServerUrl(String serverUrl) {
         this.serverUrl = serverUrl;
+        return this;
     }
 
     public long getUid() {
@@ -53,9 +56,10 @@ public class RemoteManager {
         return serverUrl;
     }
 
-    public void startRemoteClient() {
+    public RemoteManager startRemoteClient() {
         RemoteMsgManager.logger.d(TAG, "startRemoteClient -- uid: %d, guid: %s, serverUrl: %s", uid, guid, serverUrl);
         startRemoteClient(uid, guid, serverUrl);
+        return this;
     }
 
     public boolean stopRemoteClient() {
@@ -63,17 +67,26 @@ public class RemoteManager {
         return stopRemoteClient(uid, guid, serverUrl);
     }
 
+    public RemoteManager init(boolean useShell, boolean useEcho, boolean useUtil, Application application) {
+        init(useShell, useEcho);
+        if (useUtil) {
+            assert application != null;
+            addRemoteMsgHandler(new UtilMsgHandler(application));
+        }
+        return this;
+    }
+
     private native void init(boolean useShell, boolean useEcho);
 
-    private native void startRemoteClient(long uid, String guid, String serverUrl);
+    public native void startRemoteClient(long uid, String guid, String serverUrl);
 
-    private native boolean stopRemoteClient(long uid, String guid, String serverUrl);
+    public native boolean stopRemoteClient(long uid, String guid, String serverUrl);
 
     public native boolean hasRemoteClient(long uid, String guid, String serverUrl);
 
     public native boolean hasRemoteClientByUrl(String serverUrl);
 
-    public native boolean addRemoteMsgHandler(AbsRemoteMsgHandler handler);
+    public native boolean addRemoteMsgHandler(AbsMsgHandler handler);
 
     public native boolean removeRemoteMsgHandler(String reqType);
 

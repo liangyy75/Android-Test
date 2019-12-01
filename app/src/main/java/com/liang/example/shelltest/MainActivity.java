@@ -22,10 +22,9 @@ import com.liang.example.androidtest.R;
 import com.liang.example.apttest.bind.InjectUtils;
 import com.liang.example.apttest.bind.InjectView;
 import com.liang.example.apttest.bind.OnClick;
-import com.liang.example.nativeremote.AbsRemoteMsgHandler;
+import com.liang.example.nativeremote.AbsMsgHandler;
 import com.liang.example.nativeremote.RemoteManager;
 import com.liang.example.nativeremote.TestMsgHandler;
-import com.liang.example.remote.RemoteMsgManager;
 import com.liang.example.remote.WakeLockUtil;
 import com.liang.example.utils.ApiManager;
 
@@ -44,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
     @InjectView(R.id.test_remote_shell_guid)
     private EditText guidEditText;
 
-    AbsRemoteMsgHandler msgHandler;
+    AbsMsgHandler msgHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
