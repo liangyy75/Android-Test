@@ -22,7 +22,8 @@ public class MainActivity extends AppCompatActivity {
                 + "         \"sh -c ps | grep -e kiwi -e PID\",\n" + "         \"cd /sdcard/kiwi/logs/\",\n"
                 + "         \"cat logs-last.xlog | wc -l\",\n" + "         \"ls | head -n 3\"\n" + "     ]\n" + " }\n";
         BasicMsg<Object> objectBasicMsg = new Gson().fromJson(json, new TypeToken<BasicMsg<Object>>(){}.getType());
-        Log.d("TestGson", objectBasicMsg.getType());
+        Log.d("TestGson", "type: " + objectBasicMsg.getType());
+        Log.d("TestGson", "along: " + objectBasicMsg.getaLong());
         // TODO
     }
 }

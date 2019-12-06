@@ -156,6 +156,7 @@ JNIEXPORT jstring JNICALL Java_com_liang_example_nativeremote_RemoteManager_getS
         (JNIEnv *jniEnv, jobject thisObj, jobject transformObj, jstring className) {
     char classNameBuf[JTC_BUF_LEN];
     jStringToCharArray(jniEnv, className, classNameBuf);
+    replace(classNameBuf, '.', '/');
     // json11::Json json = jObjectToJson11(jniEnv, transformObj, classNameBuf);
 
     auto *classFieldsMap = new std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr>();

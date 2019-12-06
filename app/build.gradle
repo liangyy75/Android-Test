@@ -1,4 +1,4 @@
-import com.liang.example.plugin.MyGroovyPlugin
+// import com.liang.example.plugin.MyGroovyPlugin
 // apply plugin: MyGroovyPlugin
 
 apply plugin: 'com.android.application'
@@ -75,15 +75,16 @@ dependencies {
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
 
     implementation 'org.greenrobot:greendao:3.2.2' // add library
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
-    implementation 'com.google.code.gson:gson:2.8.5'
+
+    add(deps.gson[0], deps.gson[1])
 
     implementation 'com.android.volley:volley:1.1.1'
     implementation 'com.squareup.okhttp3:okhttp:4.2.0'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.2.0'
 
-    implementation 'com.google.firebase:firebase-messaging:20.0.0'
+    // implementation 'com.google.firebase:firebase-messaging:20.0.1'
 
     api "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
 
@@ -105,6 +106,9 @@ dependencies {
     // annotationProcessor 'com.alibaba:arouter-compiler:1.2.1'
 
     deps.lifecycle.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
+    add(deps.rxjava2.get(0), deps.rxjava2.get(1))
+    add(deps.rx_android.get(0), deps.rx_android.get(1))
+    add(deps.rxkotlin2.get(0), deps.rxkotlin2.get(1))
 
     api "org.aspectj:aspectjrt:${versions.aspectj}"
     // compileOnly "com.google.auto.value:auto-value:${versions.auto_value}"
@@ -121,3 +125,5 @@ dependencies {
 greeting {
     msg = 'Hello from App Setting'
 }
+
+// apply plugin: 'com.google.gms.google-services'

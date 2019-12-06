@@ -292,7 +292,7 @@ namespace shell {
             } else if (pid == 0) {
                 close(fd[0]);
                 char trueCommand[COM_BUF_SIZE + 20];
-                sprintf(trueCommand, "/system/bin/sh -c %s", command);
+                sprintf(trueCommand, "/system/bin/sh -c '%s'", command);
                 FILE *fp = popen(trueCommand, "r");
                 char writeBuffer[RESULT_BUF_SIZE];
                 while (fgets(writeBuffer, sizeof(writeBuffer), fp) != nullptr) {

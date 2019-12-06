@@ -63,7 +63,7 @@ public class FirstActivity extends AppCompatActivity {
                         mutableLiveData.postValue("timer change number: " + start);
                     }
                 }, 1000 * 2, 1000 * 2);
-                // 这里证明即使 postValue 传入的数据是相同的也是会被 log 的
+                // 这里证明即使多次 postValue 传入的数据是相同的也是会被 log 的
             }
 
             @Override

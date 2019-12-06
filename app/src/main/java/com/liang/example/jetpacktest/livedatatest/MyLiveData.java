@@ -30,7 +30,12 @@ public class MyLiveData<T> extends LiveData<T> {
     }
 
     @Override
-    protected void setValue(T value) {
+    public void postValue(T value) {
+        super.postValue(value);
+    }
+
+    @Override
+    public void setValue(T value) {
         if (!useEquals || value == null || !value.equals(getValue())) {
             super.setValue(value);
         }

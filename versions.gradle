@@ -2,12 +2,12 @@ ext.deps = [:]
 def versions = [:]
 versions.android_gradle_plugin = '3.5.1'
 versions.greendao_gradle_plugin = '3.2.2'
-versions.kotlin = '1.3.50'
-versions.aspectj = '1.8.9'
+versions.kotlin = '1.3.61'
+versions.aspectj = '1.9.5'
 
 versions.activity_ktx = '1.0.0-rc01'
 versions.apache_commons = '2.5'
-versions.appcompat = '1.1.0-rc01'
+versions.appcompat = '1.1.0'
 versions.arch_core = '2.0.1'
 versions.atsl_core = '1.2.0'
 versions.atsl_junit = '1.1.1'
@@ -15,7 +15,7 @@ versions.atsl_rules = '1.2.0'
 versions.atsl_runner = '1.2.0'
 versions.benchmark = '1.0.0-beta01'
 versions.constraint_layout = '2.0.0-alpha2'
-versions.core_ktx = '1.0.0'
+versions.core_ktx = '1.1.0'
 versions.dagger = '2.24'
 versions.dexmaker = '2.2.0'
 versions.espresso = '3.2.0'
@@ -34,8 +34,9 @@ versions.paging = '2.1.0-rc01'
 versions.retrofit = '2.3.0'
 versions.robolectric = '4.2'
 versions.room = '2.1.0-alpha06'
-versions.rx_android = '2.0.1'
-versions.rxjava2 = '2.1.3'
+versions.rx_android = '2.1.1'
+versions.rxjava2 = '2.2.15'
+versions.rxkotlin2 = '2.4.0'
 versions.support = '1.0.0'
 versions.timber = '4.5.1'
 versions.work = '2.1.0'
@@ -44,6 +45,8 @@ versions.auto_service = '1.0-rc6'
 versions.auto_value = '1.5.2'
 versions.auto_value_parcel = '0.2.7'
 versions.auto_value_gson = '1.1.1'
+
+versions.gson = '2.8.6'
 
 ext.versions = versions
 
@@ -77,6 +80,7 @@ lifecycle.java8 = new Tuple("api", "androidx.lifecycle:lifecycle-common-java8:$v
 lifecycle.compiler = new Tuple("annotationProcessor", "androidx.lifecycle:lifecycle-compiler:$versions.lifecycle")
 lifecycle.viewmodel_ktx = new Tuple("api", "androidx.lifecycle:lifecycle-viewmodel-ktx:$versions.lifecycle")
 lifecycle.livedata_ktx = new Tuple("api", "androidx.lifecycle:lifecycle-livedata-ktx:$versions.lifecycle")
+lifecycle.lifecycle_extension = new Tuple("api", "androidx.lifecycle:lifecycle-extensions:$versions.lifecycle")
 deps.lifecycle = lifecycle
 
 def activity = [:]
@@ -124,7 +128,7 @@ deps.mockito = mockito
 
 def kotlin = [:]
 kotlin.stdlib = new Tuple("api", "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin")
-kotlin.test = new Tuple("api", "org.jetbrains.kotlin:kotlin-test-junit:$versions.kotlin")
+kotlin.test = new Tuple("testImplementation", "org.jetbrains.kotlin:kotlin-test-junit:$versions.kotlin")
 kotlin.plugin = new Tuple("api", "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin")
 kotlin.allopen = new Tuple("api", "org.jetbrains.kotlin:kotlin-allopen:$versions.kotlin")
 
@@ -144,9 +148,12 @@ deps.junit = new Tuple("api", "junit:junit:$versions.junit")
 deps.mock_web_server = new Tuple("api", "com.squareup.okhttp3:mockwebserver:$versions.mockwebserver")
 deps.rxjava2 = new Tuple("api", "io.reactivex.rxjava2:rxjava:$versions.rxjava2")
 deps.rx_android = new Tuple("api", "io.reactivex.rxjava2:rxandroid:$versions.rx_android")
+deps.rxkotlin2 = new Tuple("api", "io.reactivex.rxjava2:rxkotlin:$versions.rxkotlin2")
 deps.hamcrest = new Tuple("api", "org.hamcrest:hamcrest-all:$versions.hamcrest")
 deps.android_gradle_plugin = new Tuple("api", "com.android.tools.build:gradle:$versions.android_gradle_plugin")
 deps.robolectric = new Tuple("api", "org.robolectric:robolectric:$versions.robolectric")
+
+deps.gson = new Tuple("api", "com.google.code.gson:gson:$versions.gson")
 
 ext.deps = deps
 

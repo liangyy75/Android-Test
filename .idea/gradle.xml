@@ -16,6 +16,7 @@
             <option value="$PROJECT_DIR$/spi/spi_impl1" />
             <option value="$PROJECT_DIR$/spi/spi_impl2" />
             <option value="$PROJECT_DIR$/spi/spi_interface" />
+            <option value="$PROJECT_DIR$/ui/uilib" />
             <option value="$PROJECT_DIR$/utils" />
           </set>
         </option>

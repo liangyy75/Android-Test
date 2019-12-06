@@ -1,7 +1,8 @@
-include ':app', ':lib', ':remote', ':utils', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lualib'
+include ':app', ':lib', ':remote', ':utils', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lualib', ':uilib'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
 project(":spi_impl1").projectDir = new File("spi/spi_impl1")
 project(":spi_impl2").projectDir = new File("spi/spi_impl2")
 
 project(":plugin").projectDir = new File("plugins/plugin")
+project(":uilib").projectDir = new File("ui/uilib")

@@ -15,6 +15,7 @@ class Constants {
             com.liang.example.musictest.LoadActivity.class,
             com.liang.example.viewtest.MainActivity.class,
             com.liang.example.jetpacktest.MainActivity.class,
+            com.liang.example.rxjavatest.MainActivity.class,
     };
 
     static final String[] names = new String[]{
@@ -29,6 +30,7 @@ class Constants {
             "Test Music",
             "Test View",
             "Test Android Jetpack",
+            "Test RxJava",
     };
 
     static final String[] descs = new String[]{
@@ -46,9 +48,11 @@ class Constants {
             "Just some test about a future music app",
             "一些关于View的测试，包括自定义View、探索常用View和View常用机制",
             "Some tests about Jetpack, including lifecycle / livedata / viewmodel / dataBinding / paging / room / navigation / workManger / ...",
+            "Some tests about RxJava",
     };
 
     static final String[] authors = new String[]{
+            "liangyy75",
             "liangyy75",
             "liangyy75",
             "liangyy75",
@@ -74,6 +78,7 @@ class Constants {
             "2019-09-16",
             "2019-09-18",
             "2019-10-23",
+            "2019-11-25",
     };
 
     static final String[] updated = new String[]{
@@ -88,5 +93,6 @@ class Constants {
             "2019-09-16",
             "2019-09-18",
             "2019-10-23",
+            "2019-11-25",
     };
 }

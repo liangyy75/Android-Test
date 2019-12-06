@@ -82,9 +82,10 @@ public class MyViewModelProvider extends ViewModelProvider {
         return get(DEFAULT_KEY + ":" + canonicalName, modelClass, args);
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends ViewModel> T get(String key, @NonNull Class<T> modelClass, Object... args) {
         // ViewModel viewModel = mViewModelStore.get(key);
-        ViewModel viewModel = null;
+        ViewModel viewModel;
         try {
             viewModel = (ViewModel) getMethod.invoke(mViewModelStore, key);
         } catch (IllegalAccessException e) {
@@ -96,7 +97,6 @@ public class MyViewModelProvider extends ViewModelProvider {
         if (modelClass.isInstance(viewModel)) {
             return (T) viewModel;
         } else {
-            //noinspection StatementWithEmptyBody
             if (viewModel != null) {
                 ApiManager.LOGGER.w("MyViewModelProvider", "viewModel == null, and it's impossible!!!");
             }

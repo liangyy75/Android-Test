@@ -40,7 +40,7 @@ class Constants {
 
     static final String[] updated = new String[]{
             "2019-07-15",
-            "2019-08-31",
+            "2019-11-19",
             "2019-08-29",
             "2019-09-11",
     };
