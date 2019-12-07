@@ -14,7 +14,7 @@ interface Consumer<T> {
     fun accept(t: T)
 }
 
-open class RxHandlerProxy : Handler() {
+open class RxHandler : Handler() {
     companion object {
         const val TYPE_IMMEDIATE = 0
         const val TYPE_NEW_THREAD = 1
@@ -29,12 +29,8 @@ open class RxHandlerProxy : Handler() {
 
     open val handlerMap: MutableMap<Int, Consumer<Message>> = ConcurrentHashMap()
     open val handlersMap: MutableMap<Any, MutableMap<Int, Consumer<Message>>> = ConcurrentHashMap()
-    open lateinit var cd: CompositeDisposable
+    open val cd: CompositeDisposable = CompositeDisposable()
     open val cds: MutableMap<Any, CompositeDisposable> = ConcurrentHashMap()
-
-    open fun init(cd: CompositeDisposable?) {
-        this.cd = cd ?: CompositeDisposable()
-    }
 
     // send / post message
 
@@ -75,7 +71,7 @@ open class RxHandlerProxy : Handler() {
                     TYPE_SINGLE_THREAD -> Schedulers.single()
                     TYPE_TRAMPOLINE_THREAD -> Schedulers.trampoline()
                     else -> Schedulers.from(AsyncTask.THREAD_POOL_EXECUTOR)
-                }.scheduleDirect { msg.callback.run() })
+                }.scheduleDirect(msg.callback))
             }
             return
         }

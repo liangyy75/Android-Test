@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -12,13 +13,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.liang.example.ktandroidtest.ConstantsKt;
 import com.liang.example.recyclerviewtest.recycler1.RVAdapterTest;
 import com.liang.example.recyclerviewtest.recycler1.RVViewHolderTest;
 import com.liang.example.utils.ApiManager;
+import com.liang.example.utils.ArrayApiKt;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -103,7 +107,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        bindActivityList(Constants.names, Constants.descs, Constants.authors, Constants.created, Constants.updated, Constants.classes, this, "App_Main");
+        bindActivityList(
+                ArrayApiKt.plus(Constants.names, ConstantsKt.getNames()),
+                ArrayApiKt.plus(Constants.descs, ConstantsKt.getDescs()),
+                ArrayApiKt.plus(Constants.authors, ConstantsKt.getAuthors()),
+                ArrayApiKt.plus(Constants.created, ConstantsKt.getCreated()),
+                ArrayApiKt.plus(Constants.updated, ConstantsKt.getUpdated()),
+                ArrayApiKt.plus(Constants.classes, ConstantsKt.getClasses()),
+                this, "App_Main");
     }
 
     @Override
@@ -114,11 +125,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ((LinearLayout) findViewById(R.id.test_activity_root)).addView(((ApplicationTest) getApplication()).textView, 0);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        ((LinearLayout) findViewById(R.id.test_activity_root)).removeViewAt(0);
     }
 
     @Override

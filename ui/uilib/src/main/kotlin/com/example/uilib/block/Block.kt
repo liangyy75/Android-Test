@@ -1,26 +1,21 @@
+@file: Suppress("UNCHECKED_CAST")
+
 package com.example.uilib.block
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Message
-import android.view.KeyEvent
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
-import androidx.annotation.RequiresApi
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.collections.ArrayList
 
+// TODO: CallSuper
 open class Block : ActivityProxy() {
     companion object {
         const val KEY_INFLATED = "key_inflated"
@@ -28,21 +23,24 @@ open class Block : ActivityProxy() {
 
     open lateinit var swb: WhiteBoard<String>
     open lateinit var cwb: WhiteBoard<Class<*>>
-    open lateinit var rxHandler: RxHandlerProxy
+    open lateinit var rxHandler: RxHandler
 
     open var blockGroup: BlockGroup? = null
     open var blockManager: BlockManager? = null
     override var ai: ActivityInter
         get() = blockManager!!
-        set(value) {}
+        set(_) {}
 
     // init
 
-    open fun init(swb: WhiteBoard<String>, cwb: WhiteBoard<Class<*>>, h: RxHandlerProxy, bg: BlockGroup? = null, bm: BlockManager? = null) {
+    open fun init(swb: WhiteBoard<String>, cwb: WhiteBoard<Class<*>>, h: RxHandler, bg: BlockGroup? = null, bm: BlockManager? = null) {
         this.swb = swb
         this.cwb = cwb
         this.rxHandler = h
         this.blockGroup = bg
+        if (bg != null) {
+            this.parent = bg.viewGroup
+        }
         this.blockManager = blockManager
         this.swb.putData(KEY_INFLATED, false)
     }
@@ -51,32 +49,51 @@ open class Block : ActivityProxy() {
 
     open lateinit var context: Context
     open lateinit var inflater: LayoutInflater
-    open lateinit var view: View
+    open var parent: ViewGroup? = null
+    open var view: View? = null
+    open val viewId: Int
+        get() = if (inflated.get() && view != null) view!!.id else View.NO_ID
     open var inflated = AtomicBoolean(false)
 
     @LayoutRes
     open var layoutId: Int = 0
-    open val inflateViewAsync: Boolean = false
+    open var inflateViewAsync: Boolean = false
     open val inflateViewDelay: Long = 0L
+
+    protected var afterInflateListener: Runnable? = null
     open fun beforeInflateView() = Unit
     open fun afterInflateView() = Unit
+    open fun onInflateView(context: Context, inflater: LayoutInflater, parent: ViewGroup?): View? = inflater.inflate(layoutId, null, false)
 
-    fun inflate(context: Context, inflater: LayoutInflater, parent: ViewGroup?) {
+    open fun <T : View> setInflatedCallback(callback: (T) -> Unit) {
+        afterInflateListener = Runnable { callback(view as T) }
+    }
+
+    open fun inflate(context: Context, inflater: LayoutInflater, parent: ViewGroup?) {
         if (inflated.get()) {
             return
         }
         this.context = context
         this.inflater = inflater
+        this.parent = parent
         val inflateTask = Runnable {
             beforeInflateView()
-            view = inflater.inflate(layoutId, parent, false)
-            blockGroup?.addViewOfBlock(this)
+            view = onInflateView(context, inflater, parent) ?: inflater.inflate(layoutId, null, false)
+            Log.d("Block", "inflate -- view: $view, viewId: $viewId, $parent, ${this.javaClass.name}")
+            if (view!!.parent == null) {
+                if (!inflateViewAsync) {
+                    blockGroup?.addViewOfBlock(this)
+                } else if (blockGroup != null) {
+                    post(Runnable { blockGroup?.addViewOfBlock(this) }, type = RxHandler.TYPE_MAIN_THREAD)
+                }
+            }
             inflated.compareAndSet(false, true)
             putData(KEY_INFLATED, true)
+            afterInflateListener?.run()
             afterInflateView()
         }
         if (inflateViewAsync) {
-            post(inflateTask, inflateViewDelay, RxHandlerProxy.TYPE_ASYNC_TASK_POOL)
+            post(inflateTask, inflateViewDelay, RxHandler.TYPE_NEW_THREAD)
         } else {
             inflateTask.run()
         }
@@ -86,6 +103,10 @@ open class Block : ActivityProxy() {
 
     open fun recycle() {
         this.rxHandler.release(this)
+        if (this.view != null && this.view!!.parent != null) {
+            (this.view!!.parent as ViewGroup).removeView(this.view)
+        }
+        this.parent = null
     }
 
     // refresh
@@ -117,14 +138,14 @@ open class Block : ActivityProxy() {
     // handler / disposable
 
     open fun dealConsumer(what: Int, consumer: Consumer<Message>? = null) = this.rxHandler.dealConsumer(what, consumer)
-    open fun sendEmptyMessage(what: Int, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(null, what, delayMillis, type)
-    open fun sendMessage(msg: Message, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.sendMessage(null, msg, delayMillis, type)
-    open fun post(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.post(null, r, delayMillis, type)
+    open fun sendEmptyMessage(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(null, what, delayMillis, type)
+    open fun sendMessage(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendMessage(null, msg, delayMillis, type)
+    open fun post(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.post(null, r, delayMillis, type)
 
     open fun dealConsumerInner(what: Int, consumer: Consumer<Message>? = null) = this.rxHandler.dealConsumerWithToken(what, this, consumer)
-    open fun sendEmptyMessageInner(what: Int, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(this, what, delayMillis, type)
-    open fun sendMessageInner(msg: Message, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.sendMessage(this, msg, delayMillis, type)
-    open fun postInner(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandlerProxy.TYPE_IMMEDIATE) = rxHandler.post(this, r, delayMillis, type)
+    open fun sendEmptyMessageInner(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(this, what, delayMillis, type)
+    open fun sendMessageInner(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendMessage(this, msg, delayMillis, type)
+    open fun postInner(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.post(this, r, delayMillis, type)
 
     open fun register(disposable: Disposable, inBlock: Boolean = false) = rxHandler.register(disposable, if (inBlock) this else null)
     open fun registerAll(inBlock: Boolean, vararg disposables: Disposable) = rxHandler.registerAll(if (inBlock) this else null, *disposables)
@@ -148,7 +169,10 @@ open class FragmentBlock : Block(), FragmentLifeCycleInter {
         return this.view
     }
 
-    override fun onActivityCreated() = Unit
+    override fun onActivityCreated(bundle: Bundle?) {
+        this.bundle = bundle
+    }
+
     override fun onStart() = Unit
     override fun onResume() = Unit
     override fun onPause() = Unit
@@ -179,208 +203,3 @@ open class ActivityBlock : Block(), ActivityLifeCycleInter {
         this.bundle = bundle
     }
 }
-
-open class BlockGroup : Block() {
-    open val children: MutableList<Block> = Collections.synchronizedList(ArrayList<Block>())
-    open lateinit var viewGroup: ViewGroup
-    override var view: View
-        get() = viewGroup
-        set(value) {
-            if (value is ViewGroup) {
-                viewGroup = value
-            }
-        }
-
-    override fun refresh() = refreshGroup()
-    override fun refreshGroup(): Unit = children.forEach { it.refresh() }
-
-    open fun addBlock(block: Block) {
-        if (block in children) {
-            return
-        }
-        children.add(block)
-        if (block.inflated.get()) {
-            block.recycle()
-        }
-        block.init(this.swb, this.cwb, this.rxHandler, this, this.blockManager)
-        block.inflate(context, inflater, viewGroup)
-    }
-
-    open fun addBlockIf(condition: Boolean, block: Block) {
-        if (condition) {
-            addBlock(block)
-        }
-    }
-
-    open fun addBlockIf(condition: () -> Boolean, block: Block) {
-        if (condition()) {
-            addBlock(block)
-        }
-    }
-
-    open fun addViewOfBlock(block: Block) {
-        TODO()
-    }
-}
-
-open class BlockManager : BlockGroup(), FragmentLifeCycleInter, ActivityLifeCycleInter {
-    companion object {
-        const val KEY_FRAGMENT_STATE = "fragmentState"
-        const val KEY_ACTIVITY_STATE = "activityState"
-    }
-
-    open val groups: MutableList<BlockGroup> = Collections.synchronizedList(ArrayList<BlockGroup>())
-    open var bundle: Bundle? = null
-
-    // activity proxy
-
-    protected var innerActivity: Activity? = null
-    protected var innerFragment: Fragment? = null
-    override var ai: ActivityInter
-        get() = this
-        set(value) {
-            throw RuntimeException("cann't set ai of blockManager")
-        }
-
-    override fun getActivity(): Activity? = if (innerActivity == null && innerFragment != null) {
-        innerFragment!!.activity
-    } else {
-        innerActivity
-    }
-
-    override fun getFragment(): Fragment? = innerFragment
-    override fun getFragmentManager(): FragmentManager? = getFragmentActivity()?.supportFragmentManager
-
-    override fun getFragmentActivity(): FragmentActivity? = if (innerActivity is FragmentActivity) {
-        innerActivity as FragmentActivity
-    } else {
-        null
-    }
-
-    override fun finish() = innerActivity?.finish() ?: Unit
-    override fun startActivity(intent: Intent) = innerActivity?.startActivity(intent) ?: Unit
-    override fun startActivityForResult(intent: Intent, requestCode: Int) = innerActivity?.startActivityForResult(intent, requestCode)
-            ?: Unit
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = innerActivity?.startActivityForResult(intent, requestCode, options)
-            ?: Unit
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
-    override fun onBackPressed() {
-        super.onBackPressed()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return super.onKeyDown(keyCode, event)
-    }
-
-    // init
-
-    open fun initInActivity(activity: Activity) {
-        innerActivity = activity
-        putData(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.ORIGINAL)
-    }
-
-    open fun initInFragment(fragment: Fragment) {
-        innerActivity = fragment.activity
-        innerFragment = fragment
-        putData(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.ORIGIN)
-    }
-
-    open fun initInBlockManager(blockManager: BlockManager) {}
-
-    // refresh
-
-    override fun refresh() = refreshManager()
-    override fun refreshGroup() = refreshManager()
-    override fun refreshManager(): Unit = groups.forEach { it.refreshGroup() }
-
-    // lifecycle
-
-    open fun putDataIfExists(key: String, value: Any?) {
-        if (this.swb.getData(key) != null) {
-            this.swb.putData(key, value)
-        }
-    }
-
-    override fun onAttach(context: Context) {
-        this.context = context
-    }
-
-    override fun onCreate(bundle: Bundle?) {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_CREATE)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_CREATE)
-    }
-
-    override fun onRestart() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_RESTART)
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, parent: ViewGroup?, bundle: Bundle?): View? {
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_CREATE_VIEW)
-        return this.view
-    }
-
-    override fun onActivityCreated() {
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_ACTIVITY_CREATE)
-    }
-
-    override fun onStart() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_START)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_START)
-    }
-
-    override fun onResume() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_RESUME)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_RESUME)
-    }
-
-    override fun onPause() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_PAUSE)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_PAUSE)
-    }
-
-    override fun onStop() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_STOP)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_STOP)
-    }
-
-    override fun onDestroyView() {
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_DESTROY_VIEW)
-    }
-
-    override fun onDestroy() {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_DESTROY)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_DESTROY)
-    }
-
-    override fun onDetach() {
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_DETACH)
-    }
-
-    override fun onSaveInstanceState(bundle: Bundle) {
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_SAVE_INSTANCE_STATE)
-        putDataIfExists(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.STATE_SAVE_INSTANCE_STATE)
-    }
-
-    override fun onRestoreInstanceState(bundle: Bundle) {
-        this.bundle = bundle
-        putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_RESTORE_INSTANCE_STATE)
-    }
-}
-
-// block -> fragment
-// blockGroup -> fragmentManager
-// blockManager -> activity / fragment

@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package com.example.uilib.block
 
 import android.content.Intent
@@ -10,7 +8,6 @@ import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
 
-@Suppress("MemberVisibilityCanBePrivate")
 class WhiteBoard<Key> {
     companion object {
         val NULL_OBJECT = Any()

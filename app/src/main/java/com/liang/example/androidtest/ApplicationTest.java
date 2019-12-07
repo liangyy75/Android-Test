@@ -5,6 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
@@ -30,6 +34,8 @@ import com.liang.example.utils.ApiManager;
 public class ApplicationTest extends Application {
     private static final String TAG = "ApplicationTest";
 
+    public TextView textView;
+
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
@@ -39,6 +45,12 @@ public class ApplicationTest extends Application {
         super.onCreate();
         Log.d(TAG, "onCreate");
         ApiManager.init(this);
+
+        textView = new TextView(this);
+        textView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        textView.setGravity(Gravity.CENTER_HORIZONTAL);
+        textView.setTextColor(getResources().getColor(android.R.color.holo_orange_light));
+        textView.setText("app text");
 
         // RemoteMsgManager.setLogger(ApiManager.LOGGER);
         RemoteMsgManager

@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -50,7 +51,7 @@ open class ActivityProxy : ActivityInter {
     override fun onNewIntent(intent: Intent) = Unit
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) = Unit
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) = Unit
-    override fun onBackPressed() = Unit
+    override fun onBackPressed() = Unit  // TODO
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = false
 }
 
@@ -100,7 +101,7 @@ interface FragmentLifeCycleInter {
     fun onAttach(context: Context)
     fun onCreate(bundle: Bundle?)
     fun onCreateView(inflater: LayoutInflater, parent: ViewGroup?, bundle: Bundle?): View?
-    fun onActivityCreated()
+    fun onActivityCreated(bundle: Bundle?)
     fun onStart()
     fun onResume()
     fun onPause()
@@ -110,4 +111,130 @@ interface FragmentLifeCycleInter {
     fun onDetach()
 
     fun onSaveInstanceState(bundle: Bundle)
+}
+
+open class BlockActivity : AppCompatActivity() {
+    protected val blockManagers = mutableListOf<BlockManager>()
+
+    open fun getBlockManagerList(): List<BlockManager>? = null
+
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
+        getBlockManagerList()?.let { blockManagers.addAll(it) }
+        blockManagers.forEachIndexed { index, it ->
+            it.initInActivity(this)
+            it.build(null, index)
+            it.onCreate(bundle)
+        }
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        blockManagers.forEach { it.onRestart() }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        blockManagers.forEach { it.onStart() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        blockManagers.forEach { it.onResume() }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        blockManagers.forEach { it.onPause() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        blockManagers.forEach { it.onStop() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        blockManagers.forEach { it.onDestroy() }
+    }
+
+    override fun onSaveInstanceState(bundle: Bundle) {
+        super.onSaveInstanceState(bundle)
+        blockManagers.forEach { it.onSaveInstanceState(bundle) }
+    }
+
+    override fun onRestoreInstanceState(bundle: Bundle) = blockManagers.forEach { it.onRestoreInstanceState(bundle) }
+}
+
+open class BlockFragment : Fragment() {
+    protected val blockManagers = mutableListOf<BlockManager>()
+
+    open fun getBlockManagerList(): List<BlockManager>? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        getBlockManagerList()?.let { blockManagers.addAll(it) }
+        blockManagers.forEach {
+            it.initInFragment(this)
+            it.build(null)
+            it.onAttach(context)
+        }
+    }
+
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
+        blockManagers.forEach { it.onCreate(bundle) }
+    }
+
+    open fun onCreateView2(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        blockManagers.forEach { it.onCreateView(inflater, container, savedInstanceState) }
+        return onCreateView2(inflater, container, savedInstanceState)
+    }
+
+    override fun onActivityCreated(bundle: Bundle?) {
+        super.onActivityCreated(bundle)
+        blockManagers.forEach { it.onActivityCreated(bundle) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        blockManagers.forEach { it.onStart() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        blockManagers.forEach { it.onResume() }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        blockManagers.forEach { it.onPause() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        blockManagers.forEach { it.onStop() }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        blockManagers.forEach { it.onDestroyView() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        blockManagers.forEach { it.onDestroy() }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        blockManagers.forEach { it.onDetach() }
+    }
+
+    override fun onSaveInstanceState(bundle: Bundle) {
+        super.onSaveInstanceState(bundle)
+        blockManagers.forEach { it.onSaveInstanceState(bundle) }
+    }
 }

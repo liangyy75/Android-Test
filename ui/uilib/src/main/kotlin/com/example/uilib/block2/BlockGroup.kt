@@ -77,14 +77,14 @@ open class BlockGroup(@IdRes var mCurrentId: Int = View.NO_ID) : Block() {
         }
     }
 
-    open fun addBlockIf(condition: Boolean, block: Block?): BlockGroup? {
+    open fun addBlockIf(condition: Boolean, block: Block?): BlockGroup {
         if (condition) {
             addBlock(block)
         }
         return this
     }
 
-    open fun addBlock(block: Block?): BlockGroup? {
+    open fun addBlock(block: Block?): BlockGroup {
         if (block == null) {
             return this
         }
