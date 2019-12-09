@@ -108,8 +108,8 @@ open class BlockManager(@LayoutRes layoutId: Int = 0) : BlockGroup(layoutId), Fr
             ?: Unit
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = innerActivity?.startActivityForResult(intent, requestCode, options)
-            ?: Unit
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+            innerActivity?.startActivityForResult(intent, requestCode, options) ?: Unit
 
     // blockGroup -- add / remove / get
 

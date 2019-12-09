@@ -46,10 +46,12 @@ open class ActivityProxy : ActivityInter {
 
     override fun finish() = ai?.finish() ?: Unit
     override fun startActivity(intent: Intent) = ai?.startActivity(intent) ?: Unit
-    override fun startActivityForResult(intent: Intent, requestCode: Int) = ai?.startActivityForResult(intent, requestCode) ?: Unit
+    override fun startActivityForResult(intent: Intent, requestCode: Int) =
+            ai?.startActivityForResult(intent, requestCode) ?: Unit
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = ai?.startActivityForResult(intent, requestCode, options)
-            ?: Unit
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+            ai?.startActivityForResult(intent, requestCode, options) ?: Unit
 
     override fun onNewIntent(intent: Intent) = Unit
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) = Unit
@@ -74,7 +76,8 @@ open class ActivityProxyImpl1(private val activity: Activity) : ActivityProxy() 
     override fun startActivity(intent: Intent) = activity.startActivity(intent)
     override fun startActivityForResult(intent: Intent, requestCode: Int) = activity.startActivityForResult(intent, requestCode)
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = activity.startActivityForResult(intent, requestCode, options)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+            activity.startActivityForResult(intent, requestCode, options)
 }
 
 open class ActivityProxyImpl2(private val fragmentActivity: FragmentActivity) : ActivityProxy() {
@@ -87,7 +90,8 @@ open class ActivityProxyImpl2(private val fragmentActivity: FragmentActivity) : 
     override fun startActivity(intent: Intent) = fragmentActivity.startActivity(intent)
     override fun startActivityForResult(intent: Intent, requestCode: Int) = fragmentActivity.startActivityForResult(intent, requestCode)
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = fragmentActivity.startActivityForResult(intent, requestCode, options)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+            fragmentActivity.startActivityForResult(intent, requestCode, options)
 }
 
 open class ActivityProxyImpl3(private val fragment: Fragment) : ActivityProxy() {
@@ -100,7 +104,8 @@ open class ActivityProxyImpl3(private val fragment: Fragment) : ActivityProxy() 
     override fun startActivity(intent: Intent) = fragment.startActivity(intent)
     override fun startActivityForResult(intent: Intent, requestCode: Int) = fragment.startActivityForResult(intent, requestCode)
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = fragment.startActivityForResult(intent, requestCode, options)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+            fragment.startActivityForResult(intent, requestCode, options)
 }
 
 interface ActivityLifeCycleInter {

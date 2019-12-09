@@ -277,6 +277,7 @@
         <activity android:name="com.liang.example.blocktest.MainActivity" />
         <activity android:name="com.liang.example.blocktest.MainActivity2" />
         <activity android:name="com.liang.example.blocktest.MainActivity3" />
+        <activity android:name="com.liang.example.blocktest.MainActivity4" />
 
         <!-- Logger Configuration -->
         <meta-data

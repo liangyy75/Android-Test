@@ -57,6 +57,26 @@ open class Block() : ActivityProxy() {
         return this
     }
 
+    open fun init(blockGroup: BlockGroup): Block {
+        this.context = blockGroup.context
+        this.inflater = blockGroup.inflater
+        this.provider = blockGroup.provider
+        this.swb = blockGroup.swb
+        this.cwb = blockGroup.cwb
+        this.rxHandler = blockGroup.rxHandler
+        return this
+    }
+
+    open fun init(blockManager: BlockManager): Block {
+        this.context = blockManager.context
+        this.inflater = blockManager.inflater
+        this.provider = blockManager.provider
+        this.swb = blockManager.swb
+        this.cwb = blockManager.cwb
+        this.rxHandler = blockManager.rxHandler
+        return this
+    }
+
     open fun init(swb: WhiteBoard<String>, cwb: WhiteBoard<Class<*>>, h: RxHandler, bg: BlockGroup? = null, bm: BlockManager? = null): Block {
         this.swb = swb
         this.cwb = cwb
@@ -110,7 +130,8 @@ open class Block() : ActivityProxy() {
         this.parent = parent
         val inflateTask = Runnable {
             beforeInflateView()
-            view = onInflateView(context, inflater, parent) ?: inflater.inflate(layoutId, null, false)
+            view = onInflateView(context, inflater, parent)
+                    ?: inflater.inflate(layoutId, null, false)
             Log.d("Block", "inflate -- view: $view, viewId: $viewId, $parent, ${this.javaClass.name}")
             if (view!!.parent == null) {
                 val task = when {
@@ -193,13 +214,21 @@ open class Block() : ActivityProxy() {
     // handler / disposable
 
     open fun dealConsumer(what: Int, consumer: Consumer<Message>? = null) = this.rxHandler.dealConsumer(what, consumer)
-    open fun sendEmptyMessage(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(null, what, delayMillis, type)
-    open fun sendMessage(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendMessage(null, msg, delayMillis, type)
+    open fun sendEmptyMessage(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) =
+            rxHandler.sendEmptyMessage(null, what, delayMillis, type)
+
+    open fun sendMessage(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) =
+            rxHandler.sendMessage(null, msg, delayMillis, type)
+
     open fun post(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.post(null, r, delayMillis, type)
 
     open fun dealConsumerInner(what: Int, consumer: Consumer<Message>? = null) = this.rxHandler.dealConsumerWithToken(what, this, consumer)
-    open fun sendEmptyMessageInner(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendEmptyMessage(this, what, delayMillis, type)
-    open fun sendMessageInner(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.sendMessage(this, msg, delayMillis, type)
+    open fun sendEmptyMessageInner(what: Int, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) =
+            rxHandler.sendEmptyMessage(this, what, delayMillis, type)
+
+    open fun sendMessageInner(msg: Message, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) =
+            rxHandler.sendMessage(this, msg, delayMillis, type)
+
     open fun postInner(r: Runnable, delayMillis: Long = 0L, type: Int = RxHandler.TYPE_IMMEDIATE) = rxHandler.post(this, r, delayMillis, type)
 
     open fun register(disposable: Disposable, inBlock: Boolean = false) = rxHandler.register(disposable, if (inBlock) this else null)

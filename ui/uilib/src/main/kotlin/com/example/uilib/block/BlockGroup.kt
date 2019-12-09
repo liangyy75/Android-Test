@@ -80,6 +80,8 @@ open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
 
     // add
 
+    open fun generateLayoutParams(w: Int, h: Int) = ViewGroup.LayoutParams(w, h)
+
     private fun innerAddBlock(block: Block, index: Int = -1): BlockGroup {
         if (block in children) {
             return this
@@ -121,7 +123,9 @@ open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
     open fun insertBlockIf(condition: () -> Boolean, block: Block, index: Int) = if (condition()) innerAddBlock(block, index) else this
 
     open fun insertBlockLater(block: Block, index: Int) = checkTask(Runnable { innerAddBlock(block, index) })
-    open fun insertBlockLaterIf(condition: Boolean, block: Block, index: Int) = if (condition) checkTask(Runnable { innerAddBlock(block, index) }) else this
+    open fun insertBlockLaterIf(condition: Boolean, block: Block, index: Int) =
+            if (condition) checkTask(Runnable { innerAddBlock(block, index) }) else this
+
     open fun insertBlockLaterIf(condition: () -> Boolean, block: Block, index: Int) =
             if (condition()) checkTask(Runnable { innerAddBlock(block, index) }) else this
 
@@ -275,7 +279,9 @@ open class FragmentBlockGroup(context: Context) : BlockGroup(context), FragmentL
         return this.view
     }
 
-    override fun onActivityCreated(bundle: Bundle?) = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onActivityCreated(bundle) }
+    override fun onActivityCreated(bundle: Bundle?) =
+            this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onActivityCreated(bundle) }
+
     override fun onStart() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onStart() }
     override fun onResume() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onResume() }
     override fun onPause() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onPause() }
@@ -283,7 +289,8 @@ open class FragmentBlockGroup(context: Context) : BlockGroup(context), FragmentL
     override fun onDestroyView() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onDestroyView() }
     override fun onDestroy() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onDestroy() }
     override fun onDetach() = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onDetach() }
-    override fun onSaveInstanceState(bundle: Bundle) = this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onSaveInstanceState(bundle) }
+    override fun onSaveInstanceState(bundle: Bundle) =
+            this.children.filterIsInstance<FragmentLifeCycleInter>().forEach { it.onSaveInstanceState(bundle) }
 }
 
 open class ActivityBlockGroup(context: Context) : BlockGroup(context), ActivityLifeCycleInter {
@@ -300,7 +307,9 @@ open class ActivityBlockGroup(context: Context) : BlockGroup(context), ActivityL
     override fun onPause() = this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onPause() }
     override fun onStop() = this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onStop() }
     override fun onDestroy() = this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onDestroy() }
-    override fun onSaveInstanceState(bundle: Bundle) = this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onSaveInstanceState(bundle) }
+    override fun onSaveInstanceState(bundle: Bundle) =
+            this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onSaveInstanceState(bundle) }
+
     override fun onRestoreInstanceState(bundle: Bundle) {
         this.bundle = bundle
         this.children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onRestoreInstanceState(bundle) }

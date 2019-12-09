@@ -20,6 +20,7 @@ class MainActivity : BlockActivity() {
     @SuppressLint("SetTextI18n")
     override fun getBlockManagerList(): List<BlockManager>? {
         val dp10 = DensityApi.dpToPx(this, 10f)
+        val dp20 = DensityApi.dpToPx(this, 20f)
         val blockManager1 =
                 BlockManager(this, R.layout.layout_linear).apply {
                     inflateBlocksAsync = true
@@ -121,6 +122,7 @@ class MainActivity : BlockActivity() {
                     addBlock(Block(R.layout.view_image).setInflatedCallback<ImageView> {
                         ApiManager.LOGGER.d(TAG, "block -- image_view_1 afterInflater")
                         it.id = R.id.image_view_1
+                        it.layoutParams = LinearLayout.LayoutParams(dp20, dp20)
                         it.setBackgroundResource(R.drawable.more_right)
                     })
                 }

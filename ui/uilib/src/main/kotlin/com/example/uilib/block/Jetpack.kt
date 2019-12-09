@@ -30,7 +30,8 @@ open class StrongLiveData<T> : MutableLiveData<T>() {
 }
 
 @Suppress("UNCHECKED_CAST")
-open class StrongViewModelProvider(private val mViewModelStore: ViewModelStore, private val mFactory: Factory) : ViewModelProvider(mViewModelStore, mFactory) {
+open class StrongViewModelProvider(private val mViewModelStore: ViewModelStore, private val mFactory: Factory) :
+        ViewModelProvider(mViewModelStore, mFactory) {
     companion object {
         private const val DEFAULT_KEY = "androidx.lifecycle.ViewModelProvider.DefaultKey"
         private var getMethod: Method? = null
