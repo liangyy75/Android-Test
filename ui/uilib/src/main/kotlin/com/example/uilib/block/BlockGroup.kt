@@ -1,3 +1,5 @@
+@file: Suppress("LeakingThis", "SENSELESS_COMPARISON")
+
 package com.example.uilib.block
 
 import android.content.Context
@@ -8,14 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
-import java.lang.RuntimeException
+import androidx.annotation.LayoutRes
 import java.util.*
 import kotlin.collections.ArrayList
 
 // TODO: 线程安全
 
-@Suppress("unused", "LeakingThis", "SENSELESS_COMPARISON")
-open class BlockGroup : Block {
+open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
     open val children: MutableList<Block> = Collections.synchronizedList(ArrayList())
     open val addBlockTasks: MutableList<Runnable> = Collections.synchronizedList(ArrayList())
     open val viewGroup: ViewGroup?
@@ -23,12 +24,17 @@ open class BlockGroup : Block {
     private val SYNC_OBJECT = Any()
     private var constructorFlag = 1
 
-    constructor(context: Context) {
-        this.context = context
-        this.inflater = LayoutInflater.from(context)
+    // init
+
+    // 使用这个不需要依靠BlockManager，不需要自己使用 init(context)
+    constructor(context: Context, @LayoutRes layoutId: Int = 0) : this(layoutId) {
+        init(context)
     }
 
-    constructor(blockManager: BlockManager) : this(blockManager.context) {
+    constructor(blockManager: BlockManager, @LayoutRes layoutId: Int = 0) : this(layoutId) {
+        this.context = blockManager.context
+        this.inflater = blockManager.inflater
+        this.provider = provider
         this.swb = blockManager.swb
         this.cwb = blockManager.cwb
         this.rxHandler = blockManager.rxHandler
@@ -38,6 +44,8 @@ open class BlockGroup : Block {
 
     // inflate
 
+    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockGroup = super.setInflatedCallback<T>(callback) as BlockGroup
+
     open var inflateBlocksAsync: Boolean = false
 
     @CallSuper
@@ -46,6 +54,9 @@ open class BlockGroup : Block {
         addBlockTasks.forEach { it.run() }
         addBlockTasks.clear()
     }
+
+    open fun build(parent: ViewGroup? = null) = build(parent, -1)
+    override fun build(parent: ViewGroup?, index: Int?): BlockGroup = super.build(parent, index) as BlockGroup
 
     // refresh
 
@@ -69,13 +80,9 @@ open class BlockGroup : Block {
 
     // add
 
-    private fun innerAddBlock(block: Block, index: Int = -1) {
-        if (constructorFlag == 1 && this !is BlockManager) {
-            throw RuntimeException("can't call addBlock or insertBlock before blockManager deliver swb, cwb, rxhandler to blockGroups and blocks," +
-                    " please call addBlockLater / addBlockLaterIf / insertBlockLater / insertBlockLaterIf.")
-        }
+    private fun innerAddBlock(block: Block, index: Int = -1): BlockGroup {
         if (block in children) {
-            return
+            return this
         }
         if (index == -1) {
             children.add(block)
@@ -88,34 +95,37 @@ open class BlockGroup : Block {
         block.init(this.swb, this.cwb, this.rxHandler, this, this.blockManager)
         block.inflateViewAsync = inflateBlocksAsync
         block.inflate(context, inflater, viewGroup)
+        return this
     }
 
-    private fun checkTask(runnable: Runnable) = if (this.inflated.get()) {
-        runnable.run()
-        true
-    } else {
-        addBlockTasks.add(runnable)
+    private fun checkTask(runnable: Runnable): BlockGroup {
+        if (this.inflated.get()) {
+            runnable.run()
+        } else {
+            addBlockTasks.add(runnable)
+        }
+        return this
     }
 
     open fun addBlock(block: Block) = innerAddBlock(block)
-    open fun addBlockIf(condition: Boolean, block: Block) = if (condition) addBlock(block) else Unit
-    open fun addBlockIf(condition: () -> Boolean, block: Block) = if (condition()) addBlock(block) else Unit
+    open fun addBlockIf(condition: Boolean, block: Block) = if (condition) addBlock(block) else this
+    open fun addBlockIf(condition: () -> Boolean, block: Block) = if (condition()) addBlock(block) else this
 
     open fun addBlockLater(block: Block) = checkTask(Runnable { innerAddBlock(block) })
-    open fun addBlockLaterIf(condition: Boolean, block: Block) = if (condition) checkTask(Runnable { innerAddBlock(block) }) else false
+    open fun addBlockLaterIf(condition: Boolean, block: Block) = if (condition) checkTask(Runnable { innerAddBlock(block) }) else this
     open fun addBlockLaterIf(condition: () -> Boolean, block: Block) =
-            if (condition()) checkTask(Runnable { innerAddBlock(block) }) else false
+            if (condition()) checkTask(Runnable { innerAddBlock(block) }) else this
 
     open fun insertBlock(block: Block, index: Int) = innerAddBlock(block, index)
-    open fun insertBlockIf(condition: Boolean, block: Block, index: Int) = if (condition) innerAddBlock(block, index) else Unit
-    open fun insertBlockIf(condition: () -> Boolean, block: Block, index: Int) = if (condition()) innerAddBlock(block, index) else Unit
+    open fun insertBlockIf(condition: Boolean, block: Block, index: Int) = if (condition) innerAddBlock(block, index) else this
+    open fun insertBlockIf(condition: () -> Boolean, block: Block, index: Int) = if (condition()) innerAddBlock(block, index) else this
 
     open fun insertBlockLater(block: Block, index: Int) = checkTask(Runnable { innerAddBlock(block, index) })
-    open fun insertBlockLaterIf(condition: Boolean, block: Block, index: Int) = if (condition) checkTask(Runnable { innerAddBlock(block, index) }) else false
+    open fun insertBlockLaterIf(condition: Boolean, block: Block, index: Int) = if (condition) checkTask(Runnable { innerAddBlock(block, index) }) else this
     open fun insertBlockLaterIf(condition: () -> Boolean, block: Block, index: Int) =
-            if (condition()) checkTask(Runnable { innerAddBlock(block, index) }) else false
+            if (condition()) checkTask(Runnable { innerAddBlock(block, index) }) else this
 
-    open fun addViewOfBlock(block: Block) = synchronized(SYNC_OBJECT) {
+    open fun addViewOfBlock(block: Block): BlockGroup = synchronized(SYNC_OBJECT) {
         var lastBlock: Block? = null
         for (child in children) {
             if (block == child) {
@@ -130,35 +140,38 @@ open class BlockGroup : Block {
         } else {
             viewGroup?.addView(block.view, viewGroup!!.indexOfChild(lastBlock.view) + 1)
         }
+        return this
     }
 
     // remove
 
-    open fun removeBlock(block: Block) = synchronized(SYNC_OBJECT) {
+    open fun removeBlock(block: Block): BlockGroup = synchronized(SYNC_OBJECT) {
         children.remove(block)
         if (block.inflated.get()) {
             viewGroup?.removeView(block.view)
         }
+        return this
     }
 
-    open fun removeBlock(index: Int) = synchronized(SYNC_OBJECT) {
+    open fun removeBlock(index: Int): BlockGroup = synchronized(SYNC_OBJECT) {
         val block = children.removeAt(index)
         if (block.inflated.get()) {
             viewGroup?.removeView(block.view)
         }
+        return this
     }
 
-    open fun removeBlockIf(condition: Boolean, block: Block) = if (condition) removeBlock(block) else Unit
-    open fun removeBlockIf(condition: () -> Boolean, block: Block) = if (condition()) removeBlock(block) else Unit
+    open fun removeBlockIf(condition: Boolean, block: Block) = if (condition) removeBlock(block) else this
+    open fun removeBlockIf(condition: () -> Boolean, block: Block) = if (condition()) removeBlock(block) else this
 
-    open fun removeBlockIf(condition: Boolean, index: Int) = if (condition) removeBlock(index) else Unit
-    open fun removeBlockIf(condition: () -> Boolean, index: Int) = if (condition()) removeBlock(index) else Unit
+    open fun removeBlockIf(condition: Boolean, index: Int) = if (condition) removeBlock(index) else this
+    open fun removeBlockIf(condition: () -> Boolean, index: Int) = if (condition()) removeBlock(index) else this
 
     // replace
 
-    open fun replaceBlock(newBlock: Block, oldBlock: Block) = synchronized(SYNC_OBJECT) {
+    open fun replaceBlock(newBlock: Block, oldBlock: Block): BlockGroup = synchronized(SYNC_OBJECT) {
         if (oldBlock !in children) {
-            return
+            return this
         }
         val index = children.indexOf(oldBlock)
         children.remove(oldBlock)
@@ -171,9 +184,10 @@ open class BlockGroup : Block {
         }
         newBlock.init(this.swb, this.cwb, this.rxHandler, this, this.blockManager)
         newBlock.inflate(context, inflater, viewGroup)
+        return this
     }
 
-    open fun replaceBlock(newBlock: Block, index: Int) = synchronized(SYNC_OBJECT) {
+    open fun replaceBlock(newBlock: Block, index: Int): BlockGroup = synchronized(SYNC_OBJECT) {
         val oldBlock = children.removeAt(index)
         children.add(index, newBlock)
         if (oldBlock.inflated.get()) {
@@ -184,13 +198,14 @@ open class BlockGroup : Block {
         }
         newBlock.init(this.swb, this.cwb, this.rxHandler, this, this.blockManager)
         newBlock.inflate(context, inflater, viewGroup)
+        return this
     }
 
-    open fun replaceBlockIf(condition: Boolean, newBlock: Block, oldBlock: Block) = if (condition) replaceBlock(newBlock, oldBlock) else Unit
-    open fun replaceBlockIf(condition: () -> Boolean, newBlock: Block, oldBlock: Block) = if (condition()) replaceBlock(newBlock, oldBlock) else Unit
+    open fun replaceBlockIf(condition: Boolean, newBlock: Block, oldBlock: Block) = if (condition) replaceBlock(newBlock, oldBlock) else this
+    open fun replaceBlockIf(condition: () -> Boolean, newBlock: Block, oldBlock: Block) = if (condition()) replaceBlock(newBlock, oldBlock) else this
 
-    open fun replaceBlockIf(condition: Boolean, newBlock: Block, index: Int) = if (condition) replaceBlock(newBlock, index) else Unit
-    open fun replaceBlockIf(condition: () -> Boolean, newBlock: Block, index: Int) = if (condition()) replaceBlock(newBlock, index) else Unit
+    open fun replaceBlockIf(condition: Boolean, newBlock: Block, index: Int) = if (condition) replaceBlock(newBlock, index) else this
+    open fun replaceBlockIf(condition: () -> Boolean, newBlock: Block, index: Int) = if (condition()) replaceBlock(newBlock, index) else this
 
     // find
 
@@ -216,7 +231,7 @@ open class BlockGroup : Block {
 
     // builder
 
-    class Builder(private val context: Context) {
+    class Builder(private val context: Context) {  // TODO: 模仿 AnimatorSet 的 TODO
         private var blockManager: BlockManager? = null
 
         constructor(blockManager: BlockManager) : this(blockManager.context) {

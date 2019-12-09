@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package com.example.uilib.block
 
 import android.app.Activity
@@ -35,24 +37,70 @@ interface ActivityInter {
 }
 
 open class ActivityProxy : ActivityInter {
-    open lateinit var ai: ActivityInter
+    open var ai: ActivityInter? = null
 
-    override fun getFragment(): Fragment? = ai.getFragment()
-    override fun getActivity(): Activity? = ai.getActivity()
-    override fun getFragmentManager(): FragmentManager? = ai.getFragmentManager()
-    override fun getFragmentActivity(): FragmentActivity? = ai.getFragmentActivity()
+    override fun getFragment(): Fragment? = ai?.getFragment()
+    override fun getActivity(): Activity? = ai?.getActivity()
+    override fun getFragmentManager(): FragmentManager? = ai?.getFragmentManager()
+    override fun getFragmentActivity(): FragmentActivity? = ai?.getFragmentActivity()
 
-    override fun finish() = ai.finish()
-    override fun startActivity(intent: Intent) = ai.startActivity(intent)
-    override fun startActivityForResult(intent: Intent, requestCode: Int) = ai.startActivityForResult(intent, requestCode)
+    override fun finish() = ai?.finish() ?: Unit
+    override fun startActivity(intent: Intent) = ai?.startActivity(intent) ?: Unit
+    override fun startActivityForResult(intent: Intent, requestCode: Int) = ai?.startActivityForResult(intent, requestCode) ?: Unit
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = ai.startActivityForResult(intent, requestCode, options)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = ai?.startActivityForResult(intent, requestCode, options)
+            ?: Unit
 
     override fun onNewIntent(intent: Intent) = Unit
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) = Unit
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) = Unit
     override fun onBackPressed() = Unit  // TODO
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = false
+
+    companion object {
+        fun of(activity: Activity) = if (activity is FragmentActivity) ActivityProxyImpl2(activity) else ActivityProxyImpl1(activity)
+        fun of(fragmentActivity: FragmentActivity) = ActivityProxyImpl2(fragmentActivity)
+        fun of(fragment: Fragment) = ActivityProxyImpl3(fragment)
+    }
+}
+
+open class ActivityProxyImpl1(private val activity: Activity) : ActivityProxy() {
+    override fun getFragment(): Fragment? = null
+    override fun getActivity(): Activity? = activity
+    override fun getFragmentManager(): FragmentManager? = if (activity is FragmentActivity) activity.supportFragmentManager else null
+    override fun getFragmentActivity(): FragmentActivity? = if (activity is FragmentActivity) activity else null
+
+    override fun finish() = activity.finish()
+    override fun startActivity(intent: Intent) = activity.startActivity(intent)
+    override fun startActivityForResult(intent: Intent, requestCode: Int) = activity.startActivityForResult(intent, requestCode)
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = activity.startActivityForResult(intent, requestCode, options)
+}
+
+open class ActivityProxyImpl2(private val fragmentActivity: FragmentActivity) : ActivityProxy() {
+    override fun getFragment(): Fragment? = null
+    override fun getActivity(): Activity? = fragmentActivity
+    override fun getFragmentManager(): FragmentManager? = fragmentActivity.supportFragmentManager
+    override fun getFragmentActivity(): FragmentActivity? = fragmentActivity
+
+    override fun finish() = fragmentActivity.finish()
+    override fun startActivity(intent: Intent) = fragmentActivity.startActivity(intent)
+    override fun startActivityForResult(intent: Intent, requestCode: Int) = fragmentActivity.startActivityForResult(intent, requestCode)
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = fragmentActivity.startActivityForResult(intent, requestCode, options)
+}
+
+open class ActivityProxyImpl3(private val fragment: Fragment) : ActivityProxy() {
+    override fun getFragment(): Fragment? = fragment
+    override fun getActivity(): Activity? = fragment.activity
+    override fun getFragmentManager(): FragmentManager? = fragment.activity?.supportFragmentManager
+    override fun getFragmentActivity(): FragmentActivity? = fragment.activity
+
+    override fun finish() = fragment.activity?.finish() ?: Unit
+    override fun startActivity(intent: Intent) = fragment.startActivity(intent)
+    override fun startActivityForResult(intent: Intent, requestCode: Int) = fragment.startActivityForResult(intent, requestCode)
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) = fragment.startActivityForResult(intent, requestCode, options)
 }
 
 interface ActivityLifeCycleInter {
@@ -63,8 +111,8 @@ interface ActivityLifeCycleInter {
         const val STATE_RESUME = 3
         const val STATE_PAUSE = 4
         const val STATE_STOP = 5
-        const val STATE_RESTART = 6
-        const val STATE_DESTROY = 7
+        const val STATE_DESTROY = 6
+        const val STATE_RESTART = 7
         const val STATE_SAVE_INSTANCE_STATE = 8
         const val STATE_RESTORE_INSTANCE_STATE = 9
     }
@@ -111,130 +159,4 @@ interface FragmentLifeCycleInter {
     fun onDetach()
 
     fun onSaveInstanceState(bundle: Bundle)
-}
-
-open class BlockActivity : AppCompatActivity() {
-    protected val blockManagers = mutableListOf<BlockManager>()
-
-    open fun getBlockManagerList(): List<BlockManager>? = null
-
-    override fun onCreate(bundle: Bundle?) {
-        super.onCreate(bundle)
-        getBlockManagerList()?.let { blockManagers.addAll(it) }
-        blockManagers.forEachIndexed { index, it ->
-            it.initInActivity(this)
-            it.build(null, index)
-            it.onCreate(bundle)
-        }
-    }
-
-    override fun onRestart() {
-        super.onRestart()
-        blockManagers.forEach { it.onRestart() }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        blockManagers.forEach { it.onStart() }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        blockManagers.forEach { it.onResume() }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        blockManagers.forEach { it.onPause() }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        blockManagers.forEach { it.onStop() }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        blockManagers.forEach { it.onDestroy() }
-    }
-
-    override fun onSaveInstanceState(bundle: Bundle) {
-        super.onSaveInstanceState(bundle)
-        blockManagers.forEach { it.onSaveInstanceState(bundle) }
-    }
-
-    override fun onRestoreInstanceState(bundle: Bundle) = blockManagers.forEach { it.onRestoreInstanceState(bundle) }
-}
-
-open class BlockFragment : Fragment() {
-    protected val blockManagers = mutableListOf<BlockManager>()
-
-    open fun getBlockManagerList(): List<BlockManager>? = null
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        getBlockManagerList()?.let { blockManagers.addAll(it) }
-        blockManagers.forEach {
-            it.initInFragment(this)
-            it.build(null)
-            it.onAttach(context)
-        }
-    }
-
-    override fun onCreate(bundle: Bundle?) {
-        super.onCreate(bundle)
-        blockManagers.forEach { it.onCreate(bundle) }
-    }
-
-    open fun onCreateView2(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? = null
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        blockManagers.forEach { it.onCreateView(inflater, container, savedInstanceState) }
-        return onCreateView2(inflater, container, savedInstanceState)
-    }
-
-    override fun onActivityCreated(bundle: Bundle?) {
-        super.onActivityCreated(bundle)
-        blockManagers.forEach { it.onActivityCreated(bundle) }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        blockManagers.forEach { it.onStart() }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        blockManagers.forEach { it.onResume() }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        blockManagers.forEach { it.onPause() }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        blockManagers.forEach { it.onStop() }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        blockManagers.forEach { it.onDestroyView() }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        blockManagers.forEach { it.onDestroy() }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        blockManagers.forEach { it.onDetach() }
-    }
-
-    override fun onSaveInstanceState(bundle: Bundle) {
-        super.onSaveInstanceState(bundle)
-        blockManagers.forEach { it.onSaveInstanceState(bundle) }
-    }
 }

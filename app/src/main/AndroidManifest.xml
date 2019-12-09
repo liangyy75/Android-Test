@@ -275,6 +275,8 @@
         <activity android:name="com.liang.example.jetpacktest.viewmodeltest.FirstActivity" />
         <activity android:name="com.liang.example.jetpacktest.livedatatest.FirstActivity" />
         <activity android:name="com.liang.example.blocktest.MainActivity" />
+        <activity android:name="com.liang.example.blocktest.MainActivity2" />
+        <activity android:name="com.liang.example.blocktest.MainActivity3" />
 
         <!-- Logger Configuration -->
         <meta-data

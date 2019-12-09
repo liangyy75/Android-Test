@@ -8,51 +8,66 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.LayoutRes
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 
 @Suppress("LeakingThis")
-open class BlockManager(context: Context) : BlockGroup(context), FragmentLifeCycleInter, ActivityLifeCycleInter {
+open class BlockManager(@LayoutRes layoutId: Int = 0) : BlockGroup(layoutId), FragmentLifeCycleInter, ActivityLifeCycleInter {
     companion object {
         const val KEY_FRAGMENT_STATE = "KEY_FRAGMENT_STATE"
         const val KEY_ACTIVITY_STATE = "KEY_ACTIVITY_STATE"
     }
 
     open var bundle: Bundle? = null
+    override var blockManager: BlockManager?
+        get() = this
+        set(_) {}
 
     // init
 
-    init {
-        init(WhiteBoard(), WhiteBoard(), RxHandler(), null, this)
+    constructor(context: Context, @LayoutRes layoutId: Int = 0) : this(layoutId) {
+        init(context)
     }
 
-    open fun initInActivity(activity: Activity) {
+    constructor(blockManager: BlockManager, @LayoutRes layoutId: Int = 0) : this(layoutId) {
+        init(blockManager.swb, blockManager.cwb, blockManager.rxHandler, null, this)
+        context = blockManager.context
+        inflater = blockManager.inflater
+        provider = blockManager.provider
+    }
+
+    open fun initInActivity(activity: Activity): BlockManager {
         innerActivity = activity
-        inflater = LayoutInflater.from(activity)
         putData(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.ORIGINAL)
+        return this
     }
 
-    open fun initInFragment(fragment: Fragment) {
+    open fun initInFragment(fragment: Fragment): BlockManager {
         innerActivity = fragment.activity
         innerFragment = fragment
         putData(KEY_FRAGMENT_STATE, FragmentLifeCycleInter.ORIGIN)
+        return this
     }
 
-    open fun initInBlockManager(blockManager: BlockManager) {
+    open fun initInBlockManager(blockManager: BlockManager): BlockManager {
         innerActivity = blockManager.innerActivity
         innerFragment = blockManager.innerFragment
-        context = blockManager.context
         if (blockManager.getData(KEY_FRAGMENT_STATE) != null) {
             putData(KEY_FRAGMENT_STATE, blockManager.getData(KEY_FRAGMENT_STATE))
         }
         if (blockManager.getData(KEY_ACTIVITY_STATE) != null) {
             putData(KEY_ACTIVITY_STATE, blockManager.getData(KEY_ACTIVITY_STATE))
         }
+        return this
     }
 
-    protected var index: Int = -1  // TODO
+    // inflate / build
+
+    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockManager = super.setInflatedCallback<T>(callback) as BlockManager
 
     override fun onInflateView(context: Context, inflater: LayoutInflater, parent: ViewGroup?): View? {
         view = inflater.inflate(layoutId, null, false)
@@ -60,28 +75,15 @@ open class BlockManager(context: Context) : BlockGroup(context), FragmentLifeCyc
         return view
     }
 
-    open fun build(parent: ViewGroup?, index: Int = -1) {
-        // val activityState = getData(KEY_ACTIVITY_STATE)
-        // if (activityState != null && (activityState == ActivityLifeCycleInter.ORIGINAL || activityState == ActivityLifeCycleInter.STATE_DESTROY)) {
-        //     throw RuntimeException("can't inflate before activity's onCreate or after activity's onDestroy")
-        // }
-        // val fragmentState = getData(KEY_FRAGMENT_STATE)
-        // if (fragmentState != null && (fragmentState == FragmentLifeCycleInter.ORIGIN || fragmentState == FragmentLifeCycleInter.STATE_DETACH)) {
-        //     throw RuntimeException("can't inflate before fragment's onAttach or after fragment's onDetach")
-        // }
-        this.index = index
-        inflate(this.context, this.inflater, parent ?: this.parent)
-    }
+    open fun build() = build(null)
+    override fun build(parent: ViewGroup?) = super.build(parent) as BlockManager
+    override fun build(parent: ViewGroup?, index: Int?): BlockManager = super.build(parent, index) as BlockManager
 
     // activity proxy
 
     protected var innerActivity: Activity? = null
     protected var innerFragment: Fragment? = null
-    override var ai: ActivityInter
-        get() = this
-        set(_) {
-            throw RuntimeException("cann't set ai of blockManager")
-        }
+    override var ai: ActivityInter? = this
 
     // activity / fragment 的一些功能
 
@@ -119,7 +121,12 @@ open class BlockManager(context: Context) : BlockGroup(context), FragmentLifeCyc
 
     // lifecycle
 
-    private fun putDataIfExists(key: String, value: Any?) = if (this.swb.getData(key) != null) this.swb.putData(key, value) else Unit
+    private fun putDataIfExists(key: String, value: Any?) {
+        val data = swb.getData(key)
+        if (data != null && data != value) {
+            this.swb.putData(key, value)
+        }
+    }
 
     override fun onAttach(context: Context) {
         this.context = context
@@ -210,6 +217,150 @@ open class BlockManager(context: Context) : BlockGroup(context), FragmentLifeCyc
         this.bundle = bundle
         putDataIfExists(KEY_ACTIVITY_STATE, ActivityLifeCycleInter.STATE_RESTORE_INSTANCE_STATE)
         children.filterIsInstance<ActivityLifeCycleInter>().forEach { it.onRestoreInstanceState(bundle) }
+    }
+}
+
+open class BlockActivity : AppCompatActivity() {
+    protected open val useSameRes = true
+    protected open val blockManagers = mutableListOf<BlockManager>()
+
+    protected open fun getBlockManagerList(): List<BlockManager>? = null
+
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
+        getBlockManagerList()?.let { blockManagers.addAll(it) }
+        blockManagers.forEachIndexed { index, it ->
+            if (useSameRes) {
+                if (index == 0) {
+                    it.initInActivity(this)
+                } else {
+                    it.initInBlockManager(blockManagers[0])
+                }
+            } else {
+                it.initInActivity(this)
+            }
+            it.build(null)
+            it.onCreate(bundle)
+        }
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        blockManagers.forEach { it.onRestart() }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        blockManagers.forEach { it.onStart() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        blockManagers.forEach { it.onResume() }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        blockManagers.forEach { it.onPause() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        blockManagers.forEach { it.onStop() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        blockManagers.forEach { it.onDestroy() }
+    }
+
+    override fun onSaveInstanceState(bundle: Bundle) {
+        super.onSaveInstanceState(bundle)
+        blockManagers.forEach { it.onSaveInstanceState(bundle) }
+    }
+
+    override fun onRestoreInstanceState(bundle: Bundle) = blockManagers.forEach { it.onRestoreInstanceState(bundle) }
+}
+
+open class BlockFragment : Fragment() {
+    protected open val useSameRes = true
+    protected open val blockManagers = mutableListOf<BlockManager>()
+
+    protected open fun getBlockManagerList(): List<BlockManager>? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        getBlockManagerList()?.let { blockManagers.addAll(it) }
+        blockManagers.forEachIndexed { index, it ->
+            if (useSameRes) {
+                if (index == 0) {
+                    it.initInFragment(this)
+                } else {
+                    it.initInBlockManager(blockManagers[0])
+                }
+            } else {
+                it.initInFragment(this)
+            }
+            it.build(null)
+            it.onAttach(context)
+        }
+    }
+
+    override fun onCreate(bundle: Bundle?) {
+        super.onCreate(bundle)
+        blockManagers.forEach { it.onCreate(bundle) }
+    }
+
+    open fun onCreateView2(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        blockManagers.forEach { it.onCreateView(inflater, container, savedInstanceState) }
+        return onCreateView2(inflater, container, savedInstanceState)
+    }
+
+    override fun onActivityCreated(bundle: Bundle?) {
+        super.onActivityCreated(bundle)
+        blockManagers.forEach { it.onActivityCreated(bundle) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        blockManagers.forEach { it.onStart() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        blockManagers.forEach { it.onResume() }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        blockManagers.forEach { it.onPause() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        blockManagers.forEach { it.onStop() }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        blockManagers.forEach { it.onDestroyView() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        blockManagers.forEach { it.onDestroy() }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        blockManagers.forEach { it.onDetach() }
+    }
+
+    override fun onSaveInstanceState(bundle: Bundle) {
+        super.onSaveInstanceState(bundle)
+        blockManagers.forEach { it.onSaveInstanceState(bundle) }
     }
 }
 

@@ -1,29 +1,48 @@
+@file:Suppress("MemberVisibilityCanBePrivate", "UNCHECKED_CAST")
+
 package com.example.uilib.block
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.*
 import io.reactivex.Observable
 import io.reactivex.annotations.Nullable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
+import java.lang.RuntimeException
 import java.util.concurrent.ConcurrentHashMap
 
-class WhiteBoard<Key> {
-    companion object {
-        val NULL_OBJECT = Any()
+open class WhiteBoard<T> : ViewModel() {
+    private val dataMap = ConcurrentHashMap<T, Any>()
+    private val subjectMap = ConcurrentHashMap<T, Subject<Any>>()
+
+    // liveData
+
+    fun putLiveData(key: T, value: Any?) = getLiveData(key).postValue(value)
+
+    fun removeLiveData(key: T) = dataMap.remove(key) as? StrongLiveData<Any?>
+
+    fun getLiveData(key: T): StrongLiveData<Any?> {
+        var liveData = dataMap[key]
+        if (liveData != null && liveData !is StrongLiveData<*>) {
+            throw RuntimeException("put wrong value for a data which isn't a livedata")
+        }
+        if (liveData == null) {
+            liveData = StrongLiveData<Any?>()
+        }
+        return liveData as StrongLiveData<Any?>
     }
 
-    private val dataMap = ConcurrentHashMap<Key, Any>()
-    private val subjectMap = ConcurrentHashMap<Key, Subject<Any>>()
+    // rx
 
-    fun notifyDataChanged(key: Key) = subjectMap[key]?.onNext(dataMap[key] ?: NULL_OBJECT)
+    fun notifyDataChanged(key: T) = subjectMap[key]?.onNext(dataMap[key] ?: NULL_OBJECT)
 
-    fun putData(key: Key, value: Any?) {
+    fun putData(key: T, value: Any?) {
         putDataWithoutNotify(key, value)
         notifyDataChanged(key)
     }
 
-    fun putDataWithoutNotify(key: Key, value: Any?) {
+    fun putDataWithoutNotify(key: T, value: Any?) {
         if (value == null) {
             dataMap.remove(key)
         } else {
@@ -31,16 +50,16 @@ class WhiteBoard<Key> {
         }
     }
 
-    fun removeData(key: Key) {
+    fun removeData(key: T) {
         dataMap.remove(key)
         notifyDataChanged(key)
     }
 
     @Nullable
-    fun getData(key: Key) = dataMap[key]
+    fun getData(key: T) = dataMap[key]
 
     @Suppress("UNCHECKED_CAST")
-    fun <T2 : Any?> getObservable(key: Key, threadSafe: Boolean): Observable<T2> {
+    fun <T2 : Any?> getObservable(key: T, threadSafe: Boolean): Observable<T2> {
         if (!subjectMap.containsKey(key)) {
             subjectMap[key] = PublishSubject.create<Any>()
             if (threadSafe) {
@@ -53,6 +72,35 @@ class WhiteBoard<Key> {
         } else {
             res
         } as Observable<T2>
+    }
+
+    companion object {
+        val NULL_OBJECT = Any()
+
+        fun <T> create() = WhiteBoard<T>()
+
+        fun <T> of(key: String, provider: StrongViewModelProvider): WhiteBoard<T> {
+            var result = provider.get<WhiteBoard<T>>(key)
+            if (result == null) {
+                result = WhiteBoard()
+                provider[key] = result
+            }
+            return result
+        }
+
+        inline fun <reified T> of(provider: StrongViewModelProvider): WhiteBoard<T> = of("WhiteBoard${T::class.java.canonicalName}", provider)
+
+        inline fun <reified T> of(storeOwner: ViewModelStoreOwner): WhiteBoard<T> =
+                // return ViewModelProvider(storeOwner).get("WhiteBoard${T::class.java.canonicalName}", WhiteBoard::class.java) as WhiteBoard<T>
+                of(StrongViewModelProvider(storeOwner))
+
+        inline fun <reified T> of(storeOwner: ViewModelStoreOwner, factory: ViewModelProvider.Factory): WhiteBoard<T> =
+                // ViewModelProvider(storeOwner, factory).get("WhiteBoard${T::class.java.canonicalName}", WhiteBoard::class.java) as WhiteBoard<T>
+                of(StrongViewModelProvider(storeOwner, factory))
+
+        inline fun <reified T> of(store: ViewModelStore, factory: ViewModelProvider.Factory): WhiteBoard<T> =
+                // ViewModelProvider(store, factory).get("WhiteBoard${T::class.java.canonicalName}", WhiteBoard::class.java) as WhiteBoard<T>
+                of(StrongViewModelProvider(store, factory))
     }
 }
 
@@ -69,5 +117,6 @@ fun WhiteBoard<String>.putIntent(intent: Intent?): Unit? {
     } else Unit
 }
 
+fun <T : Any> WhiteBoard<Class<*>>.putLiveData(value: T) = putLiveData(value::class.java, value)
 fun <T : Any> WhiteBoard<Class<*>>.putData(value: T) = putData(value::class.java, value)
 fun <T : Any> WhiteBoard<Class<*>>.putDataWithoutNotify(value: T) = putDataWithoutNotify(value::class.java, value)

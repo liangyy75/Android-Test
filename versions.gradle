@@ -40,6 +40,7 @@ versions.rxkotlin2 = '2.4.0'
 versions.support = '1.0.0'
 versions.timber = '4.5.1'
 versions.work = '2.1.0'
+versions.async_layout_inflater = '1.0.0'
 
 versions.auto_service = '1.0-rc6'
 versions.auto_value = '1.5.2'
@@ -152,6 +153,7 @@ deps.rxkotlin2 = new Tuple("api", "io.reactivex.rxjava2:rxkotlin:$versions.rxkot
 deps.hamcrest = new Tuple("api", "org.hamcrest:hamcrest-all:$versions.hamcrest")
 deps.android_gradle_plugin = new Tuple("api", "com.android.tools.build:gradle:$versions.android_gradle_plugin")
 deps.robolectric = new Tuple("api", "org.robolectric:robolectric:$versions.robolectric")
+deps.async_layout_inflater = new Tuple("api", "androidx.asynclayoutinflater:asynclayoutinflater:$versions.async_layout_inflater")
 
 deps.gson = new Tuple("api", "com.google.code.gson:gson:$versions.gson")
 

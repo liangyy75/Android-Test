@@ -24,7 +24,7 @@ open class RxHandler : Handler() {
         const val TYPE_TRAMPOLINE_THREAD = 5
         const val TYPE_MAIN_THREAD = 6
         const val TYPE_ASYNC_TASK_POOL = 7
-        const val TYPE_CUSTOM = 8
+        const val TYPE_CUSTOM = 8  // TODO
     }
 
     open val handlerMap: MutableMap<Int, Consumer<Message>> = ConcurrentHashMap()

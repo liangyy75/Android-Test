@@ -6,6 +6,13 @@ public class MyLiveData<T> extends LiveData<T> {
     private boolean useEquals = false;
     private MyObserverListener myObserverListener = null;
 
+    public MyLiveData() {
+    }
+
+    public MyLiveData(T value) {
+        super(value);
+    }
+
     public void setUseEquals(boolean useEquals) {
         this.useEquals = useEquals;
     }
@@ -20,13 +27,6 @@ public class MyLiveData<T> extends LiveData<T> {
 
     public MyObserverListener getMyObserverListener() {
         return myObserverListener;
-    }
-
-    public MyLiveData(T value) {
-        super(value);
-    }
-
-    public MyLiveData() {
     }
 
     @Override

@@ -1,14 +1,14 @@
 package com.liang.example.blocktest
 
 import android.annotation.SuppressLint
-import android.util.Log
 import android.view.Gravity
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.*
-import com.example.uilib.block.Block
-import com.example.uilib.block.BlockActivity
-import com.example.uilib.block.BlockGroup
-import com.example.uilib.block.BlockManager
+import com.example.uilib.block.*
+import com.example.uilib.block2.WhiteBoard
 import com.liang.example.androidtest.R
+import com.liang.example.utils.ApiManager
 import com.liang.example.utils.DensityApi
 import com.liang.example.utils.view.showToast
 
@@ -18,92 +18,112 @@ class MainActivity : BlockActivity() {
     }
 
     @SuppressLint("SetTextI18n")
-    override fun getBlockManagerList(): List<BlockManager>? = listOf(
-            BlockManager(this).apply {
-                val dp10 = DensityApi.dpToPx(this@MainActivity, 10f)
-
-                inflateBlocksAsync = true
-                layoutId = R.layout.layout_linear
-                parent = this@MainActivity.window.decorView.findViewById(android.R.id.content)
-                setInflatedCallback<LinearLayout> {
-                    Log.d(TAG, "blockManager -- linear_layout afterInflater")
-                    it.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT)
-                    it.orientation = LinearLayout.VERTICAL
-                    it.gravity = Gravity.CENTER_VERTICAL
-                    it.setPadding(dp10, dp10, dp10, dp10)
-                }
-
-                addBlock(BlockGroup(this).apply {
-                    layoutId = R.layout.layout_linear
+    override fun getBlockManagerList(): List<BlockManager>? {
+        val dp10 = DensityApi.dpToPx(this, 10f)
+        val blockManager1 =
+                BlockManager(this, R.layout.layout_linear).apply {
+                    inflateBlocksAsync = true
+                    parent = this@MainActivity.window.decorView.findViewById(android.R.id.content)
                     setInflatedCallback<LinearLayout> {
-                        Log.d(TAG, "blockGroup -- linear_layout afterInflater")
-                        it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                        ApiManager.LOGGER.d(TAG, "blockManager -- linear_layout_1 afterInflater")
+                        it.id = R.id.linear_layout_1
+                        it.orientation = LinearLayout.VERTICAL
+                        it.gravity = Gravity.CENTER_VERTICAL
+                        it.setPadding(dp10, dp10, dp10, dp10)
                     }
 
-                    addBlock(Block().apply {
-                        layoutId = R.layout.view_button
-                        setInflatedCallback<Button> {
-                            Log.d(TAG, "block -- button afterInflater")
-                            it.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                            it.text = "button1"
-                            it.setOnClickListener { showToast("button1 clicked") }
-                        }
-                    })
+                    addBlock(BlockGroup(this, R.layout.layout_linear).setInflatedCallback<LinearLayout> {
+                        ApiManager.LOGGER.d(TAG, "blockGroup -- linear_layout_2 afterInflater")
+                        it.id = R.id.linear_layout_2
+                        it.layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                    }.addBlock(Block(R.layout.view_button).setInflatedCallback<Button> {
+                        ApiManager.LOGGER.d(TAG, "block -- button_1 afterInflater")
+                        it.id = R.id.button_1
+                        it.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+                        it.text = "button1"
+                        it.setOnClickListener { showToast("button1 clicked") }
+                    }).addBlock(Block(R.layout.view_button).setInflatedCallback<Button> {
+                        ApiManager.LOGGER.d(TAG, "block -- button_2 afterInflater")
+                        it.id = R.id.button_2
+                        it.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+                        it.text = "button2"
+                        it.setOnClickListener { showToast("button2 clicked") }
+                    }))
 
-                    addBlock(Block().apply {
-                        layoutId = R.layout.view_button
-                        setInflatedCallback<Button> {
-                            Log.d(TAG, "block -- button afterInflater")
-                            it.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                            it.text = "button2"
-                            it.setOnClickListener { showToast("button2 clicked") }
-                        }
-                    })
-                })
-
-                addBlock(Block().apply {
-                    layoutId = R.layout.view_text
-                    setInflatedCallback<TextView> {
-                        Log.d(TAG, "block -- text_view afterInflater")
-                        it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    addBlock(Block(R.layout.view_text).setInflatedCallback<TextView> {
+                        ApiManager.LOGGER.d(TAG, "block -- text_view_1 afterInflater")
+                        it.id = R.id.text_view_1
+                        it.layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
                         it.text = "Just a test"
                         it.textSize = 16f
                         it.gravity = Gravity.CENTER_HORIZONTAL
                         it.setPadding(0, 0, 0, dp10)
                         it.setTextColor(resources.getColor(android.R.color.holo_orange_light))
-                    }
-                })
 
-                addBlockLater(BlockGroup(this).apply {
-                    layoutId = R.layout.layout_relative
-                    setInflatedCallback<RelativeLayout> {
-                        Log.d(TAG, "blockGroup -- relative_layout afterInflater")
-                        it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                    }
-
-                    addBlock(Block().apply {
-                        layoutId = R.layout.view_text
-                        setInflatedCallback<TextView> {
-                            it.text = "连接wifi时自动下载更新"
-                            it.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT).apply {
-                                addRule(RelativeLayout.ALIGN_PARENT_LEFT)
-                                addRule(RelativeLayout.CENTER_VERTICAL)
-                            }
-                        }
+                        register(getObservable(BlockManager.KEY_ACTIVITY_STATE).subscribe { state -> ApiManager.LOGGER.d(TAG, "activity state: $state") })
+                        register(getObservable(BlockManager.KEY_FRAGMENT_STATE).subscribe { state -> ApiManager.LOGGER.d(TAG, "activity state: $state") })
                     })
 
-                    addBlock(Block().apply {
-                        layoutId = R.layout.view_switch
-                        setInflatedCallback<Switch> {
-                            it.layoutParams = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT).apply {
-                                addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
-                                addRule(RelativeLayout.CENTER_VERTICAL)
-                            }
+                    addBlockLater(BlockGroup(this, R.layout.layout_relative).setInflatedCallback<RelativeLayout> {
+                        ApiManager.LOGGER.d(TAG, "blockGroup -- relative_layout_1 afterInflater")
+                        it.id = R.id.relative_layout_1
+                        it.layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                    }.addBlock(Block(R.layout.view_text).setInflatedCallback<TextView> {
+                        ApiManager.LOGGER.d(TAG, "block -- text_view_2 afterInflater")
+                        it.id = R.id.text_view_2
+                        it.text = "连接wifi时自动下载更新"
+                        it.layoutParams = RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                            addRule(RelativeLayout.ALIGN_PARENT_LEFT)
+                            addRule(RelativeLayout.CENTER_VERTICAL)
                         }
+                    }).addBlock(Block(R.layout.view_switch).setInflatedCallback<Switch> {
+                        ApiManager.LOGGER.d(TAG, "block -- switch_1 afterInflater")
+                        it.id = R.id.switch_1
+                        it.layoutParams = RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                            addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
+                            addRule(RelativeLayout.CENTER_VERTICAL)
+                        }
+                    }))
+
+                    addBlock(Block(R.layout.layout_frame).setInflatedCallback<FrameLayout> {
+                        ApiManager.LOGGER.d(TAG, "block -- frame_layout_1 afterInflater")
+                        it.id = R.id.frame_layout_1
+                        it.layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                        putData("frame_layout_1_inflated", true)
                     })
-                })
-            }
-            // , BlockManager(this).apply {
-            // }
-    )
+                }
+        val blockManager2 =
+                BlockManager(blockManager1, R.layout.layout_linear).apply {
+                    inflateBlocksAsync = true
+                    setInflatedCallback<LinearLayout> {
+                        ApiManager.LOGGER.d(TAG, "blockManager -- linear_layout_3 afterInflater")
+                        it.id = R.id.linear_layout_3
+                        it.layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                        val task = Runnable { findViewById<FrameLayout>(R.id.frame_layout_1).addView(it) }
+                        if (getData("frame_layout_1_inflated") as? Boolean == true) {
+                            post(task, type = RxHandler.TYPE_MAIN_THREAD)
+                        } else {
+                            register(getObservable("frame_layout_1_inflated").subscribe { inflated ->
+                                if (inflated != WhiteBoard.NULL_OBJECT && inflated as Boolean) {
+                                    post(task, type = RxHandler.TYPE_MAIN_THREAD)
+                                }
+                            })
+                        }
+                    }
+
+                    addBlock(Block(R.layout.view_text).setInflatedCallback<TextView> {
+                        ApiManager.LOGGER.d(TAG, "block -- text_view_3 afterInflater")
+                        it.id = R.id.text_view_3
+                        it.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+                        it.text = "更多设置"
+                    })
+
+                    addBlock(Block(R.layout.view_image).setInflatedCallback<ImageView> {
+                        ApiManager.LOGGER.d(TAG, "block -- image_view_1 afterInflater")
+                        it.id = R.id.image_view_1
+                        it.setBackgroundResource(R.drawable.more_right)
+                    })
+                }
+        return listOf(blockManager1, blockManager2)
+    }
 }

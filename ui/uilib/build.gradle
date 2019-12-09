@@ -44,4 +44,7 @@ dependencies {
     add(deps.rxjava2[0], deps.rxjava2[1])
     add(deps.rx_android[0], deps.rx_android[1])
     add(deps.rxkotlin2[0], deps.rxkotlin2[1])
+    add(deps.async_layout_inflater[0], deps.async_layout_inflater[1])
+
+    deps.lifecycle.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
 }

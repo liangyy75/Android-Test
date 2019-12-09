@@ -1,4 +1,4 @@
-@file: Suppress("UNCHECKED_CAST")
+@file: Suppress("UNCHECKED_CAST", "LeakingThis")
 
 package com.example.uilib.block
 
@@ -10,30 +10,54 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.CallSuper
 import androidx.annotation.LayoutRes
+import androidx.lifecycle.ViewModelStoreOwner
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import java.util.concurrent.atomic.AtomicBoolean
 
-// TODO: CallSuper
-open class Block : ActivityProxy() {
+@Suppress("MemberVisibilityCanBePrivate")
+open class Block() : ActivityProxy() {
     companion object {
         const val KEY_INFLATED = "key_inflated"
     }
 
-    open lateinit var swb: WhiteBoard<String>
-    open lateinit var cwb: WhiteBoard<Class<*>>
-    open lateinit var rxHandler: RxHandler
+    protected open var provider: StrongViewModelProvider? = null
+    protected open lateinit var swb: WhiteBoard<String>
+    protected open lateinit var cwb: WhiteBoard<Class<*>>
+    protected open lateinit var rxHandler: RxHandler
 
-    open var blockGroup: BlockGroup? = null
-    open var blockManager: BlockManager? = null
-    override var ai: ActivityInter
-        get() = blockManager!!
-        set(_) {}
+    protected open var blockGroup: BlockGroup? = null
+    protected open var blockManager: BlockManager? = null
 
     // init
 
-    open fun init(swb: WhiteBoard<String>, cwb: WhiteBoard<Class<*>>, h: RxHandler, bg: BlockGroup? = null, bm: BlockManager? = null) {
+    constructor(@LayoutRes layoutId: Int) : this() {
+        this.layoutId = layoutId
+    }
+
+    constructor(context: Context, @LayoutRes layoutId: Int = 0) : this(layoutId) {
+        init(context)
+    }
+
+    // 可以使用这个而不依靠BlockManager/BlockGroup
+    open fun init(context: Context): Block {
+        this.context = context
+        this.inflater = LayoutInflater.from(this.context)
+        if (context is ViewModelStoreOwner) {
+            this.provider = StrongViewModelProvider(context)
+            this.swb = WhiteBoard.of(this.provider!!)
+            this.cwb = WhiteBoard.of(this.provider!!)
+        } else {
+            this.swb = WhiteBoard.create()
+            this.cwb = WhiteBoard.create()
+        }
+        this.rxHandler = RxHandler()
+        return this
+    }
+
+    open fun init(swb: WhiteBoard<String>, cwb: WhiteBoard<Class<*>>, h: RxHandler, bg: BlockGroup? = null, bm: BlockManager? = null): Block {
         this.swb = swb
         this.cwb = cwb
         this.rxHandler = h
@@ -41,8 +65,15 @@ open class Block : ActivityProxy() {
         if (bg != null) {
             this.parent = bg.viewGroup
         }
-        this.blockManager = blockManager
+        this.blockManager = bm
+        if (bm != null) {
+            this.provider = bm.provider
+        } else if (bg != null) {
+            this.provider = bg.provider
+        }
+        this.ai = bm
         this.swb.putData(KEY_INFLATED, false)
+        return this
     }
 
     // inflate
@@ -65,13 +96,14 @@ open class Block : ActivityProxy() {
     open fun afterInflateView() = Unit
     open fun onInflateView(context: Context, inflater: LayoutInflater, parent: ViewGroup?): View? = inflater.inflate(layoutId, null, false)
 
-    open fun <T : View> setInflatedCallback(callback: (T) -> Unit) {
+    open fun <T : View> setInflatedCallback(callback: (T) -> Unit): Block {
         afterInflateListener = Runnable { callback(view as T) }
+        return this
     }
 
-    open fun inflate(context: Context, inflater: LayoutInflater, parent: ViewGroup?) {
+    open fun inflate(context: Context, inflater: LayoutInflater, parent: ViewGroup?): Block {
         if (inflated.get()) {
-            return
+            return this
         }
         this.context = context
         this.inflater = inflater
@@ -81,10 +113,16 @@ open class Block : ActivityProxy() {
             view = onInflateView(context, inflater, parent) ?: inflater.inflate(layoutId, null, false)
             Log.d("Block", "inflate -- view: $view, viewId: $viewId, $parent, ${this.javaClass.name}")
             if (view!!.parent == null) {
-                if (!inflateViewAsync) {
-                    blockGroup?.addViewOfBlock(this)
-                } else if (blockGroup != null) {
-                    post(Runnable { blockGroup?.addViewOfBlock(this) }, type = RxHandler.TYPE_MAIN_THREAD)
+                val task = when {
+                    blockGroup != null -> Runnable { blockGroup?.addViewOfBlock(this) }
+                    parent != null && index == -1 -> Runnable { parent.addView(view) }
+                    parent != null && index != -1 -> Runnable { parent.addView(view, index) }  // TODO: 真正安全
+                    else -> Runnable { }
+                }
+                if (inflateViewAsync) {
+                    post(task, type = RxHandler.TYPE_MAIN_THREAD)
+                } else {
+                    task.run()
                 }
             }
             inflated.compareAndSet(false, true)
@@ -97,11 +135,19 @@ open class Block : ActivityProxy() {
         } else {
             inflateTask.run()
         }
+        return this
+    }
+
+    protected var index = -1
+    open fun build(parent: ViewGroup? = null, index: Int? = null): Block {
+        this.index = index ?: -1
+        inflate(this.context, this.inflater, parent ?: this.parent)
+        return this
     }
 
     // recycle
 
-    open fun recycle() {
+    open fun recycle() {  // TODO: 验证
         this.rxHandler.release(this)
         if (this.view != null && this.view!!.parent != null) {
             (this.view!!.parent as ViewGroup).removeView(this.view)
@@ -135,6 +181,15 @@ open class Block : ActivityProxy() {
     open fun putData(value: Any) = cwb.putData(value)
     open fun putDataWithoutNotify(value: Any) = cwb.putDataWithoutNotify(value)
 
+    open fun putLiveData(key: String, value: Any?) = swb.putLiveData(key, value)
+    open fun removeLiveData(key: String) = swb.removeLiveData(key)
+    open fun getLiveData(key: String) = swb.getLiveData(key)
+
+    open fun putLiveData(value: Any) = cwb.putLiveData(value)
+    open fun putLiveData(key: Class<*>, value: Any?) = cwb.putLiveData(key, value)
+    open fun removeLiveData(key: Class<*>) = cwb.removeLiveData(key)
+    open fun getLiveData(key: Class<*>) = cwb.getLiveData(key)
+
     // handler / disposable
 
     open fun dealConsumer(what: Int, consumer: Consumer<Message>? = null) = this.rxHandler.dealConsumer(what, consumer)
@@ -156,19 +211,23 @@ open class FragmentBlock : Block(), FragmentLifeCycleInter {
 
     // lifecycle
 
+    @CallSuper
     override fun onAttach(context: Context) {
         this.context = context
     }
 
+    @CallSuper
     override fun onCreate(bundle: Bundle?) {
         this.bundle = bundle
     }
 
+    @CallSuper
     override fun onCreateView(inflater: LayoutInflater, parent: ViewGroup?, bundle: Bundle?): View? {
         this.bundle = bundle
         return this.view
     }
 
+    @CallSuper
     override fun onActivityCreated(bundle: Bundle?) {
         this.bundle = bundle
     }
@@ -178,7 +237,10 @@ open class FragmentBlock : Block(), FragmentLifeCycleInter {
     override fun onPause() = Unit
     override fun onStop() = Unit
     override fun onDestroyView() = Unit
+
+    @CallSuper
     override fun onDestroy() = this.rxHandler.release(this)
+
     override fun onDetach() = Unit
 
     override fun onSaveInstanceState(bundle: Bundle) = Unit
@@ -187,6 +249,7 @@ open class FragmentBlock : Block(), FragmentLifeCycleInter {
 open class ActivityBlock : Block(), ActivityLifeCycleInter {
     open var bundle: Bundle? = null
 
+    @CallSuper
     override fun onCreate(bundle: Bundle?) {
         this.bundle = bundle
     }
@@ -196,9 +259,13 @@ open class ActivityBlock : Block(), ActivityLifeCycleInter {
     override fun onResume() = Unit
     override fun onPause() = Unit
     override fun onStop() = Unit
+
+    @CallSuper
     override fun onDestroy() = this.rxHandler.release(this)
 
     override fun onSaveInstanceState(bundle: Bundle) = Unit
+
+    @CallSuper
     override fun onRestoreInstanceState(bundle: Bundle) {
         this.bundle = bundle
     }

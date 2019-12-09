@@ -12,6 +12,8 @@ import com.liang.example.utils.ApiManager;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import javax.annotation.Nonnull;
+
 // TODO: test
 public class MyViewModelProvider extends ViewModelProvider {
     private static final String DEFAULT_KEY =
@@ -84,21 +86,13 @@ public class MyViewModelProvider extends ViewModelProvider {
 
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T get(String key, @NonNull Class<T> modelClass, Object... args) {
-        // ViewModel viewModel = mViewModelStore.get(key);
-        ViewModel viewModel;
-        try {
-            viewModel = (ViewModel) getMethod.invoke(mViewModelStore, key);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Impossible occurred IllegalAccessException in MyViewModelProvider about getMethod", e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException("Impossible occurred InvocationTargetException in MyViewModelProvider about getMethod", e);
-        }
+        ViewModel viewModel = get(key);
 
         if (modelClass.isInstance(viewModel)) {
             return (T) viewModel;
         } else {
-            if (viewModel != null) {
-                ApiManager.LOGGER.w("MyViewModelProvider", "viewModel == null, and it's impossible!!!");
+            if (viewModel == null) {
+                ApiManager.LOGGER.w("MyViewModelProvider", "viewModel == null, and create it now");
             }
         }
         if (mFactory instanceof DefaultMyFactory) {
@@ -111,6 +105,28 @@ public class MyViewModelProvider extends ViewModelProvider {
             viewModel = (mFactory).create(modelClass);
         }
 
+        set(key, viewModel);
+        return (T) viewModel;
+    }
+
+    public <T extends ViewModel> T get(@NonNull String key) {
+        // ViewModel viewModel = mViewModelStore.get(key);
+        try {
+            Object object = getMethod.invoke(mViewModelStore, key);
+            if (object == null) {
+                return null;
+            }
+            return (T) object;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Impossible occurred IllegalAccessException in MyViewModelProvider about getMethod", e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Impossible occurred InvocationTargetException in MyViewModelProvider about getMethod", e);
+        } catch (ClassCastException e) {
+            throw new RuntimeException("Impossible occurred ClassCastException in MyViewModelProvider about getMethod", e);
+        }
+    }
+
+    public <T extends ViewModel> void set(@Nonnull String key, @Nonnull T viewModel) {
         // mViewModelStore.put(key, viewModel);
         try {
             putMethod.invoke(mViewModelStore, key, viewModel);
@@ -119,7 +135,6 @@ public class MyViewModelProvider extends ViewModelProvider {
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Impossible occurred InvocationTargetException in MyViewModelProvider about putMethod", e);
         }
-        return (T) viewModel;
     }
 
     public abstract class MyFactory implements ViewModelProvider.Factory {
