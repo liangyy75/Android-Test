@@ -6,11 +6,11 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.*
 import com.example.uilib.block.*
-import com.example.uilib.block2.WhiteBoard
 import com.liang.example.androidtest.R
 import com.liang.example.utils.ApiManager
 import com.liang.example.utils.DensityApi
 import com.liang.example.utils.view.showToast
+
 
 class MainActivity : BlockActivity() {
     companion object {
