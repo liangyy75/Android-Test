@@ -111,8 +111,6 @@ open class BlockManager(@LayoutRes layoutId: Int = 0) : BlockGroup(layoutId), Fr
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
             innerActivity?.startActivityForResult(intent, requestCode, options) ?: Unit
 
-    // blockGroup -- add / remove / get
-
     // refresh
 
     override fun refresh() = refreshManager()
