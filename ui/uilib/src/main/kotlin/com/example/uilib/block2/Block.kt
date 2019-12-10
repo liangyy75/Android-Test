@@ -1,25 +1,108 @@
 package com.example.uilib.block2
 
+import android.app.Activity
+import android.content.Context
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.uilib.block.ActivityProxy
-import java.lang.Exception
-import java.lang.reflect.Method
-import java.util.concurrent.ConcurrentHashMap
+import androidx.lifecycle.ViewModelStoreOwner
+import java.util.concurrent.atomic.AtomicBoolean
 
-open class Block : ActivityProxy()
+open class Block() : ActivityProxy() {
+    protected open var provider: StrongViewModelProvider? = null
+    protected open var swb: WhiteBoard<String>? = null
+    protected open var cwb: WhiteBoard<Class<*>>? = null
+    protected open var rxHandler: RxHandler? = null
+
+    protected open var blockGroup: BlockGroup? = null
+    protected open var blockManager: BlockManager? = null
+
+    protected open var context: Context? = null
+    protected open var inflater: LayoutInflater? = null
+    open var layoutId: Int = 0
+    open var inflated = AtomicBoolean(false)
+    open var inflateViewAsync: Boolean = false
+    open var inflateViewDelay: Long = 0L
+    open var afterInflateListener: Runnable? = null
+
+    open var view: View? = null
+    open var parent: ViewGroup? = null
+    open var viewId: Int
+        get() = view?.id ?: View.NO_ID
+        set(value) {
+            view?.id = value
+        }
+
+    // constructor
+
+    constructor(layoutId: Int) : this() {
+        this.layoutId = layoutId
+    }
+
+    constructor(view: View) : this() {
+        this.view = view
+    }
+
+    // init
+
+    open fun initInContext(context: Context): Block {
+        if (context is ViewModelStoreOwner) {
+            this.provider = StrongViewModelProvider(context)
+            this.swb = WhiteBoard.of(this.provider!!)
+            this.cwb = WhiteBoard.of(this.provider!!)
+        } else {
+            this.swb = WhiteBoard.create()
+            this.cwb = WhiteBoard.create()
+        }
+        this.rxHandler = RxHandler()
+
+        this.context = context
+        this.inflater = LayoutInflater.from(context)
+        return this
+    }
+
+    open fun initInBlock(block: Block, sameView: Boolean = false): Block {
+        this.provider = block.provider
+        this.swb = block.swb
+        this.cwb = block.cwb
+        this.rxHandler = block.rxHandler
+
+        this.context = block.context
+        this.inflater = block.inflater
+        this.layoutId = block.layoutId
+        this.inflateViewAsync = block.inflateViewAsync
+        this.inflateViewDelay = block.inflateViewDelay
+        this.afterInflateListener = block.afterInflateListener
+
+        if (sameView) {
+            this.parent = block.parent
+            this.view = block.view
+            this.inflated.set(block.inflated.get())
+        }
+        return this
+    }
+
+    open fun initInGroup(blockGroup: BlockGroup): Block {
+        return this
+    }
+
+    open fun initInManager(blockManager: BlockManager): Block {
+        return this
+    }
+}
 
 // 1. TODO: initInContext / initInBlock / initInGroup / initInManager
 // 2. TODO: default constructor / constructor(layoutId) / constructor(view)
-// 3. TODO: recycle / load / unload
+// 3. TODO: recycle / load / unload / copy
 // 4. TODO: refresh / refreshGroup / refreshManager
+// 5. TODO: parseFromXml(inflate) / parseToXml / parseFromJson / parseToJson
 //
-// 5. TODO: inflate / beforeInflateView / onInflateView / afterInflateView --> 因为有了各种init，所以不需要依靠inflate来设置字段了
-// 6. TODO: observableData / liveData -- add / remove / get
-// 7. TODO: consumer / message / runnable / disposable
-// 8. TODO: holderByApp
+// 6. TODO: inflate / beforeInflateView / onInflateView / afterInflateView --> 因为有了各种init，所以不需要依靠inflate来设置字段了
+// 7. TODO: observableData / liveData -- add / remove / get
+// 8. TODO: consumer / message / runnable / disposable
+// 9. TODO: holderByApp
 //
-// 9. 字段
+// 10. 字段
 //    1. provider: StrongViewModelProvider?
 //    2. swb: WhiteBoard<String>
 //    3. cwb: WhiteBoard<Class<*>>
@@ -37,68 +120,5 @@ open class Block : ActivityProxy()
 //    14. inflateViewAsync: Boolean
 //    15. inflateViewDelay: Long
 //    16. afterInflateListener: Runnable?
-
-open class BlockGroup : Block()
-
-// 1. TODO: initInContext / initInBlock / initInGroup / initInManager
-// 2. TODO: default constructor / constructor(layoutId) / constructor(view)
-// 3. TODO: recycle / load / unload
-// 4. TODO: refresh / refreshGroup / refreshManager
 //
-// 5. TODO: view 的增、删、改、查
-// 6. TODO: block 的增、删、改、查
-// 7. TODO: afterInflateView
-// 8. TODO: viewBuilder / blockBuilder
-
-open class BlockManager : BlockGroup()
-// 1. TODO: initInContext / initInBlock / initInGroup / initInManager
-// 2. TODO: default constructor / constructor(layoutId) / constructor(view)
-// 3. TODO: recycle / load / unload
-// 4. TODO: refresh / refreshGroup / refreshManager
-//
-// 5. TODO: fragment / activity lifecycle
-// 6. TODO: initInActivity / initInFragment
-// 7. TODO: activity proxy
-// 8. TODO:
-
-var View.padding: Int
-    set(value) = setPadding(value, value, value, value)
-    get() = throw RuntimeException("can't get padding of view, because it's only an extension by kotlin")
-
-// 注意，反射起码要慢四倍，慎用
-// val vgLPMap: MutableMap<String, Method> = ConcurrentHashMap()
-//
-// inline fun <reified T : ViewGroup> T.lpPrepare() =
-//         vgLPMap.put(T::class.java.name, T::class.java.getDeclaredMethod("generateDefaultLayoutParams").apply { isAccessible = true })
-//
-// inline fun <reified T : ViewGroup> T.lp(w: Int, h: Int) =
-//         (vgLPMap[T::class.java.name]!!.invoke(this) as ViewGroup.LayoutParams).apply {
-//             width = w
-//             height = h
-//         }
-//
-// open class Holder<T : ViewGroup> {
-//     open lateinit var vg: T
-//     open fun build(view: View, w: Int, h: Int) {
-//         view.layoutParams = vg.lp(w, h)
-//     }
-// }
-
-// TODO:
-//  BG<LinearLayout>({
-//      param = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-//      gravity = Gravity.CENTER_HORIZONTAL
-//      padding = dp20
-//  }) {
-//      add(B<TextView> {
-//          ...
-//      })
-//      add(BG<LinearLayout> {
-//          add(B<Button>{
-//              ...
-//          })
-//          add(B<Button>{
-//              ...
-//          })
-//      })
-//  }
+//    17.

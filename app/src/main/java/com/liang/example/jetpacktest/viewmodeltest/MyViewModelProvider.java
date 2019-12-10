@@ -12,8 +12,6 @@ import com.liang.example.utils.ApiManager;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import javax.annotation.Nonnull;
-
 // TODO: test
 public class MyViewModelProvider extends ViewModelProvider {
     private static final String DEFAULT_KEY =
@@ -126,7 +124,7 @@ public class MyViewModelProvider extends ViewModelProvider {
         }
     }
 
-    public <T extends ViewModel> void set(@Nonnull String key, @Nonnull T viewModel) {
+    public <T extends ViewModel> void set(@NonNull String key, @NonNull T viewModel) {
         // mViewModelStore.put(key, viewModel);
         try {
             putMethod.invoke(mViewModelStore, key, viewModel);
