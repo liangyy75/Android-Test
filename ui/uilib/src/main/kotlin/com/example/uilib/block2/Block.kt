@@ -62,13 +62,11 @@ open class Block() : ActivityProxy() {
     }
 
     open fun initInBlock(block: Block, sameView: Boolean = false): Block {
-        this.provider = block.provider
-        this.swb = block.swb
-        this.cwb = block.cwb
-        this.rxHandler = block.rxHandler
+        initInner(block)
 
-        this.context = block.context
-        this.inflater = block.inflater
+        this.blockGroup = block.blockGroup
+        this.blockManager = block.blockManager
+
         this.layoutId = block.layoutId
         this.inflateViewAsync = block.inflateViewAsync
         this.inflateViewDelay = block.inflateViewDelay
@@ -83,7 +81,20 @@ open class Block() : ActivityProxy() {
     }
 
     open fun initInGroup(blockGroup: BlockGroup): Block {
+        initInner(blockGroup)
+
+        this.blockGroup = blockGroup
         return this
+    }
+
+    private fun initInner(block: Block) {
+        this.provider = block.provider
+        this.swb = block.swb
+        this.cwb = block.cwb
+        this.rxHandler = block.rxHandler
+
+        this.context = block.context
+        this.inflater = block.inflater
     }
 
     open fun initInManager(blockManager: BlockManager): Block {

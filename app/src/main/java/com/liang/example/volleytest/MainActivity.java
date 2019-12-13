@@ -18,16 +18,15 @@ import com.android.volley.toolbox.NetworkImageView;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
+import com.liang.example.androidtest.R;
+import com.liang.example.apttest.bind.InjectUtils;
+import com.liang.example.apttest.bind.InjectView;
+import com.liang.example.utils.ApiManager;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
-
-import com.liang.example.androidtest.R;
-import com.liang.example.apttest.bind.InjectUtils;
-import com.liang.example.apttest.bind.InjectView;
-import com.liang.example.utils.ApiManager;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "VolleyTest";

@@ -97,10 +97,10 @@ public class MainActivity extends AppCompatActivity {
     private Animator getScaleAnimator(int selfMode) {
         scaleFlag = !scaleFlag;
         float[] values = !scaleFlag ? new float[]{0f, 1f} : new float[]{1f, 0f};
-        animObj.setPivotX(0.5f);
-        animObj.setPivotY(0.5f);
+        // animObj.setPivotX(0.5f);
+        // animObj.setPivotY(0.5f);
         if (useObject) {
-            ObjectAnimator.ofPropertyValuesHolder(animObj, PropertyValuesHolder.ofFloat(View.SCALE_X, values), PropertyValuesHolder.ofFloat(View.SCALE_Y, values));
+            return ObjectAnimator.ofPropertyValuesHolder(animObj, PropertyValuesHolder.ofFloat(View.SCALE_X, values), PropertyValuesHolder.ofFloat(View.SCALE_Y, values));
         }
         ValueAnimator animator = ValueAnimator.ofFloat(values);
         // TODO: mode -- absolute / relative to self / relative to parent / ...
@@ -115,8 +115,8 @@ public class MainActivity extends AppCompatActivity {
     private Animator getRotateAnimator(int selfMode) {
         rotateFlag = !rotateFlag;
         float[] values = !rotateFlag ? new float[]{0, 180} : new float[]{180, 0};
-        animObj.setPivotX(0.5f);
-        animObj.setPivotY(0.5f);
+        // animObj.setPivotX(0.5f);
+        // animObj.setPivotY(0.5f);
         if (useObject) {
             return ObjectAnimator.ofFloat(animObj, "rotation", values);
         }
