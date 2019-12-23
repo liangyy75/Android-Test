@@ -8,17 +8,17 @@ import com.google.android.material.snackbar.Snackbar
 import com.liang.example.utils.ApiManager
 
 @JvmOverloads
-fun showToast(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_LONG) {
+fun showToast(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show()
 }
 
 @JvmOverloads
-fun showToastOrLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_LONG) {
+fun showToastOrLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show() else ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
 
 @JvmOverloads
-fun showToastWithLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_LONG) {
+fun showToastWithLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show()
     ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
@@ -26,25 +26,25 @@ fun showToastWithLog(msg: String, c: Context? = ApiManager.CONTEXT.context, dura
 // fun Activity.showToast(msg: String, duration: Int = Toast.LENGTH_LONG) = Toast.makeText(this, msg, duration).show()
 
 @JvmOverloads
-fun showSnackbar(msg: String, a: Activity, duration: Int = Snackbar.LENGTH_LONG, log: Boolean = false) {
+fun showSnackbar(msg: String, a: Activity, duration: Int = Snackbar.LENGTH_SHORT, log: Boolean = false) {
     Snackbar.make(a.window.decorView.rootView, msg, duration).show()
     if (log) ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
 
 @JvmOverloads
-fun showSnackbarWithAction(msg: String, a: Activity, text: String, listener: ((v: View) -> Unit), duration: Int = Snackbar.LENGTH_LONG, log: Boolean = false) {
+fun showSnackbarWithAction(msg: String, a: Activity, text: String, listener: ((v: View) -> Unit), duration: Int = Snackbar.LENGTH_SHORT, log: Boolean = false) {
     Snackbar.make(a.window.decorView.rootView, msg, duration).setAction(text, listener).show()
     if (log) ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
 
 @JvmOverloads
-fun showSnackbar(msg: String, v: View, duration: Int = Snackbar.LENGTH_LONG, log: Boolean = false) {
+fun showSnackbar(msg: String, v: View, duration: Int = Snackbar.LENGTH_SHORT, log: Boolean = false) {
     Snackbar.make(v, msg, duration).show()
     if (log) ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
 
 @JvmOverloads
-fun showSnackbarWithAction(msg: String, v: View, text: String, listener: ((v: View) -> Unit), duration: Int = Snackbar.LENGTH_LONG, log: Boolean = false) {
+fun showSnackbarWithAction(msg: String, v: View, text: String, listener: ((v: View) -> Unit), duration: Int = Snackbar.LENGTH_SHORT, log: Boolean = false) {
     Snackbar.make(v, msg, duration).setAction(text, listener).show()
     if (log) ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }

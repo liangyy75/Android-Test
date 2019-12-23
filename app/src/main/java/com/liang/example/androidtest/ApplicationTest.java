@@ -46,6 +46,8 @@ public class ApplicationTest extends Application {
         Log.d(TAG, "onCreate");
         ApiManager.init(this);
 
+        System.setProperty("groovy.use.classvalue", "false");
+
         textView = new TextView(this);
         textView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         textView.setGravity(Gravity.CENTER_HORIZONTAL);

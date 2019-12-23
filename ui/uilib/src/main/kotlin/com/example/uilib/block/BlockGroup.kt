@@ -44,7 +44,10 @@ open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
 
     // inflate
 
-    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockGroup = super.setInflatedCallback<T>(callback) as BlockGroup
+    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockGroup {
+        afterInflateListener = Runnable { callback(view as T) }
+        return this
+    }
 
     open var inflateBlocksAsync: Boolean = false
 
@@ -130,6 +133,9 @@ open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
             if (condition()) checkTask(Runnable { innerAddBlock(block, index) }) else this
 
     open fun addViewOfBlock(block: Block): BlockGroup = synchronized(SYNC_OBJECT) {
+        if (viewGroup == null) {
+            return this
+        }
         var lastBlock: Block? = null
         for (child in children) {
             if (block == child) {
@@ -140,10 +146,11 @@ open class BlockGroup(@LayoutRes layoutId: Int = 0) : Block(layoutId) {
             }
         }
         if (lastBlock == null) {
-            viewGroup?.addView(block.view)
+            viewGroup!!.addView(block.view)
         } else {
-            viewGroup?.addView(block.view, viewGroup!!.indexOfChild(lastBlock.view) + 1)
+            viewGroup!!.addView(block.view, viewGroup!!.indexOfChild(lastBlock.view) + 1)
         }
+        block.parent = viewGroup!!
         return this
     }
 

@@ -67,7 +67,12 @@ open class BlockManager(@LayoutRes layoutId: Int = 0) : BlockGroup(layoutId), Fr
 
     // inflate / build
 
-    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockManager = super.setInflatedCallback<T>(callback) as BlockManager
+    override fun <T : View> setInflatedCallback(callback: (T) -> Unit): BlockManager {
+        afterInflateListener = Runnable { callback(view as T) }
+        return this
+    }
+
+    fun <T : View> setInflatedCallback2(callback: (T) -> Unit): BlockManager = setInflatedCallback<T>(callback)  // for java usage ???
 
     override fun onInflateView(context: Context, inflater: LayoutInflater, parent: ViewGroup?): View? {
         view = inflater.inflate(layoutId, null, false)

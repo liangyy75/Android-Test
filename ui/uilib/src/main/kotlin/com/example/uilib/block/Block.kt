@@ -132,10 +132,10 @@ open class Block() : ActivityProxy() {
             beforeInflateView()
             view = onInflateView(context, inflater, parent)
                     ?: inflater.inflate(layoutId, null, false)
-            Log.d("Block", "inflate -- view: $view, viewId: $viewId, $parent, ${this.javaClass.name}")
+            Log.d("Block", "inflate -- view: ${view!!.javaClass.name}, viewId: $viewId, ${parent?.javaClass?.name}, ${this.javaClass.name}")
             if (view!!.parent == null) {
                 val task = when {
-                    blockGroup != null -> Runnable { blockGroup?.addViewOfBlock(this) }
+                    blockGroup != null -> Runnable { blockGroup!!.addViewOfBlock(this) }
                     parent != null && index == -1 -> Runnable { parent.addView(view) }
                     parent != null && index != -1 -> Runnable { parent.addView(view, index) }  // TODO: 真正安全
                     else -> Runnable { }

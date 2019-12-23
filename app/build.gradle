@@ -2,6 +2,8 @@
 // apply plugin: MyGroovyPlugin
 
 apply plugin: 'com.android.application'
+apply plugin: 'groovyx.android'
+apply plugin: 'org.anarres.jarjar'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.greenrobot.greendao' // apply plugin
@@ -63,6 +65,27 @@ android {
     }
     packagingOptions {
         exclude 'META-INF/INDEX.LIST'
+    }
+}
+
+androidGroovy {
+    skipJavaC = true
+    sourceSets {
+        main {
+            groovy {
+                srcDirs += 'src/main/java'
+                srcDirs += 'src/main/kotlin'
+            }
+        }
+    }
+    options {
+        configure(groovyOptions) {
+            encoding = 'UTF-8'
+            forkOptions.jvmArgs = ['-noverify'] // maybe necessary if you use Google Play Services
+            javaAnnotationProcessing = true
+        }
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
     }
 }
 
@@ -128,6 +151,11 @@ dependencies {
 
     annotationProcessor "com.ryanharter.auto.value:auto-value-parcel:${versions.auto_value_parcel}"
     api "com.ryanharter.auto.value:auto-value-parcel-adapter:${versions.auto_value_parcel}"
+
+    api jarjar.repackage {
+        from("org.codehaus.groovy:groovy:2.4.16:grooid")
+        classDelete('org.codehaus.groovy.vmplugin.v7.IndyInterface')
+    }
 }
 
 greeting {
