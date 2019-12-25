@@ -58,3 +58,18 @@ class MainActivity extends BlockActivity {
         })]
     }
 }
+
+// https://stackoverflow.com/questions/9663817/how-to-create-a-layoutinflater-given-xmlpullparser-as-input
+// // byte[] data = ...
+// // bytes of compiled xml (unzip the apk, get the bytes from res/layout*/*.xml)
+//
+// // XmlBlock block = new XmlBlock(data);
+// Class<?> clazz = Class.forName("android.content.res.XmlBlock");
+// Constructor<?> constructor = clazz.getDeclaredConstructor(byte[].class);
+// constructor.setAccessible(true);
+// Object block = constructor.newInstance(data);
+//
+// // XmlPullParser parser = block.newParser();
+// Method method = clazz.getDeclaredMethod("newParser");
+// method.setAccessible(true);
+// XmlPullParser parser = method.invoke(block);

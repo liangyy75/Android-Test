@@ -72,18 +72,25 @@ namespace json11 {
                 out += "\\r";
             } else if (ch == '\t') {
                 out += "\\t";
-            } else if (static_cast<uint8_t>(ch) <= 0x1f) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+            } else if (static_cast<uint8_t>(ch) <=
+                       0x1f) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
                 char buf[8]; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
                 snprintf(buf, sizeof buf, "\\u%04x", ch);
                 out += buf;
-            } else if (static_cast<uint8_t>(ch) == 0xe2 && // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-                       static_cast<uint8_t>(value[i + 1]) == 0x80 // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-                       && static_cast<uint8_t>(value[i + 2]) == 0xa8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+            } else if (static_cast<uint8_t>(ch) == 0xe2 &&
+                       // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+                       static_cast<uint8_t>(value[i + 1]) ==
+                       0x80 // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+                       && static_cast<uint8_t>(value[i + 2]) ==
+                          0xa8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
                 out += "\\u2028";
                 i += 2;
-            } else if (static_cast<uint8_t>(ch) == 0xe2 && // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-                       static_cast<uint8_t>(value[i + 1]) == 0x80 // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-                       && static_cast<uint8_t>(value[i + 2]) == 0xa9) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+            } else if (static_cast<uint8_t>(ch) == 0xe2 &&
+                       // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+                       static_cast<uint8_t>(value[i + 1]) ==
+                       0x80 // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+                       && static_cast<uint8_t>(value[i + 2]) ==
+                          0xa9) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
                 out += "\\u2029";
                 i += 2;
             } else {
@@ -178,8 +185,12 @@ namespace json11 {
     class JsonDouble final : public Value<Json::NUMBER, double> {
         double number_value() const override { return m_value; }  //
         int int_value() const override { return static_cast<int>(m_value); }  //
-        bool equals(const JsonValue *other) const override { return m_value == other->number_value(); }  //
-        bool less(const JsonValue *other) const override { return m_value < other->number_value(); }  //
+        bool equals(const JsonValue *other) const override {
+            return m_value == other->number_value();
+        }  //
+        bool less(const JsonValue *other) const override {
+            return m_value < other->number_value();
+        }  //
     public:
         explicit JsonDouble(double value) : Value(value) {}
     };
@@ -187,8 +198,12 @@ namespace json11 {
     class JsonInt final : public Value<Json::NUMBER, int> {
         double number_value() const override { return m_value; }  //
         int int_value() const override { return m_value; }  //
-        bool equals(const JsonValue *other) const override { return m_value == other->number_value(); }  //
-        bool less(const JsonValue *other) const override { return m_value < other->number_value(); }  //
+        bool equals(const JsonValue *other) const override {
+            return m_value == other->number_value();
+        }  //
+        bool less(const JsonValue *other) const override {
+            return m_value < other->number_value();
+        }  //
     public:
         explicit JsonInt(int value) : Value(value) {}
     };
@@ -231,8 +246,10 @@ namespace json11 {
 
     struct Statics {
         const std::shared_ptr<JsonValue> null = make_shared<JsonNull>(); // NOLINT(misc-non-private-member-variables-in-classes)
-        const std::shared_ptr<JsonValue> t = make_shared<JsonBoolean>(true); // NOLINT(misc-non-private-member-variables-in-classes)
-        const std::shared_ptr<JsonValue> f = make_shared<JsonBoolean>(false); // NOLINT(misc-non-private-member-variables-in-classes)
+        const std::shared_ptr<JsonValue> t = make_shared<JsonBoolean>(
+                true); // NOLINT(misc-non-private-member-variables-in-classes)
+        const std::shared_ptr<JsonValue> f = make_shared<JsonBoolean>(
+                false); // NOLINT(misc-non-private-member-variables-in-classes)
         const string empty_string; // NOLINT(misc-non-private-member-variables-in-classes)
         const vector<Json> empty_vector; // NOLINT(misc-non-private-member-variables-in-classes)
         const map<string, Json> empty_map; // NOLINT(misc-non-private-member-variables-in-classes)
@@ -299,12 +316,16 @@ namespace json11 {
     /* Comparison */
 
     bool Json::operator==(const Json &other) const {
-        return m_ptr == other.m_ptr ? true : m_ptr->type() != other.m_ptr->type() ? false : m_ptr->equals(other.m_ptr.get());
+        return m_ptr == other.m_ptr ? true : m_ptr->type() != other.m_ptr->type() ? false
+                                                                                  : m_ptr->equals(
+                        other.m_ptr.get());
     }
 
     bool Json::operator<(const Json &other) const {
-        return m_ptr == other.m_ptr ? false : m_ptr->type() != other.m_ptr->type() ? m_ptr->type() < other.m_ptr->type() : m_ptr->less(
-                other.m_ptr.get());
+        return m_ptr == other.m_ptr ? false : m_ptr->type() != other.m_ptr->type() ? m_ptr->type() <
+                                                                                     other.m_ptr->type()
+                                                                                   : m_ptr->less(
+                        other.m_ptr.get());
     }
 
     /* Parsing */
@@ -315,7 +336,8 @@ namespace json11 {
      */
     static inline string esc(char c) {
         char buf[12]; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
-        if (static_cast<uint8_t>(c) >= 0x20 && static_cast<uint8_t>(c) <= 0x7f) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+        if (static_cast<uint8_t>(c) >= 0x20 &&
+            static_cast<uint8_t>(c) <= 0x7f) { // NOLINT(cppcoreguidelines-avoid-magic-numbers)
             snprintf(buf, sizeof buf, "'%c' (%d)", c, c);
         } else {
             snprintf(buf, sizeof buf, "(%d)", c);
@@ -381,7 +403,8 @@ namespace json11 {
                         while (!(str[i] == '*' && str[i + 1] == '/')) {
                             i++;
                             if (i > str.size() - 2)
-                                return fail("unexpected end of input inside multi-line comment", false);
+                                return fail("unexpected end of input inside multi-line comment",
+                                            false);
                         }
                         i += 2;
                         comment_found = true;
@@ -482,7 +505,8 @@ namespace json11 {
                             && in_range(codepoint, 0xDC00, 0xDFFF)) {
                             // Reassemble the two surrogate pairs into one astral-plane character, per
                             // the UTF-16 algorithm.
-                            encode_utf8((((last_escaped_codepoint - 0xD800) << 10) | (codepoint - 0xDC00)) + 0x10000, out);
+                            encode_utf8((((last_escaped_codepoint - 0xD800) << 10) |
+                                         (codepoint - 0xDC00)) + 0x10000, out);
                             last_escaped_codepoint = -1;
                         } else {
                             encode_utf8(last_escaped_codepoint, out);
@@ -562,7 +586,8 @@ namespace json11 {
                     i += expected.length();
                     return res;
                 } else {
-                    return fail("parse error: expected " + expected + ", got " + str.substr(i, expected.length()));
+                    return fail("parse error: expected " + expected + ", got " +
+                                str.substr(i, expected.length()));
                 }
             }
 
@@ -650,7 +675,9 @@ namespace json11 {
     }
 
     // Documented in Json.hpp
-    vector<Json> Json::parse_multi(const string &in, std::string::size_type &parser_stop_pos, string &err, JsonParse strategy) {
+    vector<Json>
+    Json::parse_multi(const string &in, std::string::size_type &parser_stop_pos, string &err,
+                      JsonParse strategy) {
         JsonParser parser{in, 0, err, false, strategy};
         parser_stop_pos = 0;
         vector<Json> json_vec;
