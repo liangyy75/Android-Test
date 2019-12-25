@@ -1,4 +1,9 @@
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+
 package com.liang.example.utils.json
+
+import java.math.BigDecimal
+import java.math.BigInteger
 
 enum class JsonStyle {
     STANDARD,
@@ -23,8 +28,10 @@ enum class JsonNumberType {
     SHORT,
     INT,
     LONG,
+    BIG_INTEGER,
     FLOAT,
     DOUBLE,
+    BIG_DECIMAL,
     CHAR,
     UNKNOWN,
 }
@@ -56,11 +63,32 @@ interface SimpleJsonValue<T : Any> {
             JsonType.OBJECT -> "{}"
             else -> "null"
         }
+
+        fun defaultNumber(type: JsonNumberType): Number = when (type) {
+            JsonNumberType.BYTE -> BYTE_ZERO
+            JsonNumberType.SHORT -> SHORT_ZERO
+            JsonNumberType.INT -> INT_ZERO
+            JsonNumberType.LONG -> LONG_ZERO
+            JsonNumberType.FLOAT -> FLOAT_ZERO
+            JsonNumberType.DOUBLE -> DOUBLE_ZERO
+            JsonNumberType.BIG_INTEGER -> BIG_INTEGER_ZERO
+            JsonNumberType.BIG_DECIMAL -> BIG_DECIMAL_ZERO
+            else -> 0
+        }
+
+        const val BYTE_ZERO: Byte = 0
+        const val SHORT_ZERO: Short = 0
+        const val INT_ZERO: Int = 0
+        const val LONG_ZERO: Long = 0L
+        const val FLOAT_ZERO: Float = 0f
+        const val DOUBLE_ZERO: Double = 0.0
+        val BIG_DECIMAL_ZERO: BigDecimal = BigDecimal.ZERO
+        val BIG_INTEGER_ZERO: BigInteger = BigInteger.ZERO
     }
 }
 
 abstract class SimpleJsonValueAdapter<T : Any>(
-        protected var mValue: T?,  // 真实value
+        var mValue: T?,  // 真实value
         protected var mDefaultValue: T?,  // 返回value的时候需要用到
         protected val mType: JsonType,
         var mNullValue: String = SimpleJsonValue.nullString(mType) // json化的时候需要用到
@@ -159,7 +187,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
         } else {
             val prefix1 = "    ".repeat(mLevel - 1)
             val prefix2 = "$prefix1	   "
-            """[\n${tempValue.map { "$prefix2${it.value()}" }.joinToString(",\n")}\n$prefix1]"""
+            """[\n${tempValue.joinToString(",\n") { "$prefix2${it.value()}" }}\n$prefix1]"""
         }
     }
 
@@ -183,6 +211,10 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
 
 open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : SimpleJsonValueAdapter<Number>(n, defaultValue, JsonType.NUMBER) {
     protected var mNumberType: JsonNumberType = JsonNumberType.UNKNOWN
+        set(value) {
+            field = value
+            mDefaultValue = SimpleJsonValue.defaultNumber(field)
+        }
 
     constructor(b: Byte) : this(b as Number) {
         mNumberType = JsonNumberType.BYTE
@@ -200,13 +232,22 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
         mNumberType = JsonNumberType.LONG
     }
 
-    constructor(f: Float) : this(f as Number, defaultValue = 0f) {
+    constructor(bi: BigInteger) : this(bi as Number) {
+        mNumberType = JsonNumberType.BIG_INTEGER
+    }
+
+    constructor(f: Float) : this(f as Number) {
         mNumberType = JsonNumberType.FLOAT
         mNullValue = "0.0"
     }
 
-    constructor(d: Double) : this(d as Number, defaultValue = 0) {
+    constructor(d: Double) : this(d as Number) {
         mNumberType = JsonNumberType.DOUBLE
+        mNullValue = "0.0"
+    }
+
+    constructor(bd: BigDecimal) : this(bd as Number) {
+        mNumberType = JsonNumberType.BIG_DECIMAL
         mNullValue = "0.0"
     }
 
@@ -217,7 +258,16 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
 
     override fun value(): Number? = when {
         mNumberType == JsonNumberType.CHAR -> throw RuntimeException("This is char number, can't be transformed to normal number!")
-        mNumberType != JsonNumberType.UNKNOWN -> mValue ?: mDefaultValue ?: 0
+        mValue == null -> mDefaultValue ?: 0
+        mNumberType == JsonNumberType.UNKNOWN -> mValue!!
+        mNumberType == JsonNumberType.BYTE -> mValue!!.toByte()
+        mNumberType == JsonNumberType.SHORT -> mValue!!.toShort()
+        mNumberType == JsonNumberType.INT -> mValue!!.toInt()
+        mNumberType == JsonNumberType.LONG -> mValue!!.toLong()
+        mNumberType == JsonNumberType.BIG_INTEGER -> mValue!! as BigInteger
+        mNumberType == JsonNumberType.FLOAT -> mValue!!.toFloat()
+        mNumberType == JsonNumberType.DOUBLE -> mValue!!.toDouble()
+        mNumberType == JsonNumberType.BIG_DECIMAL -> mValue!! as BigDecimal
         else -> mDefaultValue ?: 0
     }
 
@@ -251,47 +301,142 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         protected var index: Int = 0
         protected var failReason: String? = null
 
-        fun run(): SimpleJsonValue<*> = parseJson(0)
+        fun run(): SimpleJsonValue<*> {
+            val result = parseJson(0)
+            if (index != length) {
+                consumeGarbage()
+                if (index != length) {
+                    val reason = "invalid format, can't parse end"
+                    return makeFail<SimpleJsonValue<*>>(reason, SimpleJsonString(reason)) as SimpleJsonValue<*>
+                }
+            }
+            return result
+        }
 
-        protected fun parseNumber(): SimpleJsonNumber {
+        protected fun parseNumber(): SimpleJsonNumber? {
+            val start = index
+            // symbol part
+            if (jsonStr[index] == '-') {
+                index++
+                if (index >= length) {
+                    return makeFail<SimpleJsonNumber>("invalid number's present", null)
+                }
+            }
+            // integer part
+            if (jsonStr[index] == '0') {
+                index++
+                if (index == length) {
+                    return makeFail<SimpleJsonNumber>("invalid number's present", null)
+                }
+                if (jsonStr[index] in nonZeroDigitCharRange) {
+                    return makeFail<SimpleJsonNumber>("leading 0s not permitted in numbers", null)
+                }
+            } else if (jsonStr[index] in allDigitCharRange) {
+                index++
+                while (index < length && jsonStr[index] in allDigitCharRange) {
+                    index++
+                }
+                if (index == length) {
+                    return makeIntegerResult(jsonStr.substring(start))
+                }
+            } else {
+                return makeFail<SimpleJsonNumber>("invalid ${jsonStr[index]} in number", null)
+            }
+            // dot part
+            var ch = jsonStr[index]
+            if (ch != '.' && ch != 'e' && ch != 'E') {
+                return makeIntegerResult(jsonStr.substring(start, index))
+            }
+            // decimal part
+            if (ch == '.') {
+                index++
+                if (index == length || jsonStr[index] !in allDigitCharRange) {
+                    return makeFail("at least one digit required in fractional part", null)
+                }
+                while (index < length && jsonStr[index] in allDigitCharRange) {
+                    index++
+                }
+                if (index == length) {
+                    return makeDecimalResult(jsonStr.substring(start))
+                }
+            }
+            // exponent part
+            ch = jsonStr[index]
+            if (ch == 'e' || ch == 'E') {
+                index++
+                if (index == length) {
+                    return makeFail<SimpleJsonNumber>("at least one digit required in exponent part", null)
+                }
+                ch = jsonStr[index]
+                if (ch == '+' || ch == '-') {
+                    index++
+                    if (index == length) {
+                        return makeFail<SimpleJsonNumber>("at least one digit required in exponent part", null)
+                    }
+                }
+                if (jsonStr[index] !in allDigitCharRange) {
+                    return makeFail<SimpleJsonNumber>("at least one digit required in exponent part", null)
+                }
+                while (index < length && jsonStr[index] in allDigitCharRange) {
+                    index++
+                }
+            }
+            return makeDecimalResult(jsonStr.substring(start, index))
+        }
+
+        protected fun makeIntegerResult(s: String): SimpleJsonNumber? {
+            return if (s[0] == '-' && s.length < 20 || s.length < 19) {
+                SimpleJsonNumber(s.toLongOrNull() ?: return makeFail("invalid integer number format", null))
+            } else {
+                SimpleJsonNumber(s.toBigIntegerOrNull() ?: return makeFail("invalid big integer number format", null))
+            }
+        }
+
+        protected fun makeDecimalResult(s: String): SimpleJsonNumber? {
+            return if (s[0] == '-' && s.length < 20 || s.length < 19) {
+                SimpleJsonNumber(s.toDoubleOrNull() ?: return makeFail("invalid decimal number format", null))
+            } else {
+                SimpleJsonNumber(s.toBigDecimalOrNull() ?: return makeFail("invalid big decimal number format", null))
+            }
+        }
+
+        protected fun parseString(): SimpleJsonString? {
+            val start = index
             TODO()
         }
 
-        protected fun parseString(): SimpleJsonString {
+        protected fun parseArray(depth: Int): SimpleJsonArray? {
             TODO()
         }
 
-        protected fun parseArray(depth: Int): SimpleJsonArray {
-            TODO()
-        }
-
-        protected fun parseObject(depth: Int): SimpleJsonObject {
+        protected fun parseObject(depth: Int): SimpleJsonObject? {
             TODO()
         }
 
         protected fun parseJson(depth: Int): SimpleJsonValue<*> {
             val ch = getNextToken() ?: return SimpleJsonString(failReason ?: "unknown reason")
             return when {
-                ch == '-' || ch >= '0' && ch == '9' -> parseNumber()
+                ch == '-' || ch in allDigitCharRange -> parseNumber()
                 ch == 't' -> expectJsonValue("true", JSON_TRUE)
                 ch == 'f' -> expectJsonValue("false", JSON_FALSE)
                 ch == 'n' -> expectJsonValue("null", JSON_NULL)
                 ch == '"' -> parseString()
                 ch == '{' -> parseObject(depth + 1)
                 ch == '[' -> parseArray(depth + 1)
-                else -> {
-                    failReason = "expected value, got $ch"
-                    SimpleJsonString(failReason)
-                }
-            }
+                else -> makeFail("expected value, got $ch", null)
+            } ?: SimpleJsonString(failReason)
         }
 
-        protected fun expectJsonValue(expected: String, result: SimpleJsonValue<*>): SimpleJsonValue<*> {
+        protected fun expectJsonValue(expected: String, result: SimpleJsonValue<*>): SimpleJsonValue<*>? {
+            if (length - index < expected.length) {
+                index = length
+                return makeFail<SimpleJsonValue<*>>("parse error -- expected: $expected, got: ${jsonStr.substring(index)}", null)
+            }
             val start = index
             expected.forEach {
                 if (it != jsonStr[index++]) {
-                    failReason = "parse error -- expected: $expected, got: ${jsonStr.substring(start, start + expected.length)}"
-                    return SimpleJsonString(failReason)
+                    return makeFail<SimpleJsonValue<*>>("parse error -- expected: $expected, got: " + jsonStr.substring(start, start
+                            + expected.length), null)
                 }
             }
             return result
@@ -299,10 +444,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun getNextToken(): Char? {
             consumeGarbage()
-            if (index == length) {
-                failReason = "unexpected end of input"
-            }
-            return if (failReason != null) null else jsonStr[index]
+            return if (index == length) makeFail<Char>("unexpected end of input", null) else jsonStr[index]
         }
 
         protected fun consumeGarbage() {
@@ -315,15 +457,14 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                         return
                     }
                     consumeWhiteSpaces()
-                } while (commentFound)
+                } while (commentFound && index < length)
             }
         }
 
         protected fun consumeComments(): Boolean {
             if (jsonStr[index++] == '/') {
                 if (index == length) {
-                    failReason = "unexpected end of input after start of comment"
-                    return false
+                    return makeFail("unexpected end of input after start of comment", false) as Boolean
                 }
                 when {
                     jsonStr[index] == '/' -> {
@@ -335,24 +476,20 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                     jsonStr[index] == '*' -> {
                         index++
                         if (index > length - 2) {
-                            failReason = "unexpected end of input inside multi-line comment"
-                            return false
+                            return makeFail("unexpected end of input inside multi-line comment", false) as Boolean
                         }
                         var indexPlusOne = index + 1
-                        while (jsonStr[index] == '*' && jsonStr[indexPlusOne] == '/') {
+                        while (jsonStr[index] != '*' && jsonStr[indexPlusOne] != '/') {
                             index = indexPlusOne
                             indexPlusOne++
-                            if (index > length - 2) {
-                                failReason = "unexpected end of input inside multi-line comment"
-                                return false
+                            if (indexPlusOne == length) {
+                                index = length
+                                return makeFail("unexpected end of input inside multi-line comment", false) as Boolean
                             }
                         }
                         index += 2
                     }
-                    else -> {
-                        failReason = "malformed comment"
-                        return false
-                    }
+                    else -> return makeFail("malformed comment", false) as Boolean
                 }
                 return true
             }
@@ -360,16 +497,26 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         }
 
         protected fun consumeWhiteSpaces() {
-            while (jsonStr[index] == ' ' || jsonStr[index] == '\r' || jsonStr[index] == '\n' || jsonStr[index] == '\t') {
+            while (index < length && jsonStr[index] == ' ' || jsonStr[index] == '\r' || jsonStr[index] == '\n' || jsonStr[index] == '\t') {
                 index++
             }
+        }
+
+        protected fun <T> makeFail(reason: String, result: T?): T? {
+            failReason = reason
+            return result
         }
     }
 
     companion object {
-        fun fromJson(jsonStr: String, strategy: JsonStyle): SimpleJsonValue<*> {
-            TODO()
+        fun fromJson(jsonStr: String, strategy: JsonStyle): SimpleJsonValue<*> = if (strategy == JsonStyle.STANDARD) {
+            standardJsonParser.parseJson(jsonStr)
+        } else {
+            commentsJsonParser.parseJson(jsonStr)
         }
+
+        val allDigitCharRange = '0'..'9'
+        val nonZeroDigitCharRange = '1'..'9'
     }
 }
 
@@ -385,8 +532,10 @@ open class SimpleJsonApi {
     constructor(obj: Short) : this(SimpleJsonNumber(obj))
     constructor(obj: Int) : this(SimpleJsonNumber(obj))
     constructor(obj: Long) : this(SimpleJsonNumber(obj))
+    constructor(obj: BigInteger) : this(SimpleJsonNumber(obj))
     constructor(obj: Float) : this(SimpleJsonNumber(obj))
     constructor(obj: Double) : this(SimpleJsonNumber(obj))
+    constructor(obj: BigDecimal) : this(SimpleJsonNumber(obj))
     constructor(obj: Char) : this(SimpleJsonNumber(obj))
     constructor(obj: String) : this(if (obj.isEmpty()) JSON_EMPTY_STRING else SimpleJsonString(obj))
     constructor(obj: List<SimpleJsonValue<*>>) : this(if (obj.isEmpty()) JSON_EMPTY_ARRAY else SimpleJsonArray(obj))
