@@ -101,15 +101,6 @@ namespace json11 {
     }
 
     static void dump(const Json::array &values, string &out) {
-        // bool first = true;
-        // out += "[";
-        // for (const auto &value : values) {
-        //     if (!first)
-        //         out += ", ";
-        //     value.dump(out);
-        //     first = false;
-        // }
-        // out += "]";
         if (values.empty()) {
             out += "[]";
         } else {
@@ -126,17 +117,6 @@ namespace json11 {
     }
 
     static void dump(const Json::object &values, string &out) {
-        // bool first = true;
-        // out += "{";
-        // for (const auto &kv : values) {
-        //     if (!first)
-        //         out += ", ";
-        //     dump(kv.first, out);
-        //     out += ": ";
-        //     kv.second.dump(out);
-        //     first = false;
-        // }
-        // out += "}";
         if (values.empty()) {
             out += "{}";
         } else {

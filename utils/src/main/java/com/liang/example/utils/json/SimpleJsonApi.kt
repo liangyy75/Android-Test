@@ -2,6 +2,7 @@
 
 package com.liang.example.utils.json
 
+import java.lang.StringBuilder
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -46,13 +47,13 @@ enum class JsonStrategy {
     fun useTab(): Boolean = this == USE_NULL_AND_TAB || this == USE_TAB
 }
 
-interface SimpleJsonValue<T : Any> {
+interface SimpleJsonValue<T : Any> : Cloneable {
     fun type(): JsonType
     fun value(): T?
     fun isValueNull(): Boolean
     fun string(): String
     fun json(): SimpleJsonApi
-    // TODO: fun copy(): SimpleJsonValue<T>
+    public override fun clone(): SimpleJsonValue<T>
 
     companion object {
         fun nullString(type: JsonType): String = when (type) {
@@ -94,7 +95,7 @@ abstract class SimpleJsonValueAdapter<T : Any>(
         var mNullValue: String = SimpleJsonValue.nullString(mType) // json化的时候需要用到
 ) : SimpleJsonValue<T> {
     protected var mJsonApi: SimpleJsonApi? = null
-    override fun isValueNull(): Boolean = mValue == null || mValue == mDefaultValue
+    override fun isValueNull(): Boolean = mValue == null
     override fun type(): JsonType = mType
     override fun value(): T? = mValue ?: mDefaultValue
     override fun string(): String = mValue?.toString() ?: mNullValue
@@ -109,15 +110,7 @@ abstract class SimpleJsonValueAdapter<T : Any>(
 open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>>, defaultValue: Map<String, SimpleJsonValue<*>>? = EMPTY_OBJECT)
     : SimpleJsonValueAdapter<Map<String, SimpleJsonValue<*>>>(m, defaultValue, JsonType.OBJECT) {
     var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
-        set(value) {
-            field = value
-            transfer()
-        }
-    var mLevel: Int = 0
-        set(value) {
-            field = value
-            transfer()
-        }
+    var mDepth: Int = 0
 
     override fun string(): String {
         if (mValue.isNullOrEmpty()) {
@@ -125,32 +118,54 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>>, defaultValue: Ma
         }
         var tempValue = mValue!!
         if (!mStrategy.useNull()) {
-            tempValue = tempValue.filter { it.value.isValueNull() }
+            tempValue = tempValue.filter { !it.value.isValueNull() }
             if (tempValue.isNullOrEmpty()) {
                 return mNullValue
             }
         }
+        setRightDepth(mDepth)
+        setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
-            """{${tempValue.map { "${it.key}: ${it.value.value()}" }.joinToString()}}"""
+            """{${tempValue.map { "\"${it.key}\":${it.value.string()}" }.joinToString(",")}}"""
         } else {
-            val prefix1 = "    ".repeat(mLevel - 1)
-            val prefix2 = "$prefix1	   "
-            "{\n" + tempValue.map { "${prefix2}${it.key}: ${it.value.value()}" }.joinToString(",\n") + "\n$prefix1}"
+            val prefix1 = "\t".repeat(mDepth)
+            val prefix2 = "$prefix1\t"
+            "{\n" + tempValue.map { "${prefix2}\"${it.key}\": ${it.value.string()}" }.joinToString(",\n") + "\n$prefix1}"
         }
     }
 
-    protected fun transfer() {
-        if (!mValue.isNullOrEmpty()) {
-            mValue?.forEach {
-                val jv = it.value
-                if (jv is SimpleJsonArray) {
-                    jv.mLevel = this.mLevel
-                    jv.mStrategy = this.mStrategy
-                }
-                if (jv is SimpleJsonObject) {
-                    jv.mLevel = this.mLevel
-                    jv.mStrategy = this.mStrategy
-                }
+    override fun clone(): SimpleJsonObject {
+        val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
+        mValue?.forEach { itemMap[it.key] = it.value.clone() }
+        val result = SimpleJsonObject(itemMap, mDefaultValue)
+        result.mDepth = mDepth
+        result.mStrategy = mStrategy
+        return result
+    }
+
+    open fun setRightDepth(depth: Int) {
+        mDepth = depth
+        val nextDepth = depth + 1
+        mValue?.forEach {
+            val jv = it.value
+            if (jv is SimpleJsonArray) {
+                jv.setRightDepth(nextDepth)
+            }
+            if (jv is SimpleJsonObject) {
+                jv.setRightDepth(nextDepth)
+            }
+        }
+    }
+
+    open fun setRightStrategy(strategy: JsonStrategy) {
+        mStrategy = strategy
+        mValue?.forEach {
+            val jv = it.value
+            if (jv is SimpleJsonArray) {
+                jv.setRightStrategy(strategy)
+            }
+            if (jv is SimpleJsonObject) {
+                jv.setRightStrategy(strategy)
             }
         }
     }
@@ -161,15 +176,7 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>>, defaultValue: Ma
 open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<SimpleJsonValue<*>>? = EMPTY_ARRAY)
     : SimpleJsonValueAdapter<List<SimpleJsonValue<*>>>(l, defaultValue, JsonType.ARRAY) {
     var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
-        set(value) {
-            field = value
-            transfer()
-        }
-    var mLevel: Int = 0
-        set(value) {
-            field = value
-            transfer()
-        }
+    var mDepth: Int = 0
 
     override fun string(): String {
         if (mValue.isNullOrEmpty()) {
@@ -177,31 +184,52 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
         }
         var tempValue = mValue!!
         if (!mStrategy.useNull()) {
-            tempValue = tempValue.filter { it.isValueNull() }
+            tempValue = tempValue.filter { !it.isValueNull() }
             if (tempValue.isNullOrEmpty()) {
                 return mNullValue
             }
         }
+        setRightDepth(mDepth)
+        setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
-            "[${tempValue.map { it.value() }.joinToString()}]"
+            "[${tempValue.map { it.string() }.joinToString(",")}]"
         } else {
-            val prefix1 = "    ".repeat(mLevel - 1)
-            val prefix2 = "$prefix1	   "
-            """[\n${tempValue.joinToString(",\n") { "$prefix2${it.value()}" }}\n$prefix1]"""
+            val prefix1 = "\t".repeat(mDepth)
+            val prefix2 = "$prefix1\t"
+            "[\n" + tempValue.joinToString(",\n") { "$prefix2${it.string()}" } + "\n$prefix1]"
         }
     }
 
-    protected fun transfer() {
-        if (!mValue.isNullOrEmpty()) {
-            mValue?.forEach {
-                if (it is SimpleJsonArray) {
-                    it.mLevel = this.mLevel
-                    it.mStrategy = this.mStrategy
-                }
-                if (it is SimpleJsonObject) {
-                    it.mLevel = this.mLevel
-                    it.mStrategy = this.mStrategy
-                }
+    override fun clone(): SimpleJsonArray {
+        val itemList = mutableListOf<SimpleJsonValue<*>>()
+        mValue?.forEach { itemList.add(it.clone()) }
+        val result = SimpleJsonArray(itemList, mDefaultValue)
+        result.mDepth = mDepth
+        result.mStrategy = mStrategy
+        return result
+    }
+
+    open fun setRightDepth(depth: Int) {
+        mDepth = depth
+        val nextDepth = depth + 1
+        mValue?.forEach {
+            if (it is SimpleJsonArray) {
+                it.setRightDepth(nextDepth)
+            }
+            if (it is SimpleJsonObject) {
+                it.setRightDepth(nextDepth)
+            }
+        }
+    }
+
+    open fun setRightStrategy(strategy: JsonStrategy) {
+        mStrategy = strategy
+        mValue?.forEach {
+            if (it is SimpleJsonArray) {
+                it.setRightStrategy(strategy)
+            }
+            if (it is SimpleJsonObject) {
+                it.setRightStrategy(strategy)
             }
         }
     }
@@ -278,11 +306,58 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
 
     open fun numberType(): JsonNumberType = mNumberType
     open fun charValue(): Char = (mValue as? Long)?.toChar() ?: '\u0000'
+
+    override fun clone(): SimpleJsonNumber {
+        val result = SimpleJsonNumber(mValue)
+        result.mNumberType = mNumberType
+        return result
+    }
 }
 
-open class SimpleJsonString(s: String? = null, defaultValue: String? = "") : SimpleJsonValueAdapter<String>(s, defaultValue, JsonType.STRING)
-open class SimpleJsonBoolean(b: Boolean? = null, defaultValue: Boolean = false) : SimpleJsonValueAdapter<Boolean>(b, defaultValue, JsonType.BOOL)
-open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, null, JsonType.NUL)
+open class SimpleJsonString(s: String? = null, defaultValue: String? = "") : SimpleJsonValueAdapter<String>(s, defaultValue, JsonType.STRING) {
+    @Suppress("IntroduceWhenSubject")
+    override fun string(): String {
+        val tempValue = mValue ?: return mNullValue
+        val resultBuilder = StringBuilder("\"")
+        var i = 0
+        val length = tempValue.length
+        while (i < length) {
+            val ch = tempValue[i]
+            // val chInt = ch.toInt()
+            resultBuilder.append(when {
+                ch == '\\' -> "\\\\"
+                ch == '"' -> "\\\""
+                ch == '\b' -> "\\b"
+                ch == '\u000C' -> "\\f"
+                ch == '\n' -> "\\n"
+                ch == '\r' -> "\\r"
+                ch == '\t' -> "\\t"
+                // chInt <= 0x1f -> String.format("\\u%04x", chInt) // ???
+                // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa8 -> {
+                //     i += 2
+                //     "\\u2028"
+                // } // ???
+                // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa9 -> {
+                //     i += 2
+                //     "\\u2029"
+                // } // ???
+                else -> ch
+            })
+            i++
+        }
+        return resultBuilder.append("\"").toString()
+    }
+
+    override fun clone(): SimpleJsonString = SimpleJsonString(mValue, mDefaultValue)
+}
+
+open class SimpleJsonBoolean(b: Boolean? = null, defaultValue: Boolean? = false) : SimpleJsonValueAdapter<Boolean>(b, defaultValue, JsonType.BOOL) {
+    override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue, mDefaultValue)
+}
+
+open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, null, JsonType.NUL) {
+    override fun clone(): SimpleJsonNULL = SimpleJsonNULL()
+}
 
 val EMPTY_ARRAY = listOf<SimpleJsonValue<*>>()
 val EMPTY_OBJECT = mapOf<String, SimpleJsonValue<*>>()
@@ -301,11 +376,32 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         protected var index: Int = 0
         protected var failReason: String? = null
 
-        fun run(): SimpleJsonValue<*> {
+        fun runOrNull(): SimpleJsonValue<*>? {
             val result = parseJson(0)
-            if (index != length) {
+            if (index < length) {
                 consumeGarbage()
-                if (index != length) {
+                if (failReason != null) {
+                    return null
+                }
+                if (index < length) {
+                    failReason = "invalid format, can't parse end"
+                    return null
+                }
+            }
+            if (result == null && failReason == null) {
+                failReason = "unknown reason"
+            }
+            return result
+        }
+
+        fun run(): SimpleJsonValue<*> {
+            val result = parseJson(0) ?: return SimpleJsonString(failReason ?: "unknown reason")
+            if (index < length) {
+                consumeGarbage()
+                if (failReason != null) {
+                    return SimpleJsonString(failReason)
+                }
+                if (index < length) {
                     val reason = "invalid format, can't parse end"
                     return makeFail<SimpleJsonValue<*>>(reason, SimpleJsonString(reason)) as SimpleJsonValue<*>
                 }
@@ -314,19 +410,22 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         }
 
         protected fun parseNumber(): SimpleJsonNumber? {
+            if (index >= length) {
+                return makeFail<SimpleJsonNumber>("unexpected start of input in number", null)
+            }
             val start = index
             // symbol part
             if (jsonStr[index] == '-') {
                 index++
                 if (index >= length) {
-                    return makeFail<SimpleJsonNumber>("invalid number's present", null)
+                    return makeFail<SimpleJsonNumber>("at least one digit required after -", null)
                 }
             }
             // integer part
             if (jsonStr[index] == '0') {
                 index++
-                if (index == length) {
-                    return makeFail<SimpleJsonNumber>("invalid number's present", null)
+                if (index >= length) {
+                    return makeFail<SimpleJsonNumber>("-0 is not a invalid number's present", null)
                 }
                 if (jsonStr[index] in nonZeroDigitCharRange) {
                     return makeFail<SimpleJsonNumber>("leading 0s not permitted in numbers", null)
@@ -336,7 +435,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                 while (index < length && jsonStr[index] in allDigitCharRange) {
                     index++
                 }
-                if (index == length) {
+                if (index >= length) {
                     return makeIntegerResult(jsonStr.substring(start))
                 }
             } else {
@@ -350,13 +449,13 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
             // decimal part
             if (ch == '.') {
                 index++
-                if (index == length || jsonStr[index] !in allDigitCharRange) {
+                if (index >= length || jsonStr[index] !in allDigitCharRange) {
                     return makeFail("at least one digit required in fractional part", null)
                 }
                 while (index < length && jsonStr[index] in allDigitCharRange) {
                     index++
                 }
-                if (index == length) {
+                if (index >= length) {
                     return makeDecimalResult(jsonStr.substring(start))
                 }
             }
@@ -364,13 +463,13 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
             ch = jsonStr[index]
             if (ch == 'e' || ch == 'E') {
                 index++
-                if (index == length) {
+                if (index >= length) {
                     return makeFail<SimpleJsonNumber>("at least one digit required in exponent part", null)
                 }
                 ch = jsonStr[index]
                 if (ch == '+' || ch == '-') {
                     index++
-                    if (index == length) {
+                    if (index >= length) {
                         return makeFail<SimpleJsonNumber>("at least one digit required in exponent part", null)
                     }
                 }
@@ -401,30 +500,122 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         }
 
         protected fun parseString(): SimpleJsonString? {
-            val start = index
-            TODO()
+            return SimpleJsonString(innerParseString() ?: return null)
+        }
+
+        protected fun innerParseString(): String? {
+            if (index >= length || jsonStr[index] != '"') {
+                return makeFail<String>("unexpected start of input in string: ${if (index >= length) "end" else jsonStr[index].toString()}",
+                        null)
+            }
+            index++
+            val resultBuilder = StringBuilder()
+            while (true) {
+                if (index >= length) {
+                    return makeFail<String>("unexpected end of input in string", null)
+                }
+                var ch = jsonStr[index++]
+                if (ch == '"') {
+                    return resultBuilder.toString()
+                }
+                if (ch == '\\') {
+                    if (index >= length) {
+                        return makeFail<String>("required one character after escape symbol", null)
+                    }
+                    ch = jsonStr[index++]
+                    when (ch) {
+                        'b' -> resultBuilder.append('\b')
+                        'f' -> resultBuilder.append('\u000C')
+                        'n' -> resultBuilder.append('\n')
+                        'r' -> resultBuilder.append('\r')
+                        't' -> resultBuilder.append('\t')
+                        '"', '\\', '/' -> resultBuilder.append(ch)
+                        else -> return makeFail<String>("invalid escape character $ch", null)
+                    }
+                } else {
+                    resultBuilder.append(ch)
+                }
+            }
         }
 
         protected fun parseArray(depth: Int): SimpleJsonArray? {
-            TODO()
+            if (index >= length || jsonStr[index] != '[') {
+                return makeFail<SimpleJsonArray>("unexpected start of input in array: ${if (index >= length) "end" else
+                    jsonStr[index].toString()}", null)
+            }
+            index++
+            var ch = getNextToken() ?: return makeFail<SimpleJsonArray>("invalid array's present, lack of \"]\"", null)
+            val itemList = mutableListOf<SimpleJsonValue<*>>()
+            if (ch != ']') {
+                index--
+                while (true) {
+                    itemList.add(parseJson(depth + 1) ?: return null)
+                    ch = getNextToken()
+                            ?: return makeFail<SimpleJsonArray>("invalid array's present, lack of \"]\"", null)
+                    if (ch == ']') {
+                        break
+                    }
+                    if (ch != ',') {
+                        return makeFail<SimpleJsonArray>("expected ',' in list, got '$ch'", null)
+                    }
+                    consumeGarbage()
+                }
+            }
+            val result = SimpleJsonArray(itemList)
+            result.mDepth = depth
+            return result
         }
 
         protected fun parseObject(depth: Int): SimpleJsonObject? {
-            TODO()
+            if (index >= length || jsonStr[index] != '{') {
+                return makeFail<SimpleJsonObject>("unexpected start of input in object: ${if (index >= length) "end" else
+                    jsonStr[index].toString()}", null)
+            }
+            index++
+            var ch = getNextToken()
+                    ?: return makeFail<SimpleJsonObject>("invalid object's present, lack of \"}\"", null)
+            val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
+            if (ch != '}') {
+                index--
+                while (true) {
+                    val key = innerParseString() ?: return null
+                    ch = getNextToken()
+                            ?: return makeFail<SimpleJsonObject>("invalid object's present, lack of \"}\"", null)
+                    if (ch != ':') {
+                        return makeFail<SimpleJsonObject>("expected ':' in object, got '$ch'", null)
+                    }
+                    itemMap[key] = (parseJson(depth + 1) ?: return null)
+                    ch = getNextToken()
+                            ?: return makeFail<SimpleJsonObject>("invalid object's present, lack of \"}\"", null)
+                    if (ch == '}') {
+                        break
+                    }
+                    if (ch != ',') {
+                        return makeFail<SimpleJsonObject>("expected ',' in object, got '$ch'", null)
+                    }
+                    consumeGarbage()
+                }
+            }
+            val result = SimpleJsonObject(itemMap)
+            result.mDepth = depth
+            return result
         }
 
-        protected fun parseJson(depth: Int): SimpleJsonValue<*> {
-            val ch = getNextToken() ?: return SimpleJsonString(failReason ?: "unknown reason")
-            return when {
-                ch == '-' || ch in allDigitCharRange -> parseNumber()
-                ch == 't' -> expectJsonValue("true", JSON_TRUE)
-                ch == 'f' -> expectJsonValue("false", JSON_FALSE)
-                ch == 'n' -> expectJsonValue("null", JSON_NULL)
-                ch == '"' -> parseString()
-                ch == '{' -> parseObject(depth + 1)
-                ch == '[' -> parseArray(depth + 1)
+        protected fun parseJson(depth: Int): SimpleJsonValue<*>? {
+            val ch = getNextToken()
+                    ?: makeFail<SimpleJsonValue<*>>("json format is incorrect, the json string become empty before end parsing",
+                            null)
+            index--
+            return when (ch) {
+                '-', in allDigitCharRange -> parseNumber()
+                't' -> expectJsonValue("true", JSON_TRUE)
+                'f' -> expectJsonValue("false", JSON_FALSE)
+                'n' -> expectJsonValue("null", JSON_NULL)
+                '"' -> parseString()
+                '{' -> parseObject(depth + 1)
+                '[' -> parseArray(depth + 1)
                 else -> makeFail("expected value, got $ch", null)
-            } ?: SimpleJsonString(failReason)
+            }
         }
 
         protected fun expectJsonValue(expected: String, result: SimpleJsonValue<*>): SimpleJsonValue<*>? {
@@ -444,11 +635,11 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun getNextToken(): Char? {
             consumeGarbage()
-            return if (index == length) makeFail<Char>("unexpected end of input", null) else jsonStr[index]
+            return if (index >= length) makeFail<Char>("unexpected end of input", null) else jsonStr[index++]
         }
 
         protected fun consumeGarbage() {
-            consumeComments()
+            consumeWhiteSpaces()
             if (strategy == JsonStyle.COMMENTS) {
                 var commentFound: Boolean
                 do {
@@ -457,13 +648,14 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                         return
                     }
                     consumeWhiteSpaces()
-                } while (commentFound && index < length)
+                } while (commentFound)
             }
         }
 
         protected fun consumeComments(): Boolean {
-            if (jsonStr[index++] == '/') {
-                if (index == length) {
+            if (index < length && jsonStr[index] == '/') {
+                index++
+                if (index >= length) {
                     return makeFail("unexpected end of input after start of comment", false) as Boolean
                 }
                 when {
@@ -479,7 +671,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                             return makeFail("unexpected end of input inside multi-line comment", false) as Boolean
                         }
                         var indexPlusOne = index + 1
-                        while (jsonStr[index] != '*' && jsonStr[indexPlusOne] != '/') {
+                        while (!(jsonStr[index] == '*' && jsonStr[indexPlusOne] == '/')) {
                             index = indexPlusOne
                             indexPlusOne++
                             if (indexPlusOne == length) {
@@ -497,13 +689,15 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         }
 
         protected fun consumeWhiteSpaces() {
-            while (index < length && jsonStr[index] == ' ' || jsonStr[index] == '\r' || jsonStr[index] == '\n' || jsonStr[index] == '\t') {
+            while (index < length && (jsonStr[index] == ' ' || jsonStr[index] == '\r' || jsonStr[index] == '\n' || jsonStr[index] == '\t')) {
                 index++
             }
         }
 
         protected fun <T> makeFail(reason: String, result: T?): T? {
             failReason = reason
+            // throw RuntimeException("failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
+            // else "none"}")
             return result
         }
     }
@@ -552,22 +746,7 @@ open class SimpleJsonApi {
     open fun string(): String = jsonValue.string()
 
     companion object {
-        fun fromJson(jsonStr: String, strategy: JsonStyle = JsonStyle.COMMENTS): SimpleJsonApi =
+        fun fromJson(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi =
                 SimpleJsonApi(SimpleJsonParser.fromJson(jsonStr, strategy))
-    }
-}
-
-interface JsonInter {
-    fun <T> fromJson(jsonStr: String): T
-    fun <T> toJson(obj: T): String
-}
-
-open class ReflectJsonApi : JsonInter {
-    override fun <T> fromJson(jsonStr: String): T {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun <T> toJson(obj: T): String {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
