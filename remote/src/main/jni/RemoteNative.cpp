@@ -6,6 +6,7 @@
 #include "RemoteManager.hpp"
 #include "ShellMsgHandler.hpp"
 #include "HandlerJniHelper.hpp"
+#include "TinyXml2.hpp"
 #include <android/log.h>
 
 #ifdef __cplusplus
