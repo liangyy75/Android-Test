@@ -1,7 +1,9 @@
 #include "Utils.hpp"
 #include <cstring>
 
-int ret = Logger::initMutex();
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+auto ret = Logger::initMutex();
 
 pthread_mutex_t Logger::mutex;
 Logger *Logger::instance;
@@ -62,23 +64,28 @@ jobject getFieldFromJObject(JNIEnv *jniEnv, jobject obj, char name[], char signa
 }
 
 // 例子 getFieldIdsFromJClass(jniEnv, "com/huya/example/TestReq", reqClassFieldIdsMap);
-void getFieldIdsFromJClass(JNIEnv *jniEnv, const char *className, std::map<const char *, jobject, ComByStr> *fieldsMap) {
+void getFieldIdsFromJClass(JNIEnv *jniEnv, const char *className,
+                           std::map<const char *, jobject, ComByStr> *fieldsMap) {
     try {
         jclass targetClass = jniEnv->FindClass(className);
         jclass classClass = jniEnv->FindClass("java/lang/Class");
-        jmethodID getDeclaredFieldsMethodId = jniEnv->GetMethodID(classClass, "getDeclaredFields", "()[Ljava/lang/reflect/Field;");
-        auto fields = (jobjectArray) jniEnv->CallObjectMethod(targetClass, getDeclaredFieldsMethodId);
+        jmethodID getDeclaredFieldsMethodId = jniEnv->GetMethodID(classClass, "getDeclaredFields",
+                                                                  "()[Ljava/lang/reflect/Field;");
+        auto fields = (jobjectArray) jniEnv->CallObjectMethod(targetClass,
+                                                              getDeclaredFieldsMethodId);
 
         jclass fieldClass = jniEnv->FindClass("java/lang/reflect/Field");
         jmethodID setAccessibleMethodId = jniEnv->GetMethodID(fieldClass, "setAccessible", "(Z)V");
-        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName", "()Ljava/lang/String;");
+        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName",
+                                                        "()Ljava/lang/String;");
 
         int len = jniEnv->GetArrayLength(fields);
         for (int i = 0; i < len; i++) {
             jobject field = jniEnv->GetObjectArrayElement(fields, i);
             jniEnv->CallVoidMethod(field, setAccessibleMethodId, JNI_TRUE);
             char *fieldName = new char[JTC_BUF_LEN];
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId), fieldName);
+            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId),
+                               fieldName);
             fieldsMap->insert(std::make_pair(fieldName, field));
         }
 
@@ -92,7 +99,7 @@ void getFieldIdsFromJClass(JNIEnv *jniEnv, const char *className, std::map<const
 
 void getValidClassName(const char *fieldType, char *className, int end, int start) {
     int n = strlen(fieldType) - end;
-    strncpy(className, fieldType + start, n);
+    strncpy(className, fieldType + start, static_cast<size_t>(n));
     className[n] = '\0';
     replace(className, '.', '/');
 }
@@ -138,17 +145,21 @@ jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *cl
         auto fieldsMap = new std::map<const char *, jobject, ComByStr>();
         getFieldIdsFromJClass(jniEnv, className, fieldsMap);
         jclass fieldClass = jniEnv->FindClass("java/lang/reflect/Field");
-        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
+        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType",
+                                                        "()Ljava/lang/Class;");
         // jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName", "()Ljava/lang/String;");
         jclass classClass = jniEnv->FindClass("java/lang/Class");
-        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString", "()Ljava/lang/String;");
+        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString",
+                                                         "()Ljava/lang/String;");
         // char fieldsMapStr[JTC_BUF_LEN * 100];
         // int len = 0;
         auto fieldsTypeMap = new std::map<const char *, const char *, ComByStr>();
         for (auto it = fieldsMap->begin(); it != fieldsMap->end(); it++) {
             char *fieldType = new char[JTC_BUF_LEN];
             jobject typeObj = jniEnv->CallObjectMethod(it->second, getTypeMethodId);
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId), fieldType);
+            jStringToCharArray(jniEnv,
+                               (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId),
+                               fieldType);
             jniEnv->DeleteLocalRef(typeObj);
             fieldsTypeMap->insert(std::make_pair(it->first, fieldType));
             // char temp[JTC_BUF_LEN];
@@ -218,11 +229,13 @@ jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *cl
                     continue;
                 }
 
-                jmethodID setValueMethodId = jniEnv->GetMethodID(fieldClass, "set", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+                jmethodID setValueMethodId = jniEnv->GetMethodID(fieldClass, "set",
+                                                                 "(Ljava/lang/Object;Ljava/lang/Object;)V");
                 jobject finalValue = nullptr;
                 if (valueIsString) {
                     if (strcmp(fieldTypeStrBuf, "class java.lang.String") == 0) {
-                        finalValue = jniEnv->NewStringUTF(value.is_string() ? value.string_value().c_str() : "");
+                        finalValue = jniEnv->NewStringUTF(
+                                value.is_string() ? value.string_value().c_str() : "");
                     }
                 } else if (value.is_array()) {
                     json11::Json::array valueArray = value.array_items();
@@ -268,8 +281,10 @@ jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *cl
                         }
                     } else if (first.is_bool() && strcmp(fieldTypeStrBuf, "class [Z") == 0) {
                         SET_BOOLEAN_ARRAY_VALUE();
-                    } else if (first.is_string() && strcmp(fieldTypeStrBuf, "class [Ljava.lang.String;") == 0) {
-                        jobjectArray finalArray = jniEnv->NewObjectArray(len, jniEnv->FindClass("java/lang/String"), nullptr);
+                    } else if (first.is_string() &&
+                               strcmp(fieldTypeStrBuf, "class [Ljava.lang.String;") == 0) {
+                        jobjectArray finalArray = jniEnv->NewObjectArray(len, jniEnv->FindClass(
+                                "java/lang/String"), nullptr);
                         for (int i = 0; i < len; i++) {
                             json11::Json temp = valueArray[i];
                             jniEnv->SetObjectArrayElement(finalArray, i, jniEnv->NewStringUTF(
@@ -283,7 +298,9 @@ jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *cl
                         jobjectArray finalArray = jniEnv->NewObjectArray(len, tempClass, nullptr);
                         for (int i = 0; i < len; i++) {
                             json11::Json temp = valueArray[i];
-                            jniEnv->SetObjectArrayElement(finalArray, i, json11ToJObject(jniEnv, temp, fieldElementClassName));
+                            jniEnv->SetObjectArrayElement(finalArray, i,
+                                                          json11ToJObject(jniEnv, temp,
+                                                                          fieldElementClassName));
                         }
                         finalValue = finalArray;
                         jniEnv->DeleteLocalRef(tempClass);
@@ -296,7 +313,9 @@ jobject json11ToJObject(JNIEnv *jniEnv, const json11::Json &json, const char *cl
                 if (finalValue) {
                     jniEnv->CallVoidMethod(field, setValueMethodId, resultJObject, finalValue);
                 } else {
-                    L_T_D(LOG_TAG, "json11ToJObject -- finalValue is null, so can't set value for field: %s", key);
+                    L_T_D(LOG_TAG,
+                          "json11ToJObject -- finalValue is null, so can't set value for field: %s",
+                          key);
                 }
                 // L_T_D(LOG_TAG,
                 //       "json11ToJObject -- finish process jsonKey: [%s], jsonValue: [%s], and fieldType: [%s]", key,
@@ -374,19 +393,25 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
         getFieldIdsFromJClass(jniEnv, className, fieldsMap);
         jclass fieldClass = jniEnv->FindClass("java/lang/reflect/Field");
 
-        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
-        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName", "()Ljava/lang/String;");
+        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType",
+                                                        "()Ljava/lang/Class;");
+        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName",
+                                                        "()Ljava/lang/String;");
         jclass classClass = jniEnv->FindClass("java/lang/Class");
-        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString", "()Ljava/lang/String;");
+        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString",
+                                                         "()Ljava/lang/String;");
 
         json11::Json::object resultJson = json11::Json::object();
         for (auto it = fieldsMap->begin(); it != fieldsMap->end(); it++) {
             char *fieldName = new char[JTC_BUF_LEN];
             char *fieldType = new char[JTC_BUF_LEN];
             jobject field = it->second;
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId), fieldName);
+            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId),
+                               fieldName);
             jobject typeObj = jniEnv->CallObjectMethod(field, getTypeMethodId);
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId), fieldType);
+            jStringToCharArray(jniEnv,
+                               (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId),
+                               fieldType);
             jniEnv->DeleteLocalRef(typeObj);
             std::string fieldNameStr = std::string(fieldName);
 
@@ -408,14 +433,16 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
                 GET_BOOLEAN_VALUE();
             }
 
-            jmethodID getValueMethodId = jniEnv->GetMethodID(fieldClass, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+            jmethodID getValueMethodId = jniEnv->GetMethodID(fieldClass, "get",
+                                                             "(Ljava/lang/Object;)Ljava/lang/Object;");
             if (strcmp(fieldType, "class java.lang.String") == 0) {
                 auto value = (jstring) jniEnv->CallObjectMethod(field, getValueMethodId, obj);
                 char valueBuf[JTC_BUF_LEN];
                 jStringToCharArray(jniEnv, value, valueBuf);
                 json11::Json jValueBuf = json11::Json(std::string(valueBuf));
                 resultJson.insert(
-                        std::make_pair(fieldNameStr, jValueBuf)); /*resultJson[fieldName] = json11::Json(std::string(valueBuf));*/
+                        std::make_pair(fieldNameStr,
+                                       jValueBuf)); /*resultJson[fieldName] = json11::Json(std::string(valueBuf));*/
             } else if (strcmp(fieldType, "class [C") == 0) {
                 GET_CHAR_ARRAY_VALUE();
             } else if (strcmp(fieldType, "class [B") == 0) {
@@ -455,7 +482,10 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
                     int len = jniEnv->GetArrayLength(value);
                     json11::Json::array trueValue = json11::Json::array();
                     for (int i = 0; i < len; i++) {
-                        json11::Json valueI = jObjectToJson11(jniEnv, jniEnv->GetObjectArrayElement(value, i), fieldElementClassName);
+                        json11::Json valueI = jObjectToJson11(jniEnv,
+                                                              jniEnv->GetObjectArrayElement(value,
+                                                                                            i),
+                                                              fieldElementClassName);
                         trueValue.push_back(valueI);
                     }
                     json11::Json jTrueValue = json11::Json(trueValue);
@@ -472,7 +502,8 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
                     /*resultJson[fieldName] = jObjectToJson11(jniEnv, value, fieldElementClassName);*/
                 }
             } else {
-                L_T_D(LOG_TAG, "jObjectToJson11 -- fieldType is invalid: %s, and fieldName is %s", fieldType, fieldName);
+                L_T_D(LOG_TAG, "jObjectToJson11 -- fieldType is invalid: %s, and fieldName is %s",
+                      fieldType, fieldName);
             }
 
             delete[] fieldName;
@@ -495,8 +526,10 @@ json11::Json jObjectToJson11(JNIEnv *jniEnv, jobject obj, const char *className)
 
 // ************************************************** 下面是配合jni跨线程的 ************************************************** //
 
-void getFieldsFromJClass(JNIEnv *jniEnv, std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
-                         const char *className, std::map<const char *, jclass, ComByStr> *targetClasses, jclass fieldClass,
+void getFieldsFromJClass(JNIEnv *jniEnv,
+                         std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
+                         const char *className,
+                         std::map<const char *, jclass, ComByStr> *targetClasses, jclass fieldClass,
                          jclass classClass) {
     if (allFieldsMap->find(className) != allFieldsMap->end()) {
         return;
@@ -505,36 +538,47 @@ void getFieldsFromJClass(JNIEnv *jniEnv, std::map<const char *, std::map<const c
         L_T_D(LOG_TAG, "getFieldsFromJClass2 -- className is %s", className);
         auto *fieldsMap = new std::map<const char *, jobject, ComByStr>();
         allFieldsMap->insert(std::make_pair(className, fieldsMap));
-        jmethodID getDeclaredFieldsMethodId = jniEnv->GetMethodID(classClass, "getDeclaredFields", "()[Ljava/lang/reflect/Field;");
+        jmethodID getDeclaredFieldsMethodId = jniEnv->GetMethodID(classClass, "getDeclaredFields",
+                                                                  "()[Ljava/lang/reflect/Field;");
         auto targetClass = (jclass) jniEnv->NewGlobalRef(jniEnv->FindClass(className));
         targetClasses->insert(std::make_pair(className, targetClass));
-        auto fields = (jobjectArray) jniEnv->CallObjectMethod(targetClass, getDeclaredFieldsMethodId);
+        auto fields = (jobjectArray) jniEnv->CallObjectMethod(targetClass,
+                                                              getDeclaredFieldsMethodId);
         jmethodID setAccessibleMethodId = jniEnv->GetMethodID(fieldClass, "setAccessible", "(Z)V");
-        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName", "()Ljava/lang/String;");
-        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
-        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString", "()Ljava/lang/String;");
+        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName",
+                                                        "()Ljava/lang/String;");
+        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType",
+                                                        "()Ljava/lang/Class;");
+        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString",
+                                                         "()Ljava/lang/String;");
 
         int len = jniEnv->GetArrayLength(fields);
         for (int i = 0; i < len; i++) {
             jobject field = jniEnv->NewGlobalRef(jniEnv->GetObjectArrayElement(fields, i));
             jniEnv->CallVoidMethod(field, setAccessibleMethodId, JNI_TRUE);
             char *fieldName = new char[JTC_BUF_LEN];
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId), fieldName);
+            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId),
+                               fieldName);
             fieldsMap->insert(std::make_pair(fieldName, field));
 
             jobject fieldType = jniEnv->CallObjectMethod(field, getTypeMethodId);
             char fieldTypeStr[JTC_BUF_LEN];
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(fieldType, toStringMethodId), fieldTypeStr);
+            jStringToCharArray(jniEnv,
+                               (jstring) jniEnv->CallObjectMethod(fieldType, toStringMethodId),
+                               fieldTypeStr);
             if (!startsWith(fieldTypeStr, "class [") && startsWith(fieldTypeStr, "class ") &&
                 strcmp(fieldTypeStr, "class java.lang.String") != 0) {
                 char *fieldClass2 = new char[JTC_BUF_LEN];
                 getValidClassName(fieldTypeStr, fieldClass2, 6, 6);
-                getFieldsFromJClass(jniEnv, allFieldsMap, fieldClass2, targetClasses, fieldClass, classClass);
-            } else if (startsWith(fieldTypeStr, "class [L") && strcmp(fieldTypeStr, "class [Ljava.lang.String;") != 0 &&
+                getFieldsFromJClass(jniEnv, allFieldsMap, fieldClass2, targetClasses, fieldClass,
+                                    classClass);
+            } else if (startsWith(fieldTypeStr, "class [L") &&
+                       strcmp(fieldTypeStr, "class [Ljava.lang.String;") != 0 &&
                        strlen(fieldTypeStr) > 8) {
                 char *fieldClass2 = new char[JTC_BUF_LEN];
                 getValidClassName(fieldTypeStr, fieldClass2, 9, 8);
-                getFieldsFromJClass(jniEnv, allFieldsMap, fieldClass2, targetClasses, fieldClass, classClass);
+                getFieldsFromJClass(jniEnv, allFieldsMap, fieldClass2, targetClasses, fieldClass,
+                                    classClass);
             }
             jniEnv->DeleteLocalRef(fieldType);
         }
@@ -546,15 +590,20 @@ void getFieldsFromJClass(JNIEnv *jniEnv, std::map<const char *, std::map<const c
 jobject
 json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
                 std::map<const char *, std::map<const char *, jobject, ComByStr> *, ComByStr> *allFieldsMap,
-                std::map<const char *, jclass, ComByStr> *targetClasses, const char *className, jclass fieldClass, jclass classClass) {
+                std::map<const char *, jclass, ComByStr> *targetClasses, const char *className,
+                jclass fieldClass, jclass classClass) {
     try {
         L_T_D(LOG_TAG, "json11ToJObject2 -- className is %s", className);
-        std::map<const char *, jobject, ComByStr> *fieldsMap = allFieldsMap->find(className)->second;
-        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
-        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString", "()Ljava/lang/String;");
+        std::map<const char *, jobject, ComByStr> *fieldsMap = allFieldsMap->find(
+                className)->second;
+        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType",
+                                                        "()Ljava/lang/Class;");
+        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString",
+                                                         "()Ljava/lang/String;");
         jclass targetClass = targetClasses->find(className)->second;
         jmethodID defaultConstructorMethodId = jniEnv->GetMethodID(targetClass, "<init>", "()V");
-        jobject resultJObject = jniEnv->NewGlobalRef(jniEnv->NewObject(targetClass, defaultConstructorMethodId));
+        jobject resultJObject = jniEnv->NewGlobalRef(
+                jniEnv->NewObject(targetClass, defaultConstructorMethodId));
 
         char fieldsMapStr[JTC_BUF_LEN * 100];
         int len = 0;
@@ -569,7 +618,9 @@ json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
 
             char fieldType[JTC_BUF_LEN];
             jobject typeObj = jniEnv->CallObjectMethod(field, getTypeMethodId);
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId), fieldType);
+            jStringToCharArray(jniEnv,
+                               (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId),
+                               fieldType);
             jniEnv->DeleteLocalRef(typeObj);
 
             bool valueIsString = value.is_string();
@@ -600,11 +651,13 @@ json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
                 continue;
             }
 
-            jmethodID setValueMethodId = jniEnv->GetMethodID(fieldClass, "set", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+            jmethodID setValueMethodId = jniEnv->GetMethodID(fieldClass, "set",
+                                                             "(Ljava/lang/Object;Ljava/lang/Object;)V");
             jobject finalValue = nullptr;
             if (valueIsString) {
                 if (strcmp(fieldType, "class java.lang.String") == 0) {
-                    finalValue = jniEnv->NewStringUTF(value.is_string() ? value.string_value().c_str() : "");
+                    finalValue = jniEnv->NewStringUTF(
+                            value.is_string() ? value.string_value().c_str() : "");
                 }
             } else if (value.is_array()) {
                 json11::Json::array valueArray = value.array_items();
@@ -638,8 +691,10 @@ json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
                     }
                 } else if (first.is_bool() && strcmp(fieldType, "class [Z") == 0) {
                     SET_BOOLEAN_ARRAY_VALUE();
-                } else if (first.is_string() && strcmp(fieldType, "class [Ljava.lang.String;") == 0) {
-                    jobjectArray finalArray = jniEnv->NewObjectArray(len, jniEnv->FindClass("java/lang/String"), nullptr);
+                } else if (first.is_string() &&
+                           strcmp(fieldType, "class [Ljava.lang.String;") == 0) {
+                    jobjectArray finalArray = jniEnv->NewObjectArray(len, jniEnv->FindClass(
+                            "java/lang/String"), nullptr);
                     for (int i = 0; i < len; i++) {
                         json11::Json temp = valueArray[i];
                         jniEnv->SetObjectArrayElement(finalArray, i, jniEnv->NewStringUTF(
@@ -654,7 +709,8 @@ json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
                     for (int i = 0; i < len; i++) {
                         json11::Json temp = valueArray[i];
                         jobject temp2 = json11ToJObject(jniEnv, temp, allFieldsMap, targetClasses,
-                                                        fieldElementClassName, fieldClass, classClass);
+                                                        fieldElementClassName, fieldClass,
+                                                        classClass);
                         jniEnv->SetObjectArrayElement(finalArray, i, temp2);
                     }
                     finalValue = finalArray;
@@ -663,14 +719,17 @@ json11ToJObject(JNIEnv *jniEnv, const json11::Json &json,
             } else if (value.is_object() && startsWith(fieldType, "class ")) {
                 char fieldElementClassName[JTC_BUF_LEN];
                 getValidClassName(fieldType, fieldElementClassName, 6, 6);
-                finalValue = json11ToJObject(jniEnv, value, allFieldsMap, targetClasses, fieldElementClassName, fieldClass,
+                finalValue = json11ToJObject(jniEnv, value, allFieldsMap, targetClasses,
+                                             fieldElementClassName, fieldClass,
                                              classClass);
             }
             if (finalValue) {
                 jniEnv->CallVoidMethod(field, setValueMethodId, resultJObject, finalValue);
                 // L_T_D(LOG_TAG, "json11ToJObject2 -- set value for field: %s", it->first);
             } else {
-                L_T_D(LOG_TAG, "json11ToJObject2 -- finalValue is null, so can't set value for field: %s", it->first);
+                L_T_D(LOG_TAG,
+                      "json11ToJObject2 -- finalValue is null, so can't set value for field: %s",
+                      it->first);
             }
 
             char temp[JTC_BUF_LEN];
@@ -693,19 +752,26 @@ jObjectToJson11(JNIEnv *jniEnv, jobject obj,
                 const char *className, jclass fieldClass, jclass classClass) {
     try {
         L_T_D(LOG_TAG, "jObjectToJson11_2 -- className is %s", className);
-        std::map<const char *, jobject, ComByStr> *fieldsMap = allFieldsMap->find(className)->second;
-        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
-        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName", "()Ljava/lang/String;");
-        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString", "()Ljava/lang/String;");
+        std::map<const char *, jobject, ComByStr> *fieldsMap = allFieldsMap->find(
+                className)->second;
+        jmethodID getTypeMethodId = jniEnv->GetMethodID(fieldClass, "getType",
+                                                        "()Ljava/lang/Class;");
+        jmethodID getNameMethodId = jniEnv->GetMethodID(fieldClass, "getName",
+                                                        "()Ljava/lang/String;");
+        jmethodID toStringMethodId = jniEnv->GetMethodID(classClass, "toString",
+                                                         "()Ljava/lang/String;");
         json11::Json::object resultJson = json11::Json::object();
 
         for (auto it = fieldsMap->begin(); it != fieldsMap->end(); it++) {
             char *fieldName = new char[JTC_BUF_LEN];
             char *fieldType = new char[JTC_BUF_LEN];
             jobject field = it->second;
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId), fieldName);
+            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(field, getNameMethodId),
+                               fieldName);
             jobject typeObj = jniEnv->CallObjectMethod(field, getTypeMethodId);
-            jStringToCharArray(jniEnv, (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId), fieldType);
+            jStringToCharArray(jniEnv,
+                               (jstring) jniEnv->CallObjectMethod(typeObj, toStringMethodId),
+                               fieldType);
             jniEnv->DeleteLocalRef(typeObj);
             std::string fieldNameStr = std::string(fieldName);
 
@@ -727,7 +793,8 @@ jObjectToJson11(JNIEnv *jniEnv, jobject obj,
                 GET_BOOLEAN_VALUE();
             }
 
-            jmethodID getValueMethodId = jniEnv->GetMethodID(fieldClass, "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+            jmethodID getValueMethodId = jniEnv->GetMethodID(fieldClass, "get",
+                                                             "(Ljava/lang/Object;)Ljava/lang/Object;");
             if (strcmp(fieldType, "class java.lang.String") == 0) {
                 auto value = (jstring) jniEnv->CallObjectMethod(field, getValueMethodId, obj);
                 char valueBuf[JTC_BUF_LEN];
@@ -774,8 +841,12 @@ jObjectToJson11(JNIEnv *jniEnv, jobject obj,
                     int len = jniEnv->GetArrayLength(value);
                     json11::Json::array trueValue = json11::Json::array();
                     for (int i = 0; i < len; i++) {
-                        json11::Json valueI = jObjectToJson11(jniEnv, jniEnv->GetObjectArrayElement(value, i), allFieldsMap,
-                                                              fieldElementClassName, fieldClass, classClass);
+                        json11::Json valueI = jObjectToJson11(jniEnv,
+                                                              jniEnv->GetObjectArrayElement(value,
+                                                                                            i),
+                                                              allFieldsMap,
+                                                              fieldElementClassName, fieldClass,
+                                                              classClass);
                         trueValue.push_back(valueI);
                     }
                     json11::Json jTrueValue = json11::Json(trueValue);
@@ -787,11 +858,14 @@ jObjectToJson11(JNIEnv *jniEnv, jobject obj,
                 if (value != nullptr) {
                     char fieldElementClassName[JTC_BUF_LEN];
                     getValidClassName(fieldType, fieldElementClassName, 6, 6);
-                    json11::Json jValue = jObjectToJson11(jniEnv, value, allFieldsMap, fieldElementClassName, fieldClass, classClass);
+                    json11::Json jValue = jObjectToJson11(jniEnv, value, allFieldsMap,
+                                                          fieldElementClassName, fieldClass,
+                                                          classClass);
                     resultJson.insert(std::make_pair(fieldNameStr, jValue));
                 }
             } else {
-                L_T_D(LOG_TAG, "jObjectToJson11_2 -- fieldType is invalid: %s, and fieldName is %s", fieldType, fieldName);
+                L_T_D(LOG_TAG, "jObjectToJson11_2 -- fieldType is invalid: %s, and fieldName is %s",
+                      fieldType, fieldName);
             }
 
             delete[] fieldName;
@@ -804,3 +878,5 @@ jObjectToJson11(JNIEnv *jniEnv, jobject obj,
     }
     return json11::Json();
 }
+
+#pragma clang diagnostic pop

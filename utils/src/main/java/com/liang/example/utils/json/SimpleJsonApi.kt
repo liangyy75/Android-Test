@@ -284,6 +284,11 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
         mNullValue = "\u0000"
     }
 
+    constructor(n: Number, nt: JsonNumberType, nv: String = "0"): this(n) {
+        mNumberType = nt
+        mNullValue = nv
+    }
+
     override fun value(): Number? = when {
         mNumberType == JsonNumberType.CHAR -> throw RuntimeException("This is char number, can't be transformed to normal number!")
         mValue == null -> mDefaultValue ?: 0
