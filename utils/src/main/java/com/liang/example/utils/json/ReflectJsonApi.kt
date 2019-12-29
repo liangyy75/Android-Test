@@ -9,6 +9,51 @@ import java.lang.reflect.Modifier
 import java.math.BigDecimal
 import java.math.BigInteger
 
+fun findItemTypeByCls(cls: Class<*>): Pair<Int, Int> {
+    val clsStr = cls.toString()
+    if (!clsStr.startsWith("class [")) {
+        throw RuntimeException("cls should be array's cls")
+    }
+    var index = 7
+    var depth = 0
+    while (index < clsStr.length && clsStr[index] == '[') {
+        index++
+        depth++
+    }
+    val temp1 = clsStr[index]
+    val temp2 = clsStr.substring(index + 1)
+    return Pair(when {
+        temp2.isEmpty() -> when (temp1) {
+            'Z' -> 1
+            'B' -> 6
+            'S' -> 7
+            'I' -> 8
+            'L' -> 9
+            'F' -> 10
+            'D' -> 11
+            'C' -> 12
+            else -> 0
+        }
+        temp2.startsWith("java.lang.") -> when (temp2) {
+            "java.lang.String;" -> 3
+            "java.lang.Boolean;" -> 15
+            "java.lang.Byte;" -> 16
+            "java.lang.Short;" -> 17
+            "java.lang.Int;" -> 18
+            "java.lang.Long;" -> 19
+            "java.lang.Float;" -> 20
+            "java.lang.Double;" -> 21
+            "java.lang.Char;" -> 22
+            else -> 5
+        }
+        temp2 == "kotlin.Unit;" -> 0
+        temp2 == "java.math.BigInteger;" -> 13
+        temp2 == "java.math.BigDecimal;" -> 14
+        temp1 == 'L' -> 5
+        else -> throw RuntimeException("incorrect array cls")
+    }, depth)
+}
+
 interface ReflectHandleInter<T> {
     fun handleBoolean(obj: Any?, f: Field?, v: Boolean?): T?
     fun handleByte(obj: Any?, f: Field?, v: Byte?): T?
@@ -33,7 +78,6 @@ interface ReflectHandleInter<T> {
     fun handleArray(obj: Any?, f: Field?, v: Array<*>?): T?
     fun handleObject(obj: Any?, f: Field?, v: Any?): T?
 
-    // TODO: char[][]
     fun getResultByCls(cls: Class<*>, v: Any): T? {
         val str = cls.toString()
         return when {
@@ -49,39 +93,11 @@ interface ReflectHandleInter<T> {
                 else -> throw RuntimeException("unknown class type")
             }
             cls == String::class.java -> handleString(null, null, v as? String)
-
-            str.startsWith("class [") -> if (str.startsWith("class [L")) {
-                when (cls) {
-                    Array<Boolean>::class.java -> handleBooleanArray(null, null, (v as? Array<Boolean>)?.toBooleanArray())
-                    Array<Byte>::class.java -> handleByteArray(null, null, (v as? Array<Byte>)?.toByteArray())
-                    Array<Short>::class.java -> handleShortArray(null, null, (v as? Array<Short>)?.toShortArray())
-                    Array<Int>::class.java -> handleIntArray(null, null, (v as? Array<Int>)?.toIntArray())
-                    Array<Long>::class.java -> handleLongArray(null, null, (v as? Array<Long>)?.toLongArray())
-                    Array<Float>::class.java -> handleFloatArray(null, null, (v as? Array<Float>)?.toFloatArray())
-                    Array<Double>::class.java -> handleDoubleArray(null, null, (v as? Array<Double>)?.toDoubleArray())
-                    Array<Char>::class.java -> handleCharArray(null, null, (v as? Array<Char>)?.toCharArray())
-                    Array<String>::class.java -> handleStringArray(null, null, v as? Array<String>)
-                    else -> handleArray(null, null, v as? Array<*>)  // 14次
-                }
-            } else {
-                when (cls) {
-                    BooleanArray::class.java -> handleBooleanArray(null, null, v as? BooleanArray)
-                    ByteArray::class.java -> handleByteArray(null, null, v as? ByteArray)
-                    ShortArray::class.java -> handleShortArray(null, null, v as? ShortArray)
-                    IntArray::class.java -> handleIntArray(null, null, v as? IntArray)
-                    LongArray::class.java -> handleLongArray(null, null, v as? LongArray)
-                    FloatArray::class.java -> handleFloatArray(null, null, v as? FloatArray)
-                    DoubleArray::class.java -> handleDoubleArray(null, null, v as? DoubleArray)
-                    CharArray::class.java -> handleCharArray(null, null, v as? CharArray)  // 12次
-                    else -> throw RuntimeException("unknown class type")
-                }
-            }
-
+            str.startsWith("class [") -> handleArray(null, null, v as? Array<*>)
             else -> handleObject(null, null, v)
         }
     }
 
-    // TODO: char[][]
     fun getResultByField(it: Field, obj: Any): T? {
         val cls = it.type
         val str = cls.toString()
@@ -98,34 +114,7 @@ interface ReflectHandleInter<T> {
                 else -> throw RuntimeException("unknown class type")
             }
             cls == String::class.java -> handleString(obj, it, it.get(obj) as? String)
-
-            str.startsWith("class [") -> if (str.startsWith("class [L")) {
-                when (cls) {
-                    Array<Boolean>::class.java -> handleBooleanArray(obj, it, (it.get(obj) as? Array<Boolean>)?.toBooleanArray())
-                    Array<Byte>::class.java -> handleByteArray(obj, it, (it.get(obj) as? Array<Byte>)?.toByteArray())
-                    Array<Short>::class.java -> handleShortArray(obj, it, (it.get(obj) as? Array<Short>)?.toShortArray())
-                    Array<Int>::class.java -> handleIntArray(obj, it, (it.get(obj) as? Array<Int>)?.toIntArray())
-                    Array<Long>::class.java -> handleLongArray(obj, it, (it.get(obj) as? Array<Long>)?.toLongArray())
-                    Array<Float>::class.java -> handleFloatArray(obj, it, (it.get(obj) as? Array<Float>)?.toFloatArray())
-                    Array<Double>::class.java -> handleDoubleArray(obj, it, (it.get(obj) as? Array<Double>)?.toDoubleArray())
-                    Array<Char>::class.java -> handleCharArray(obj, it, (it.get(obj) as? Array<Char>)?.toCharArray())
-                    Array<String>::class.java -> handleStringArray(obj, it, it.get(obj) as? Array<String>)
-                    else -> handleArray(obj, it, it.get(obj) as? Array<*>)  // 14次
-                }
-            } else {
-                when (cls) {
-                    BooleanArray::class.java -> handleBooleanArray(obj, it, it.get(obj) as? BooleanArray)
-                    ByteArray::class.java -> handleByteArray(obj, it, it.get(obj) as? ByteArray)
-                    ShortArray::class.java -> handleShortArray(obj, it, it.get(obj) as? ShortArray)
-                    IntArray::class.java -> handleIntArray(obj, it, it.get(obj) as? IntArray)
-                    LongArray::class.java -> handleLongArray(obj, it, it.get(obj) as? LongArray)
-                    FloatArray::class.java -> handleFloatArray(obj, it, it.get(obj) as? FloatArray)
-                    DoubleArray::class.java -> handleDoubleArray(obj, it, it.get(obj) as? DoubleArray)
-                    CharArray::class.java -> handleCharArray(obj, it, it.get(obj) as? CharArray)  // 12次
-                    else -> throw RuntimeException("unknown class type")
-                }
-            }
-
+            str.startsWith("class [") -> handleArray(obj, it, it.get(obj) as? Array<*>)
             else -> handleObject(obj, it, it.get(obj))
         }
     }
@@ -191,7 +180,7 @@ open class ReflectJsonApi(
         override fun handleString(obj: Any?, f: Field?, v: String?): SimpleJsonString? =
                 if (v?.isEmpty() == false || strategy.useNull()) SimpleJsonString(v) else null
 
-        // array
+        // basicArray
 
         override fun handleBooleanArray(obj: Any?, f: Field?, v: BooleanArray?): SimpleJsonArray? =
                 if (v?.isNotEmpty() == true || strategy.useNull()) SimpleJsonArray(v!!.map { SimpleJsonBoolean(it) }) else null
@@ -220,6 +209,8 @@ open class ReflectJsonApi(
         override fun handleStringArray(obj: Any?, f: Field?, v: Array<String>?): SimpleJsonArray? =
                 if (v?.isNotEmpty() == true || strategy.useNull()) SimpleJsonArray(v!!.map { SimpleJsonString(it) }) else null
 
+        // array<*>
+
         // TODO: handle char[][]
         override fun handleArray(obj: Any?, f: Field?, v: Array<*>?): SimpleJsonArray? = if (v?.isNullOrEmpty() == false || strategy.useNull()) {
             if (v?.isNullOrEmpty() == true) {
@@ -228,6 +219,34 @@ open class ReflectJsonApi(
             val itemCls = v[0]!!::class.java
             SimpleJsonArray(v.mapNotNull { if (it != null || strategy.useNull()) handleObjectInner(it, itemCls) else null })
         } else null
+
+        fun handleArrayInner(v: Array<*>): Any? {
+            val temp = findItemTypeByCls(v::class.java)
+            val itemType = temp.first
+            val depth = temp.second
+            return when (itemType) {
+                0 -> null
+                1 -> dispatchTransformToArr<Boolean, SimpleJsonValue<*>>(v, depth, { handleBooleanArray(null, null, it.toBooleanArray()) }) { SimpleJsonArray(it) }
+                3 -> dispatchTransformToArr<String, SimpleJsonValue<*>>(v, depth, { handleStringArray(null, null, it) }) { SimpleJsonArray(it) }
+                6 -> dispatchTransformToArr<Byte, SimpleJsonValue<*>>(v, depth, { handleByteArray(null, null, it.toByteArray()) }) { SimpleJsonArray(it) }
+                7 -> dispatchTransformToArr<Short, SimpleJsonValue<*>>(v, depth, { handleShortArray(null, null, it.toShortArray()) }) { SimpleJsonArray(it) }
+                8 -> dispatchTransformToArr<Int, SimpleJsonValue<*>>(v, depth, { handleIntArray(null, null, it.toIntArray()) }) { SimpleJsonArray(it) }
+                5 -> {
+                    TODO()
+                }
+                else -> throw RuntimeException("itemType should not be $itemType, now the depth is $depth")
+            }
+        }
+
+        fun <T, T2 : Any> dispatchTransformToArr(array: Array<*>?, depth: Int, t1: ((Array<T>) -> T2?), t2: ((List<T2>) -> T2)): T2? =
+                when {
+                    array.isNullOrEmpty() -> null
+                    depth == 0 -> t1(array as Array<T>)
+                    else -> {
+                        val nextDepth = depth - 1
+                        t2(array.mapNotNull { dispatchTransformToArr(it as? Array<*>, nextDepth, t1, t2) })
+                    }
+                }
 
         // object
 
@@ -303,16 +322,19 @@ open class ReflectJsonApi(
         }
 
         // 可以处理 char[][] crr; 等等复杂类型，只要 cls 是正确的 -- 返回结果可能是 Array<Array<BooleanArray>> ，也可能是 CharArray
+        // TODO: object[] cannot be cast to char[]
         protected fun fromJsonArray(jsonArray: SimpleJsonArray, cls: Class<*>?): Any? {
             if (jsonArray.value() == null) {
                 return null
             }
-            val temp = findCorrectItemType(jsonArray, cls)
+            val temp = findItemType(jsonArray, cls)
             val itemType = temp.first
             val depth = temp.second
             return when (itemType) {
                 0 -> null
                 1 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Boolean }) { it.toBooleanArray() }
+                3 -> dispatchTransformToArr(jsonArray, depth, { it.value() as String }) { it.toTypedArray() }
+
                 6 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toByte() }) { it.toByteArray() }
                 7 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toShort() }) { it.toShortArray() }
                 8 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toInt() }) { it.toIntArray() }
@@ -320,9 +342,10 @@ open class ReflectJsonApi(
                 10 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Double).toFloat() }) { it.toFloatArray() }
                 11 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Double }) { it.toDoubleArray() }
                 12 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toChar() }) { it.toCharArray() }
-                3 -> dispatchTransformToArr(jsonArray, depth, { it.value() as String }) { it.toTypedArray() }
+
                 13 -> dispatchTransformToArr(jsonArray, depth, { it.value() as BigInteger }) { it.toTypedArray() }
                 14 -> dispatchTransformToArr(jsonArray, depth, { it.value() as BigDecimal }) { it.toTypedArray() }
+
                 15 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Boolean }) { it.toTypedArray() }
                 16 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toByte() }) { it.toTypedArray() }
                 17 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toShort() }) { it.toTypedArray() }
@@ -331,6 +354,7 @@ open class ReflectJsonApi(
                 20 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Double).toFloat() }) { it.toTypedArray() }
                 21 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Double }) { it.toTypedArray() }
                 22 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toChar() }) { it.toTypedArray() }
+
                 5 -> {
                     if (cls == null) {
                         throw RuntimeException("cls should not be null when itemType is JsonType.OBJECT")
@@ -354,7 +378,7 @@ open class ReflectJsonApi(
                     }
                     else -> {
                         val nextDepth = depth - 1
-                        jsonArray.value2().map { dispatchTransformToArr<T, T2>(it as SimpleJsonArray, nextDepth, transform) }.toTypedArray()
+                        jsonArray.value2().map { dispatchTransformToArr<T, T2>(it as SimpleJsonArray, nextDepth, transform, transform2) }.toTypedArray()
                     }
                 }
 
@@ -376,50 +400,9 @@ open class ReflectJsonApi(
          * JsonType.OBJECT --> 5
          * @return itemType, depth
          */
-        protected fun findCorrectItemType(jsonArray: SimpleJsonArray, cls: Class<*>?): Pair<Int, Int> {
+        protected fun findItemType(jsonArray: SimpleJsonArray, cls: Class<*>?): Pair<Int, Int> {
             if (cls != null) {
-                val clsStr = cls.toString()
-                if (!clsStr.startsWith("class [")) {
-                    throw RuntimeException("cls should be array's cls")
-                }
-                var index = 7
-                var depth = 0
-                while (index < clsStr.length && clsStr[index] == '[') {
-                    index++
-                    depth++
-                }
-                val temp1 = clsStr[index]
-                val temp2 = clsStr.substring(index + 1)
-                return Pair(when {
-                    temp2.isEmpty() -> when (temp1) {
-                        'Z' -> 1
-                        'B' -> 6
-                        'S' -> 7
-                        'I' -> 8
-                        'L' -> 9
-                        'F' -> 10
-                        'D' -> 11
-                        'C' -> 12
-                        else -> 0
-                    }
-                    temp2.startsWith("java.lang.") -> when (temp2) {
-                        "java.lang.String;" -> 3
-                        "java.lang.Boolean;" -> 15
-                        "java.lang.Byte;" -> 16
-                        "java.lang.Short;" -> 17
-                        "java.lang.Int;" -> 18
-                        "java.lang.Long;" -> 19
-                        "java.lang.Float;" -> 20
-                        "java.lang.Double;" -> 21
-                        "java.lang.Char;" -> 22
-                        else -> 5
-                    }
-                    temp2 == "kotlin.Unit;" -> 0
-                    temp2 == "java.math.BigInteger;" -> 13
-                    temp2 == "java.math.BigDecimal;" -> 14
-                    temp1 == 'L' -> 5
-                    else -> throw RuntimeException("incorrect array cls")
-                }, depth)
+                return findItemTypeByCls(cls)
             }
             if (jsonArray.value().isNullOrEmpty()) {
                 return Pair(0, 0)
@@ -448,7 +431,7 @@ open class ReflectJsonApi(
                 JsonType.ARRAY -> {
                     var maxDepth = 0
                     arr.forEach {
-                        val result = findCorrectItemType(it as SimpleJsonArray, cls)
+                        val result = findItemType(it as SimpleJsonArray, cls)
                         val trueDepth = result.second + 1
                         if (result.first != 0) {
                             return Pair(result.first, trueDepth)
@@ -471,7 +454,7 @@ open class ReflectJsonApi(
             val result = getDefaultCtorFromCls(ctorCache, cls).newInstance()
             jsonObject.value()!!.forEach {
                 val field = fields.find { f -> f.name == it.key } ?: return@forEach
-                val jsonValueItem = it.value
+                val jsonValueItem = it.value ?: return@forEach
                 if (jsonValueItem.isValueNull()) {
                     return@forEach
                 }
