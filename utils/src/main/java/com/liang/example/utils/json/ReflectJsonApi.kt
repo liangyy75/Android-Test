@@ -1,9 +1,13 @@
-@file:Suppress("UNCHECKED_CAST")
+@file:Suppress("UNCHECKED_CAST", "MemberVisibilityCanBePrivate", "unused", "SpellCheckingInspection")
 
 package com.liang.example.utils.json
 
 import java.lang.RuntimeException
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
+import java.lang.reflect.Modifier
+import java.math.BigDecimal
+import java.math.BigInteger
 
 interface ReflectHandleInter<T> {
     fun handleBoolean(obj: Any?, f: Field?, v: Boolean?): T?
@@ -29,6 +33,7 @@ interface ReflectHandleInter<T> {
     fun handleArray(obj: Any?, f: Field?, v: Array<*>?): T?
     fun handleObject(obj: Any?, f: Field?, v: Any?): T?
 
+    // TODO: char[][]
     fun getResultByCls(cls: Class<*>, v: Any): T? {
         val str = cls.toString()
         return when {
@@ -76,8 +81,9 @@ interface ReflectHandleInter<T> {
         }
     }
 
+    // TODO: char[][]
     fun getResultByField(it: Field, obj: Any): T? {
-        val cls = it.javaClass
+        val cls = it.type
         val str = cls.toString()
         return when {
             !str.startsWith("class ") -> when (cls) {
@@ -126,37 +132,48 @@ interface ReflectHandleInter<T> {
 }
 
 interface JsonInter {
-    fun <T> fromJson(jsonStr: String): T
+    fun <T> fromJson(jsonStr: String, cls: Class<*>): T
+    fun <T> fromJsonOrNull(jsonStr: String, cls: Class<*>): T?
     fun <T : Any> toJson(obj: T): String
 }
 
-fun getFieldFromCls(clsCache: MutableMap<Class<*>, List<Field>>, cls: Class<*>): List<Field> {
+// 最垃圾的缓存机制，没有定时清理，没有时间记录
+fun getFieldsFromCls(clsCache: MutableMap<Class<*>, Array<Field>>, cls: Class<*>): Array<Field> {
     var result = clsCache[cls]
     if (result == null) {
-        result = cls.declaredFields.toList()
+        result = cls.declaredFields.filter { !Modifier.isStatic(it.modifiers) }.toTypedArray()
         result.forEach { it.isAccessible = true }
     }
     return result
 }
 
+fun getDefaultCtorFromCls(ctorCache: MutableMap<Class<*>, Constructor<*>>, cls: Class<*>): Constructor<*> {
+    var result = ctorCache[cls]
+    if (result == null) {
+        result = cls.getConstructor()
+        result.isAccessible = true
+    }
+    return result
+}
+
+// 不对基本类型和数组类型进行处理，只对包含它们的复杂类型进行处理
 open class ReflectJsonApi(
         var strategy: JsonStrategy = JsonStrategy.SIMPLEST,
         var style: JsonStyle = JsonStyle.STANDARD,
-        val clsCache: MutableMap<Class<*>, List<Field>> = mutableMapOf()
+        val clsCache: MutableMap<Class<*>, Array<Field>> = mutableMapOf(),
+        val ctorCache: MutableMap<Class<*>, Constructor<*>> = mutableMapOf()
 ) : JsonInter {
+    override fun <T> fromJson(jsonStr: String, cls: Class<*>): T = ReflectFromJsonTask(style, clsCache, ctorCache).run(jsonStr, cls)
+    override fun <T> fromJsonOrNull(jsonStr: String, cls: Class<*>): T? = ReflectFromJsonTask(style, clsCache).runOrNull(jsonStr, cls)
 
-    override fun <T> fromJson(jsonStr: String): T {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun <T : Any> toJson(obj: T): String = ReflectToJsonTask(strategy, clsCache).run(obj).string()
 
-    override fun <T : Any> toJson(obj: T): String = ReflectToJsonTask(strategy).run(obj).toString()
-
-    open class ReflectToJsonTask(var strategy: JsonStrategy, val clsCache: MutableMap<Class<*>, List<Field>> = mutableMapOf()) :
+    open class ReflectToJsonTask(var strategy: JsonStrategy, val clsCache: MutableMap<Class<*>, Array<Field>> = mutableMapOf()) :
             ReflectHandleInter<SimpleJsonValue<*>> {
         // basic
 
         override fun handleBoolean(obj: Any?, f: Field?, v: Boolean?): SimpleJsonBoolean? =
-                if (v != null || strategy.useNull()) SimpleJsonBoolean(v) else null
+                if (v != null || strategy.useNull()) SimpleJsonBoolean(v!!) else null
 
         protected fun checkNumberAndStrategy(v: Number?, nt: JsonNumberType, nv: String = "0"): SimpleJsonNumber? {
             return if (v != null || strategy.useNull()) SimpleJsonNumber(v!!, nt, nv) else null
@@ -203,6 +220,7 @@ open class ReflectJsonApi(
         override fun handleStringArray(obj: Any?, f: Field?, v: Array<String>?): SimpleJsonArray? =
                 if (v?.isNotEmpty() == true || strategy.useNull()) SimpleJsonArray(v!!.map { SimpleJsonString(it) }) else null
 
+        // TODO: handle char[][]
         override fun handleArray(obj: Any?, f: Field?, v: Array<*>?): SimpleJsonArray? = if (v?.isNullOrEmpty() == false || strategy.useNull()) {
             if (v?.isNullOrEmpty() == true) {
                 JSON_EMPTY_ARRAY
@@ -220,7 +238,7 @@ open class ReflectJsonApi(
             if (v == null) {
                 return JSON_EMPTY_OBJECT
             }
-            val fields = getFieldFromCls(clsCache, cls)
+            val fields = getFieldsFromCls(clsCache, cls)
             if (fields.isEmpty()) {
                 return null
             }
@@ -239,4 +257,263 @@ open class ReflectJsonApi(
         open fun run(obj: Any): SimpleJsonValue<*> = getResultByCls(obj::class.java, obj) ?: SimpleJsonString("null object")
         open fun runOrNull(obj: Any): SimpleJsonValue<*>? = getResultByCls(obj::class.java, obj)
     }
+
+    open class ReflectFromJsonTask(var style: JsonStyle, val clsCache: MutableMap<Class<*>, Array<Field>> = mutableMapOf(),
+                                   val ctorCache: MutableMap<Class<*>, Constructor<*>> = mutableMapOf()) {
+        open fun <T> run(jsonStr: String, cls: Class<*>): T {
+            val jsonValue = SimpleJsonParser.fromJsonOrNull(jsonStr, style)
+            if (jsonValue !is SimpleJsonObject) {
+                throw RuntimeException("this string cannot be transferred to SimpleJsonObject")
+            }
+            if (jsonValue.isValueNull()) {
+                throw RuntimeException("this SimpleJsonObject should not be empty")
+            }
+            return fromJsonObject(jsonValue, cls) as T
+        }
+
+        open fun <T> runOrNull(jsonStr: String, cls: Class<*>): T? {
+            val jsonValue = SimpleJsonParser.fromJsonOrNull(jsonStr, style)
+            return if (jsonValue !is SimpleJsonObject || jsonValue.isValueNull()) null else {
+                fromJsonObject(jsonValue, cls) as? T
+            }
+        }
+
+        open fun fromJson(jsonValue: SimpleJsonValue<*>, cls: Class<*>?): Any? {
+            if (jsonValue.isValueNull()) {
+                return null
+            }
+            val type = jsonValue.type()
+            return when {
+                type == JsonType.ARRAY -> fromJsonArray(jsonValue as SimpleJsonArray, cls)
+                cls == null -> {
+                    when (type) {
+                        JsonType.NUL -> null
+                        JsonType.NUMBER -> {
+                            val n = jsonValue as SimpleJsonNumber
+                            if (n.numberType() == JsonNumberType.CHAR) n.charValue() else n.value2()
+                        }
+                        JsonType.BOOL, JsonType.STRING -> jsonValue.value2()
+                        JsonType.ARRAY -> throw RuntimeException("impossible error while parse jsonValue")
+                        JsonType.OBJECT -> throw RuntimeException("jsonValue's type should not be object when cls is null")
+                    }
+                }
+                type == JsonType.OBJECT -> fromJsonObject(jsonValue as SimpleJsonObject, cls)
+                else -> throw RuntimeException("cls should be null when jsonValue's type isn't array or object")
+            }
+        }
+
+        // 可以处理 char[][] crr; 等等复杂类型，只要 cls 是正确的 -- 返回结果可能是 Array<Array<BooleanArray>> ，也可能是 CharArray
+        protected fun fromJsonArray(jsonArray: SimpleJsonArray, cls: Class<*>?): Any? {
+            if (jsonArray.value() == null) {
+                return null
+            }
+            val temp = findCorrectItemType(jsonArray, cls)
+            val itemType = temp.first
+            val depth = temp.second
+            return when (itemType) {
+                0 -> null
+                1 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Boolean }) { it.toBooleanArray() }
+                6 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toByte() }) { it.toByteArray() }
+                7 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toShort() }) { it.toShortArray() }
+                8 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toInt() }) { it.toIntArray() }
+                9 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Long }) { it.toLongArray() }
+                10 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Double).toFloat() }) { it.toFloatArray() }
+                11 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Double }) { it.toDoubleArray() }
+                12 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toChar() }) { it.toCharArray() }
+                3 -> dispatchTransformToArr(jsonArray, depth, { it.value() as String }) { it.toTypedArray() }
+                13 -> dispatchTransformToArr(jsonArray, depth, { it.value() as BigInteger }) { it.toTypedArray() }
+                14 -> dispatchTransformToArr(jsonArray, depth, { it.value() as BigDecimal }) { it.toTypedArray() }
+                15 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Boolean }) { it.toTypedArray() }
+                16 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toByte() }) { it.toTypedArray() }
+                17 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toShort() }) { it.toTypedArray() }
+                18 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toInt() }) { it.toTypedArray() }
+                19 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Long }) { it.toTypedArray() }
+                20 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Double).toFloat() }) { it.toTypedArray() }
+                21 -> dispatchTransformToArr(jsonArray, depth, { it.value() as Double }) { it.toTypedArray() }
+                22 -> dispatchTransformToArr(jsonArray, depth, { (it.value() as Long).toChar() }) { it.toTypedArray() }
+                5 -> {
+                    if (cls == null) {
+                        throw RuntimeException("cls should not be null when itemType is JsonType.OBJECT")
+                    }
+                    val clsStr = cls.toString()
+                    val itemCls = Class.forName(clsStr.substring(depth + 7, clsStr.length - 1))
+//                    dispatchTransformToArr(jsonArray, depth, { fromJsonObject(it as SimpleJsonObject, itemCls) })
+                    // 深度优先搜索试试吧
+                }
+                else -> throw RuntimeException("itemType should not be $itemType, now the depth is $depth")
+            }
+        }
+
+        protected fun <T, T2> dispatchTransformToArr(jsonArray: SimpleJsonArray, depth: Int, transform: (SimpleJsonValue<*>) -> T,
+                                                     transform2: ((List<T>) -> T2)? = null): Any? =
+                when {
+                    jsonArray.value().isNullOrEmpty() -> null
+                    depth == 0 -> {
+                        val result = jsonArray.value2().map(transform)
+                        if (transform2 == null) result else transform2(result)
+                    }
+                    else -> {
+                        val nextDepth = depth - 1
+                        jsonArray.value2().map { dispatchTransformToArr<T, T2>(it as SimpleJsonArray, nextDepth, transform) }.toTypedArray()
+                    }
+                }
+
+        /**
+         * JsonType.NUL --> 0
+         * JsonType.BOOL --> 1(BooleanArray) / 15(Array<Boolean>)
+         * JsonType.NUMBER --> 2
+         *     JsonNumberType.BYTE -> 6 / 16
+         *     JsonNumberType.SHORT -> 7 / 17
+         *     JsonNumberType.INT -> 8 / 18
+         *     JsonNumberType.LONG -> 9 / 19
+         *     JsonNumberType.FLOAT -> 10 / 20
+         *     JsonNumberType.DOUBLE -> 11 / 21
+         *     JsonNumberType.CHAR -> 12 / 22
+         *     JsonNumberType.BIG_INTEGER -> 13
+         *     JsonNumberType.BIG_DECIMAL -> 14
+         * JsonType.STRING --> 3
+         * JsonType.ARRAY --> 4
+         * JsonType.OBJECT --> 5
+         * @return itemType, depth
+         */
+        protected fun findCorrectItemType(jsonArray: SimpleJsonArray, cls: Class<*>?): Pair<Int, Int> {
+            if (cls != null) {
+                val clsStr = cls.toString()
+                if (!clsStr.startsWith("class [")) {
+                    throw RuntimeException("cls should be array's cls")
+                }
+                var index = 7
+                var depth = 0
+                while (index < clsStr.length && clsStr[index] == '[') {
+                    index++
+                    depth++
+                }
+                val temp1 = clsStr[index]
+                val temp2 = clsStr.substring(index + 1)
+                return Pair(when {
+                    temp2.isEmpty() -> when (temp1) {
+                        'Z' -> 1
+                        'B' -> 6
+                        'S' -> 7
+                        'I' -> 8
+                        'L' -> 9
+                        'F' -> 10
+                        'D' -> 11
+                        'C' -> 12
+                        else -> 0
+                    }
+                    temp2.startsWith("java.lang.") -> when (temp2) {
+                        "java.lang.String;" -> 3
+                        "java.lang.Boolean;" -> 15
+                        "java.lang.Byte;" -> 16
+                        "java.lang.Short;" -> 17
+                        "java.lang.Int;" -> 18
+                        "java.lang.Long;" -> 19
+                        "java.lang.Float;" -> 20
+                        "java.lang.Double;" -> 21
+                        "java.lang.Char;" -> 22
+                        else -> 5
+                    }
+                    temp2 == "kotlin.Unit;" -> 0
+                    temp2 == "java.math.BigInteger;" -> 13
+                    temp2 == "java.math.BigDecimal;" -> 14
+                    temp1 == 'L' -> 5
+                    else -> throw RuntimeException("incorrect array cls")
+                }, depth)
+            }
+            if (jsonArray.value().isNullOrEmpty()) {
+                return Pair(0, 0)
+            }
+            val arr = jsonArray.value2()
+            val firstItem = arr[0]
+            return Pair(when (firstItem.type()) {
+                JsonType.NUL -> 0
+                JsonType.BOOL -> 1
+                JsonType.NUMBER -> {
+                    val jsonNumber = firstItem as SimpleJsonNumber
+                    when (jsonNumber.numberType()) {
+                        JsonNumberType.BYTE -> 6
+                        JsonNumberType.SHORT -> 7
+                        JsonNumberType.INT -> 8
+                        JsonNumberType.LONG -> 9
+                        JsonNumberType.FLOAT -> 10
+                        JsonNumberType.DOUBLE -> 11
+                        JsonNumberType.CHAR -> 12
+                        JsonNumberType.BIG_INTEGER -> 13
+                        JsonNumberType.BIG_DECIMAL -> 14
+                        JsonNumberType.UNKNOWN -> 2
+                    }
+                }
+                JsonType.STRING -> 3
+                JsonType.ARRAY -> {
+                    var maxDepth = 0
+                    arr.forEach {
+                        val result = findCorrectItemType(it as SimpleJsonArray, cls)
+                        val trueDepth = result.second + 1
+                        if (result.first != 0) {
+                            return Pair(result.first, trueDepth)
+                        }
+                        if (trueDepth > maxDepth) {
+                            maxDepth = trueDepth
+                        }
+                    }
+                    return Pair(0, maxDepth)
+                }
+                JsonType.OBJECT -> 5
+            }, 0)
+        }
+
+        protected fun fromJsonObject(jsonObject: SimpleJsonObject, cls: Class<*>): Any? {
+            if (jsonObject.isValueNull()) {
+                return null
+            }
+            val fields = getFieldsFromCls(clsCache, cls)
+            val result = getDefaultCtorFromCls(ctorCache, cls).newInstance()
+            jsonObject.value()!!.forEach {
+                val field = fields.find { f -> f.name == it.key } ?: return@forEach
+                val jsonValueItem = it.value
+                if (jsonValueItem.isValueNull()) {
+                    return@forEach
+                }
+                val fieldCls = field.type
+                val fieldClsStr = fieldCls.toString()
+                val jsonValueType = jsonValueItem.type()
+                when {
+                    fieldCls == Unit::class.java && jsonValueType == JsonType.NUL -> Unit
+                    fieldCls == Boolean::class.java && jsonValueType == JsonType.BOOL -> field.setBoolean(result, jsonValueItem.value() as Boolean)
+                    jsonValueType == JsonType.NUMBER -> {
+                        val n = jsonValueItem as SimpleJsonNumber
+                        val numberType = n.numberType()
+                        when {
+                            fieldCls == Byte::class.java && numberType == JsonNumberType.BYTE -> field.setByte(result, n.value() as Byte)
+                            fieldCls == Short::class.java && numberType == JsonNumberType.SHORT -> field.setShort(result, n.value() as Short)
+                            fieldCls == Int::class.java && numberType == JsonNumberType.INT -> field.setInt(result, n.value() as Int)
+                            fieldCls == Long::class.java && numberType == JsonNumberType.LONG -> field.setLong(result, n.value() as Long)
+                            fieldCls == BigInteger::class.java && numberType == JsonNumberType.BIG_INTEGER -> field.set(result, n.value())
+                            fieldCls == Float::class.java && numberType == JsonNumberType.FLOAT -> field.setFloat(result, n.value() as Float)
+                            fieldCls == Double::class.java && numberType == JsonNumberType.DOUBLE -> field.setDouble(result, n.value() as Double)
+                            fieldCls == BigInteger::class.java && numberType == JsonNumberType.BIG_DECIMAL -> field.set(result, n.value())
+                            fieldCls == Char::class.java && numberType == JsonNumberType.CHAR -> field.setChar(result, n.charValue())
+                            numberType == JsonNumberType.UNKNOWN -> throw RuntimeException("should not get unknown number type from json string")
+                        }
+                    }
+                    fieldCls == String::class.java && jsonValueType == JsonType.STRING -> field.set(result, jsonValueItem.value())
+                    fieldClsStr.startsWith("class L") && jsonValueType == JsonType.OBJECT ->
+                        field.set(result, fromJsonObject(jsonValueItem as SimpleJsonObject, fieldCls))
+                    fieldClsStr.startsWith("class [") && jsonValueType == JsonType.ARRAY ->
+                        field.set(result, fromJsonArray(jsonValueItem as SimpleJsonArray, fieldCls))
+                    else -> throw RuntimeException("non corresponding jsonValue's type and field's cls")
+                }
+            }
+            return result
+        }
+    }
+
+    companion object {
+        fun <T : Any> toJson(obj: T): String = DEFAULT_REFLECT_JSON_API.toJson(obj)
+        fun <T> fromJson(jsonStr: String, cls: Class<*>): T = DEFAULT_REFLECT_JSON_API.fromJson(jsonStr, cls)
+        fun <T> fromJsonOrNull(jsonStr: String, cls: Class<*>): T? = DEFAULT_REFLECT_JSON_API.fromJsonOrNull(jsonStr, cls)
+    }
 }
+
+val DEFAULT_REFLECT_JSON_API = ReflectJsonApi()

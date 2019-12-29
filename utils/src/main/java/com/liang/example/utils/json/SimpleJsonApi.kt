@@ -50,6 +50,7 @@ enum class JsonStrategy {
 interface SimpleJsonValue<T : Any> : Cloneable {
     fun type(): JsonType
     fun value(): T?
+    fun value2(): T
     fun isValueNull(): Boolean
     fun string(): String
     fun json(): SimpleJsonApi
@@ -98,6 +99,7 @@ abstract class SimpleJsonValueAdapter<T : Any>(
     override fun isValueNull(): Boolean = mValue == null
     override fun type(): JsonType = mType
     override fun value(): T? = mValue ?: mDefaultValue
+    override fun value2(): T = mValue!!
     override fun string(): String = mValue?.toString() ?: mNullValue
     override fun json(): SimpleJsonApi {
         if (mJsonApi == null) {
@@ -192,7 +194,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
-            "[${tempValue.map { it.string() }.joinToString(",")}]"
+            "[${tempValue.joinToString(",") { it.string() }}]"
         } else {
             val prefix1 = "\t".repeat(mDepth)
             val prefix2 = "$prefix1\t"
@@ -284,7 +286,7 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
         mNullValue = "\u0000"
     }
 
-    constructor(n: Number, nt: JsonNumberType, nv: String = "0"): this(n) {
+    constructor(n: Number, nt: JsonNumberType, nv: String = "0") : this(n) {
         mNumberType = nt
         mNullValue = nv
     }
@@ -356,8 +358,9 @@ open class SimpleJsonString(s: String? = null, defaultValue: String? = "") : Sim
     override fun clone(): SimpleJsonString = SimpleJsonString(mValue, mDefaultValue)
 }
 
-open class SimpleJsonBoolean(b: Boolean? = null, defaultValue: Boolean? = false) : SimpleJsonValueAdapter<Boolean>(b, defaultValue, JsonType.BOOL) {
-    override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue, mDefaultValue)
+open class SimpleJsonBoolean(b: Boolean = false, defaultValue: Boolean? = false) : SimpleJsonValueAdapter<Boolean>(b, defaultValue, JsonType.BOOL) {
+    override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue!!, mDefaultValue)
+    override fun value(): Boolean = mValue!!
 }
 
 open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, null, JsonType.NUL) {
@@ -375,8 +378,10 @@ val JSON_NULL = SimpleJsonNULL()
 
 open class SimpleJsonParser(var strategy: JsonStyle) {
     open fun parseJson(jsonStr: String): SimpleJsonValue<*> = SimpleJsonParseTask(jsonStr, strategy).run()
+    open fun parseJsonOrThrow(jsonStr: String): SimpleJsonValue<*> = SimpleJsonParseTask(jsonStr, strategy, true).run()
+    open fun parseJsonOrNull(jsonStr: String): SimpleJsonValue<*>? = SimpleJsonParseTask(jsonStr, strategy).runOrNull()
 
-    open class SimpleJsonParseTask(val jsonStr: String, val strategy: JsonStyle) {
+    open class SimpleJsonParseTask(val jsonStr: String, val strategy: JsonStyle, val throwEx: Boolean = false) {
         protected val length = jsonStr.length
         protected var index: Int = 0
         protected var failReason: String? = null
@@ -701,17 +706,31 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun <T> makeFail(reason: String, result: T?): T? {
             failReason = reason
-            // throw RuntimeException("failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
-            // else "none"}")
+            if (throwEx) {
+                throw RuntimeException("failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
+                else "none"}")
+            }
             return result
         }
     }
 
     companion object {
-        fun fromJson(jsonStr: String, strategy: JsonStyle): SimpleJsonValue<*> = if (strategy == JsonStyle.STANDARD) {
+        fun fromJson(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonValue<*> = if (strategy == JsonStyle.STANDARD) {
             standardJsonParser.parseJson(jsonStr)
         } else {
             commentsJsonParser.parseJson(jsonStr)
+        }
+
+        fun fromJsonOrThrow(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonValue<*> = if (strategy == JsonStyle.STANDARD) {
+            standardJsonParser.parseJsonOrThrow(jsonStr)
+        } else {
+            commentsJsonParser.parseJsonOrThrow(jsonStr)
+        }
+
+        fun fromJsonOrNull(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonValue<*>? = if (strategy == JsonStyle.STANDARD) {
+            standardJsonParser.parseJsonOrNull(jsonStr)
+        } else {
+            commentsJsonParser.parseJsonOrNull(jsonStr)
         }
 
         val allDigitCharRange = '0'..'9'
@@ -752,6 +771,12 @@ open class SimpleJsonApi {
 
     companion object {
         fun fromJson(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi =
+                SimpleJsonApi(SimpleJsonParser.fromJson(jsonStr, strategy))
+
+        fun fromJsonOrThrow(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi =
+                SimpleJsonApi(SimpleJsonParser.fromJsonOrThrow(jsonStr, strategy))
+
+        fun fromJsonOrNull(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi? =
                 SimpleJsonApi(SimpleJsonParser.fromJson(jsonStr, strategy))
     }
 }
