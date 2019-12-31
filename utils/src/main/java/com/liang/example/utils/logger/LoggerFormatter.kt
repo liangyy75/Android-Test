@@ -1,6 +1,6 @@
 package com.liang.example.utils.logger
 
-import com.liang.example.utils.format
+import com.liang.example.utils.basic.format
 import java.text.SimpleDateFormat
 import java.util.*
 

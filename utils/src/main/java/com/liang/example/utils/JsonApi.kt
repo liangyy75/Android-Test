@@ -4,20 +4,20 @@ import com.google.gson.Gson
 import java.lang.Exception
 import java.lang.reflect.Type
 
-var gson: Gson? = null
+object JsonApi {
+    val gson: Gson = Gson()
 
-fun init() {
-    gson = Gson()
-}
-
-fun <T> parseJson(jsonStr: String, typeOfT: Type): T? {
-    try {
-        return gson?.fromJson(jsonStr, typeOfT)
-    } catch (e: Exception) {
-        ApiManager.LOGGER.e(ApiManager.DEFAULT_TAG, e)
+    fun <T> parseJson(jsonStr: String, typeOfT: Type): T? {
+        try {
+            return gson.fromJson(jsonStr, typeOfT)
+        } catch (e: Exception) {
+            ApiManager.LOGGER.e(ApiManager.DEFAULT_TAG, e)
+        }
+        return null
     }
-    return null
-}
 
-@JvmOverloads
-fun toJson(obj: Any?, default: String = ""): String = gson?.toJson(obj) ?: default
+    fun <T> parseJsonNonNull(jsonStr: String, typeOfT: Type): T = gson.fromJson(jsonStr, typeOfT)!!
+
+    @JvmOverloads
+    fun toJson(obj: Any?, default: String = ""): String = gson.toJson(obj) ?: default
+}

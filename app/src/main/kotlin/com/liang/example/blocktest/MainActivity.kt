@@ -8,9 +8,8 @@ import android.widget.*
 import com.example.uilib.block.*
 import com.liang.example.androidtest.R
 import com.liang.example.utils.ApiManager
-import com.liang.example.utils.DensityApi
+import com.liang.example.utils.r.dp2px
 import com.liang.example.utils.view.showToast
-
 
 class MainActivity : BlockActivity() {
     companion object {
@@ -19,8 +18,8 @@ class MainActivity : BlockActivity() {
 
     @SuppressLint("SetTextI18n")
     override fun getBlockManagerList(): List<BlockManager>? {
-        val dp10 = DensityApi.dpToPx(this, 10f)
-        val dp20 = DensityApi.dpToPx(this, 20f)
+        val dp20 = dp2px(20f, this)
+        val dp10 = dp2px(10f, this)
         val blockManager1 =
                 BlockManager(this, R.layout.layout_linear).apply {
                     inflateBlocksAsync = true

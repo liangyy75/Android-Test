@@ -1,6 +1,7 @@
 package com.example.uilib.block2
 
 open class BlockManager : BlockGroup()
+
 // 1. TODO: initInContext / initInBlock / initInGroup / initInManager
 // 2. TODO: default constructor / constructor(layoutId) / constructor(view)
 // 3. TODO: recycle / load / unload / copy

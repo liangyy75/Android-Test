@@ -9,7 +9,7 @@ import com.example.uilib.block.Block
 import com.example.uilib.block.BlockGroup
 import com.liang.example.androidtest.R
 import com.liang.example.utils.ApiManager
-import com.liang.example.utils.DensityApi
+import com.liang.example.utils.r.dp2px
 
 class MainActivity3 : AppCompatActivity() {
     companion object {
@@ -19,7 +19,7 @@ class MainActivity3 : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dp30 = DensityApi.dpToPx(this, 30f)
+        val dp30 = dp2px(30f, this)
         BlockGroup(this, R.layout.layout_relative).setInflatedCallback<RelativeLayout> {
             ApiManager.LOGGER.d(TAG, "blockGroup inflated")
         }.addBlock(Block(R.layout.view_text).setInflatedCallback<TextView> {

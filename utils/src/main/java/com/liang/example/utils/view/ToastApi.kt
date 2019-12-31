@@ -8,17 +8,17 @@ import com.google.android.material.snackbar.Snackbar
 import com.liang.example.utils.ApiManager
 
 @JvmOverloads
-fun showToast(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
+fun showToast(msg: String, c: Context? = ApiManager.CONTEXT.appContext, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show()
 }
 
 @JvmOverloads
-fun showToastOrLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
+fun showToastOrLog(msg: String, c: Context? = ApiManager.CONTEXT.appContext, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show() else ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }
 
 @JvmOverloads
-fun showToastWithLog(msg: String, c: Context? = ApiManager.CONTEXT.context, duration: Int = Toast.LENGTH_SHORT) {
+fun showToastWithLog(msg: String, c: Context? = ApiManager.CONTEXT.appContext, duration: Int = Toast.LENGTH_SHORT) {
     if (c != null) Toast.makeText(c, msg, duration).show()
     ApiManager.LOGGER.d(ApiManager.DEFAULT_TAG, msg)
 }

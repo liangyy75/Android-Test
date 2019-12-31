@@ -11,7 +11,7 @@ import com.example.uilib.block.BlockActivity;
 import com.example.uilib.block.BlockManager;
 import com.liang.example.androidtest.R;
 import com.liang.example.utils.ApiManager;
-import com.liang.example.utils.DensityApi;
+import com.liang.example.utils.r.ResApiKt;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +35,7 @@ public class MainActivity extends BlockActivity {
     @Nullable
     @Override
     protected List<BlockManager> getBlockManagerList() {
-        int dp10 = DensityApi.INSTANCE.dpToPx(this, 10f);
+        int dp10 = ResApiKt.dp2px(10f, this);
         List<BlockManager> result = new ArrayList<>();
         BlockManager blockManager = new BlockManager(this, R.layout.layout_linear);
         blockManager.setInflateBlocksAsync(false);

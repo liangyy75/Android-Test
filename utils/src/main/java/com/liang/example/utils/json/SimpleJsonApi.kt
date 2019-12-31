@@ -1,8 +1,5 @@
-@file:Suppress("MemberVisibilityCanBePrivate", "unused")
-
 package com.liang.example.utils.json
 
-import java.lang.StringBuilder
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -17,7 +14,8 @@ enum class JsonType {
     NUMBER,
     STRING,
     ARRAY,
-    OBJECT;
+    OBJECT/*,
+    COMMENT*/;
 
     fun isObject() = this == OBJECT
     fun isArray() = this == ARRAY
@@ -51,56 +49,17 @@ interface SimpleJsonValue<T : Any> : Cloneable {
     fun type(): JsonType
     fun value(): T?
     fun value2(): T
-    fun isValueNull(): Boolean
     fun string(): String
     fun json(): SimpleJsonApi
     public override fun clone(): SimpleJsonValue<T>
-
-    companion object {
-        fun nullString(type: JsonType): String = when (type) {
-            JsonType.NUMBER -> "0"
-            JsonType.BOOL -> "false"
-            JsonType.STRING -> "\"\""
-            JsonType.ARRAY -> "[]"
-            JsonType.OBJECT -> "{}"
-            else -> "null"
-        }
-
-        fun defaultNumber(type: JsonNumberType): Number = when (type) {
-            JsonNumberType.BYTE -> BYTE_ZERO
-            JsonNumberType.SHORT -> SHORT_ZERO
-            JsonNumberType.INT -> INT_ZERO
-            JsonNumberType.LONG -> LONG_ZERO
-            JsonNumberType.FLOAT -> FLOAT_ZERO
-            JsonNumberType.DOUBLE -> DOUBLE_ZERO
-            JsonNumberType.BIG_INTEGER -> BIG_INTEGER_ZERO
-            JsonNumberType.BIG_DECIMAL -> BIG_DECIMAL_ZERO
-            else -> 0
-        }
-
-        const val BYTE_ZERO: Byte = 0
-        const val SHORT_ZERO: Short = 0
-        const val INT_ZERO: Int = 0
-        const val LONG_ZERO: Long = 0L
-        const val FLOAT_ZERO: Float = 0f
-        const val DOUBLE_ZERO: Double = 0.0
-        val BIG_DECIMAL_ZERO: BigDecimal = BigDecimal.ZERO
-        val BIG_INTEGER_ZERO: BigInteger = BigInteger.ZERO
-    }
 }
 
-abstract class SimpleJsonValueAdapter<T : Any>(
-        var mValue: T?,  // 真实value
-        protected var mDefaultValue: T?,  // 返回value的时候需要用到
-        protected val mType: JsonType,
-        var mNullValue: String = SimpleJsonValue.nullString(mType) // json化的时候需要用到
-) : SimpleJsonValue<T> {
+abstract class SimpleJsonValueAdapter<T : Any>(var mValue: T?, protected val mType: JsonType) : SimpleJsonValue<T> {
     protected var mJsonApi: SimpleJsonApi? = null
-    override fun isValueNull(): Boolean = mValue == null
     override fun type(): JsonType = mType
-    override fun value(): T? = mValue ?: mDefaultValue
+    override fun value(): T? = mValue
     override fun value2(): T = mValue!!
-    override fun string(): String = mValue?.toString() ?: mNullValue
+    override fun string(): String = mValue?.toString() ?: "null"
     override fun json(): SimpleJsonApi {
         if (mJsonApi == null) {
             mJsonApi = SimpleJsonApi(this)
@@ -109,41 +68,44 @@ abstract class SimpleJsonValueAdapter<T : Any>(
     }
 }
 
-open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>>, defaultValue: Map<String, SimpleJsonValue<*>>? = EMPTY_OBJECT)
-    : SimpleJsonValueAdapter<Map<String, SimpleJsonValue<*>>>(m, defaultValue, JsonType.OBJECT) {
+open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<Map<String, SimpleJsonValue<*>?>>(m, JsonType.OBJECT) {
     var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
     var mDepth: Int = 0
 
     override fun string(): String {
-        if (mValue.isNullOrEmpty()) {
-            return mNullValue
+        if (mValue == null) {
+            return "null"
         }
         var tempValue = mValue!!
+        if (tempValue.isEmpty()) {
+            return "{}"
+        }
         if (!mStrategy.useNull()) {
-            tempValue = tempValue.filter { !it.value.isValueNull() }
+            tempValue = tempValue.filter { it.value?.value() != null }
             if (tempValue.isNullOrEmpty()) {
-                return mNullValue
+                return "{}"
             }
         }
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
-            """{${tempValue.map { "\"${it.key}\":${it.value.string()}" }.joinToString(",")}}"""
+            """{${tempValue.map { "\"${it.key}\":${it.value?.string() ?: "null"}" }.joinToString(",")}}"""
         } else {
             val prefix1 = "\t".repeat(mDepth)
             val prefix2 = "$prefix1\t"
-            "{\n" + tempValue.map { "${prefix2}\"${it.key}\": ${it.value.string()}" }.joinToString(",\n") + "\n$prefix1}"
+            "{\n" + tempValue.map { "${prefix2}\"${it.key}\": ${it.value?.string() ?: "null"}" }.joinToString(",\n") + "\n$prefix1}"
         }
     }
 
     override fun clone(): SimpleJsonObject {
         val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
         mValue?.forEach {
-            if (it.value != null) {
-                itemMap[it.key] = it.value!!.clone()
+            val value = it.value
+            if (value != null) {
+                itemMap[it.key] = value.clone()
             }
         }
-        val result = SimpleJsonObject(itemMap, mDefaultValue)
+        val result = SimpleJsonObject(itemMap)
         result.mDepth = mDepth
         result.mStrategy = mStrategy
         return result
@@ -179,22 +141,15 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>>, defaultValue: Ma
     operator fun get(key: String) = if (mValue.isNullOrEmpty()) mValue!![key] else null
 }
 
-open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<SimpleJsonValue<*>>? = EMPTY_ARRAY)
-    : SimpleJsonValueAdapter<List<SimpleJsonValue<*>>>(l, defaultValue, JsonType.ARRAY) {
+open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<List<SimpleJsonValue<*>?>>(l, JsonType.ARRAY) {
     var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
     var mDepth: Int = 0
 
     override fun string(): String {
-        if (mValue.isNullOrEmpty()) {
-            return mNullValue
+        if (mValue == null) {
+            return "null"
         }
         var tempValue = mValue!!
-        if (!mStrategy.useNull()) {
-            tempValue = tempValue.filter { it != null && !it.isValueNull() }
-            if (tempValue.isNullOrEmpty()) {
-                return mNullValue
-            }
-        }
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
@@ -213,7 +168,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
                 itemList.add(it.clone())
             }
         }
-        val result = SimpleJsonArray(itemList, mDefaultValue)
+        val result = SimpleJsonArray(itemList)
         result.mDepth = mDepth
         result.mStrategy = mStrategy
         return result
@@ -247,61 +202,52 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>>, defaultValue: List<Simpl
     operator fun get(index: Int) = if (mValue.isNullOrEmpty()) mValue!![index] else null
 }
 
-open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : SimpleJsonValueAdapter<Number>(n, defaultValue, JsonType.NUMBER) {
+open class SimpleJsonNumber(n: Number? = null) : SimpleJsonValueAdapter<Number>(n, JsonType.NUMBER) {
     protected var mNumberType: JsonNumberType = JsonNumberType.UNKNOWN
-        set(value) {
-            field = value
-            mDefaultValue = SimpleJsonValue.defaultNumber(field)
-        }
 
-    constructor(b: Byte) : this(b as Number) {
+    constructor(b: Byte?) : this(b as? Number) {
         mNumberType = JsonNumberType.BYTE
     }
 
-    constructor(s: Short) : this(s as Number) {
+    constructor(s: Short?) : this(s as? Number) {
         mNumberType = JsonNumberType.SHORT
     }
 
-    constructor(i: Int) : this(i as Number) {
+    constructor(i: Int?) : this(i as? Number) {
         mNumberType = JsonNumberType.INT
     }
 
-    constructor(l: Long) : this(l as Number) {
+    constructor(l: Long?) : this(l as? Number) {
         mNumberType = JsonNumberType.LONG
     }
 
-    constructor(bi: BigInteger) : this(bi as Number) {
+    constructor(bi: BigInteger?) : this(bi as? Number) {
         mNumberType = JsonNumberType.BIG_INTEGER
     }
 
-    constructor(f: Float) : this(f as Number) {
+    constructor(f: Float?) : this(f as? Number) {
         mNumberType = JsonNumberType.FLOAT
-        mNullValue = "0.0"
     }
 
-    constructor(d: Double) : this(d as Number) {
+    constructor(d: Double?) : this(d as? Number) {
         mNumberType = JsonNumberType.DOUBLE
-        mNullValue = "0.0"
     }
 
-    constructor(bd: BigDecimal) : this(bd as Number) {
+    constructor(bd: BigDecimal?) : this(bd as? Number) {
         mNumberType = JsonNumberType.BIG_DECIMAL
-        mNullValue = "0.0"
     }
 
-    constructor(c: Char) : this(c.toLong() as Number) {
+    constructor(c: Char?) : this(c?.toLong() as? Number) {
         mNumberType = JsonNumberType.CHAR
-        mNullValue = "\u0000"
     }
 
-    constructor(n: Number, nt: JsonNumberType, nv: String = "0") : this(n) {
+    constructor(n: Number?, nt: JsonNumberType) : this(n) {
         mNumberType = nt
-        mNullValue = nv
     }
 
     override fun value(): Number? = when {
-        mNumberType == JsonNumberType.CHAR -> throw RuntimeException("This is char number, can't be transformed to normal number!")
-        mValue == null -> mDefaultValue ?: 0
+        mValue == null -> null
+        mNumberType == JsonNumberType.CHAR -> mValue!!
         mNumberType == JsonNumberType.UNKNOWN -> mValue!!
         mNumberType == JsonNumberType.BYTE -> mValue!!.toByte()
         mNumberType == JsonNumberType.SHORT -> mValue!!.toShort()
@@ -311,12 +257,12 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
         mNumberType == JsonNumberType.FLOAT -> mValue!!.toFloat()
         mNumberType == JsonNumberType.DOUBLE -> mValue!!.toDouble()
         mNumberType == JsonNumberType.BIG_DECIMAL -> mValue!! as BigDecimal
-        else -> mDefaultValue ?: 0
+        else -> null
     }
 
     override fun string(): String = when {
-        mNumberType != JsonNumberType.UNKNOWN -> mValue?.toString() ?: mNullValue
-        else -> mNullValue
+        mNumberType != JsonNumberType.UNKNOWN -> mValue?.toString() ?: "null"
+        else -> "null"
     }
 
     open fun numberType(): JsonNumberType = mNumberType
@@ -329,10 +275,10 @@ open class SimpleJsonNumber(n: Number? = null, defaultValue: Number? = 0) : Simp
     }
 }
 
-open class SimpleJsonString(s: String? = null, defaultValue: String? = "") : SimpleJsonValueAdapter<String>(s, defaultValue, JsonType.STRING) {
+open class SimpleJsonString(s: String? = null) : SimpleJsonValueAdapter<String>(s, JsonType.STRING) {
     @Suppress("IntroduceWhenSubject")
     override fun string(): String {
-        val tempValue = mValue ?: return mNullValue
+        val tempValue = mValue ?: return "null"
         val resultBuilder = StringBuilder("\"")
         var i = 0
         val length = tempValue.length
@@ -363,17 +309,20 @@ open class SimpleJsonString(s: String? = null, defaultValue: String? = "") : Sim
         return resultBuilder.append("\"").toString()
     }
 
-    override fun clone(): SimpleJsonString = SimpleJsonString(mValue, mDefaultValue)
+    override fun clone(): SimpleJsonString = SimpleJsonString(mValue)
 }
 
-open class SimpleJsonBoolean(b: Boolean = false, defaultValue: Boolean? = false) : SimpleJsonValueAdapter<Boolean>(b, defaultValue, JsonType.BOOL) {
-    override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue!!, mDefaultValue)
-    override fun value(): Boolean = mValue!!
+open class SimpleJsonBoolean(b: Boolean? = false) : SimpleJsonValueAdapter<Boolean>(b, JsonType.BOOL) {
+    override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue)
 }
 
-open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, null, JsonType.NUL) {
+open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, JsonType.NUL) {
     override fun clone(): SimpleJsonNULL = SimpleJsonNULL()
 }
+
+// open class SimpleJsonComment(s: String? = null) : SimpleJsonValueAdapter<String>(s, JsonType.COMMENT) {
+//     override fun clone(): SimpleJsonValue<String> = SimpleJsonComment(mValue)
+// }
 
 val EMPTY_ARRAY = listOf<SimpleJsonValue<*>>()
 val EMPTY_OBJECT = mapOf<String, SimpleJsonValue<*>>()
@@ -774,7 +723,6 @@ open class SimpleJsonApi {
     open fun type(): JsonType = jsonValue.type()
     open fun value(): Any? = jsonValue.value()
     open fun jsonValue(): SimpleJsonValue<*> = jsonValue
-    open fun isValueNull(): Boolean = jsonValue.isValueNull()
     open fun string(): String = jsonValue.string()
 
     companion object {
@@ -784,7 +732,8 @@ open class SimpleJsonApi {
         fun fromJsonOrThrow(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi =
                 SimpleJsonApi(SimpleJsonParser.fromJsonOrThrow(jsonStr, strategy))
 
-        fun fromJsonOrNull(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi? =
-                SimpleJsonApi(SimpleJsonParser.fromJson(jsonStr, strategy))
+        fun fromJsonOrNull(jsonStr: String, strategy: JsonStyle = JsonStyle.STANDARD): SimpleJsonApi? {
+            return SimpleJsonApi(SimpleJsonParser.fromJsonOrNull(jsonStr, strategy) ?: return null)
+        }
     }
 }

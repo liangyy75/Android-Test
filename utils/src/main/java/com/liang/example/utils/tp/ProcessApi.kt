@@ -1,4 +1,4 @@
-package com.liang.example.utils.process
+package com.liang.example.utils.tp
 
 import android.app.ActivityManager
 import android.content.Context
@@ -21,6 +21,6 @@ fun killProcesses(context: Context) {
 }
 
 fun showProcessNames() {
-    val activityManager = ApiManager.CONTEXT.context?.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager?
+    val activityManager = ApiManager.CONTEXT.appContext?.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager?
     activityManager?.runningAppProcesses?.forEach { println(it) }
 }

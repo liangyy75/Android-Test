@@ -11,7 +11,7 @@ import com.example.uilib.block.BlockManager
 import com.liang.example.androidtest.R
 import com.liang.example.javaandroidtest.Helper.groovyTargetActivityClass
 import com.liang.example.utils.ApiManager
-import com.liang.example.utils.DensityApi
+import com.liang.example.utils.r.dp2px
 import com.liang.example.utils.view.showToast
 
 class MainActivity : BlockActivity() {
@@ -21,7 +21,7 @@ class MainActivity : BlockActivity() {
 
     @SuppressLint("CI_ByteDanceKotlinRules_Not_Allow_findViewById_Invoked_In_UI", "SetTextI18n")
     override fun getBlockManagerList(): List<BlockManager>? {
-        val dp10 = DensityApi.dpToPx(this, 10f)
+        val dp10 = dp2px(10f, this)
         return listOf(BlockManager(this, R.layout.layout_linear).apply {
             inflateBlocksAsync = false
             parent = this@MainActivity.window.decorView.findViewById(android.R.id.content)

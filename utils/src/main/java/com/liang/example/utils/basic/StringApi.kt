@@ -1,4 +1,4 @@
-package com.liang.example.utils
+package com.liang.example.utils.basic
 
 fun String.isNumber(): Boolean = this.toIntOrNull() != null
 

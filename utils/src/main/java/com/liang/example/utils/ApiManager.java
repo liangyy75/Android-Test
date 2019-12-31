@@ -6,23 +6,23 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import com.liang.example.utils.logger.LoggerApiKt;
 import com.liang.example.utils.logger.LoggerLevel;
 import com.liang.example.utils.logger.MultiLogger;
-import com.liang.example.utils.process.ContextApi;
+import com.liang.example.utils.app.ContextApi;
 
 public class ApiManager {
     public static String DEFAULT_TAG;
     public static MultiLogger LOGGER;
-    @SuppressLint("StaticFieldLeak")
-    public static ContextApi CONTEXT;
+    @SuppressLint({"StaticFieldLeak", "CI_StaticFieldLeak"})
+    public static ContextApi CONTEXT = ContextApi.INSTANCE;
 
     public static void init(Application application) {
         Context context = application.getApplicationContext();
-        CONTEXT = new ContextApi(context, application);
+        CONTEXT.init(application);
         XmlApiKt.init(context);
-        JsonApiKt.init();
 
         DEFAULT_TAG = XmlApiKt.getStringMetaData("logger_tag", "default_tag");
         LoggerApiKt.setDEFAULT_TAG(DEFAULT_TAG);
@@ -38,8 +38,6 @@ public class ApiManager {
     }
 
     public static void destroy() {
-        CONTEXT.setApplication(null);
-        CONTEXT.setContext(null);
-        CONTEXT.setHandler(null);
+        Objects.requireNonNull(CONTEXT.getHandler()).removeCallbacksAndMessages(null);
     }
 }
