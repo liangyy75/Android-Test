@@ -1,3 +1,5 @@
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package com.liang.example.utils.json
 
 import java.math.BigDecimal
@@ -145,11 +147,22 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapt
     var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
     var mDepth: Int = 0
 
+    init {
+        if (mValue != null) {
+            val index = mValue!!.indexOfLast { it?.value() != null || it != null && it.type() != JsonType.NUL }
+            if (index == -1) {
+                mValue = null
+            } else if (index != mValue!!.size - 1) {
+                mValue = mValue!!.subList(0, index + 1)
+            }
+        }
+    }
+
     override fun string(): String {
-        if (mValue == null) {
+        if (mValue.isNullOrEmpty()) {
             return "null"
         }
-        var tempValue = mValue!!
+        val tempValue = mValue!!
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
         return if (!mStrategy.useTab()) {
@@ -285,25 +298,27 @@ open class SimpleJsonString(s: String? = null) : SimpleJsonValueAdapter<String>(
         while (i < length) {
             val ch = tempValue[i]
             // val chInt = ch.toInt()
-            resultBuilder.append(when {
-                ch == '\\' -> "\\\\"
-                ch == '"' -> "\\\""
-                ch == '\b' -> "\\b"
-                ch == '\u000C' -> "\\f"
-                ch == '\n' -> "\\n"
-                ch == '\r' -> "\\r"
-                ch == '\t' -> "\\t"
-                // chInt <= 0x1f -> String.format("\\u%04x", chInt) // ???
-                // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa8 -> {
-                //     i += 2
-                //     "\\u2028"
-                // } // ???
-                // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa9 -> {
-                //     i += 2
-                //     "\\u2029"
-                // } // ???
-                else -> ch
-            })
+            resultBuilder.append(
+                    when {
+                        ch == '\\' -> "\\\\"
+                        ch == '"' -> "\\\""
+                        ch == '\b' -> "\\b"
+                        ch == '\u000C' -> "\\f"
+                        ch == '\n' -> "\\n"
+                        ch == '\r' -> "\\r"
+                        ch == '\t' -> "\\t"
+                        // chInt <= 0x1f -> String.format("\\u%04x", chInt) // ???
+                        // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa8 -> {
+                        //     i += 2
+                        //     "\\u2028"
+                        // } // ???
+                        // chInt == 0xe2 && i < length - 2 && tempValue[i + 1].toInt() == 0x80 && tempValue[i + 2].toInt() == 0xa9 -> {
+                        //     i += 2
+                        //     "\\u2029"
+                        // } // ???
+                        else -> ch
+                    }
+            )
             i++
         }
         return resultBuilder.append("\"").toString()
@@ -472,8 +487,10 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun innerParseString(): String? {
             if (index >= length || jsonStr[index] != '"') {
-                return makeFail<String>("unexpected start of input in string: ${if (index >= length) "end" else jsonStr[index].toString()}",
-                        null)
+                return makeFail<String>(
+                        "unexpected start of input in string: ${if (index >= length) "end" else jsonStr[index].toString()}",
+                        null
+                )
             }
             index++
             val resultBuilder = StringBuilder()
@@ -507,8 +524,10 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun parseArray(depth: Int): SimpleJsonArray? {
             if (index >= length || jsonStr[index] != '[') {
-                return makeFail<SimpleJsonArray>("unexpected start of input in array: ${if (index >= length) "end" else
-                    jsonStr[index].toString()}", null)
+                return makeFail<SimpleJsonArray>(
+                        "unexpected start of input in array: ${if (index >= length) "end" else
+                            jsonStr[index].toString()}", null
+                )
             }
             index++
             var ch = getNextToken() ?: return makeFail<SimpleJsonArray>("invalid array's present, lack of \"]\"", null)
@@ -535,8 +554,10 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun parseObject(depth: Int): SimpleJsonObject? {
             if (index >= length || jsonStr[index] != '{') {
-                return makeFail<SimpleJsonObject>("unexpected start of input in object: ${if (index >= length) "end" else
-                    jsonStr[index].toString()}", null)
+                return makeFail<SimpleJsonObject>(
+                        "unexpected start of input in object: ${if (index >= length) "end" else
+                            jsonStr[index].toString()}", null
+                )
             }
             index++
             var ch = getNextToken()
@@ -570,8 +591,10 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
 
         protected fun parseJson(depth: Int): SimpleJsonValue<*>? {
             val ch = getNextToken()
-                    ?: makeFail<SimpleJsonValue<*>>("json format is incorrect, the json string become empty before end parsing",
-                            null)
+                    ?: makeFail<SimpleJsonValue<*>>(
+                            "json format is incorrect, the json string become empty before end parsing",
+                            null
+                    )
             index--
             return when (ch) {
                 '-', in allDigitCharRange -> parseNumber()
@@ -593,8 +616,12 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
             val start = index
             expected.forEach {
                 if (it != jsonStr[index++]) {
-                    return makeFail<SimpleJsonValue<*>>("parse error -- expected: $expected, got: " + jsonStr.substring(start, start
-                            + expected.length), null)
+                    return makeFail<SimpleJsonValue<*>>(
+                            "parse error -- expected: $expected, got: " + jsonStr.substring(
+                                    start, start
+                                    + expected.length
+                            ), null
+                    )
                 }
             }
             return result
@@ -664,8 +691,10 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         protected fun <T> makeFail(reason: String, result: T?): T? {
             failReason = reason
             if (throwEx) {
-                throw RuntimeException("failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
-                else "none"}")
+                throw RuntimeException(
+                        "failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
+                        else "none"}"
+                )
             }
             return result
         }
