@@ -19,6 +19,8 @@ interface Consumer<T> {
  * 2. consumer的能力，即通过message.what来将message派发给各个consumer，而且可以根据message.arg1来安排consumer工作的线程类型
  * 3. 着重强调了removeCallbacksAndMessages这个函数
  * 4. compositeDisposable，聚合消除disposable
+ *
+ * TODO: 不用 rxJava ，这样能更轻量，因为一个 rxJava 就有 1M 多
  */
 open class RxHandler : Handler() {
     companion object {

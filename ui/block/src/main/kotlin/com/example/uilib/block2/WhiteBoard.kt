@@ -20,6 +20,9 @@ import java.util.concurrent.ConcurrentHashMap
  * 2. liveData
  * 3. rxJava -- subject
  * 4. set / get data ，一个简单的数据容器
+ *
+ * TODO: 使用 java.util.Observable / java.util.Observer 来代替 rxJava ，这样更简单 ，然后在 rxJava-ktx 里面添加 Observable 到 Subject 之类的转换
+ * TODO: 不试用自带的 liveData ，尝试自己写一个 liveData ，这样更轻量？？？ 这些都可以放到子类来实现的
  */
 open class WhiteBoard<T> : ViewModel() {
     private val dataMap = ConcurrentHashMap<T, Any>()
