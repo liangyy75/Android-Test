@@ -17,7 +17,7 @@ import com.liang.example.ktandroidtest.ConstantsKt;
 import com.liang.example.recyclerviewtest.recycler1.RVAdapterTest;
 import com.liang.example.recyclerviewtest.recycler1.RVViewHolderTest;
 import com.liang.example.utils.ApiManager;
-import com.liang.example.utils.basic.ArrayApiKt;
+import com.liang.example.basic_ktx.ArrayApiKt;
 
 import org.jetbrains.annotations.NotNull;
 

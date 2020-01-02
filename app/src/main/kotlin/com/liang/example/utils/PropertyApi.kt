@@ -8,6 +8,8 @@ import android.content.SharedPreferences
 import androidx.annotation.MainThread
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.liang.example.context_ktx.ContextApi
+import com.liang.example.basic_ktx.isImplementInclusive
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -15,10 +17,6 @@ import java.lang.reflect.Type
 
 // [SharedPreference 里存储StringSet，App关闭丢失数据问题](https://blog.csdn.net/weixin_40299948/article/details/80008940)
 
-/**
- * 谨慎使用 getValue / getValue2 ，这里的是通过 postValue / setValue 设置的，然后会 mainHandler.post 。
- * 所以在 onResume 之后才能通过 getValue / getValue2 来获取指
- */
 open class Property<T : Any> : MutableLiveData<T> {
     protected var mDesc: String
     protected var mData: T? = null
@@ -74,7 +72,11 @@ open class SpProperty<T : Any> : Property<T> {
     @Suppress("UNCHECKED_CAST")
     open fun saveInSp(sp: SharedPreferences) {
         val spEdit = sp.edit()
-        val data = mData ?: return
+        if (mData == null) {
+            spEdit.remove(mSpKey).remove("${mSpKey}_DESC").apply()
+            return
+        }
+        val data = mData!!
         val type = mType
         val typeStr = mType.toString()
         when {
@@ -102,7 +104,7 @@ open class SpProperty<T : Any> : Property<T> {
     }
 
     @Suppress("UNCHECKED_CAST")
-    open fun getFromSp(sp: SharedPreferences, post: Boolean = true) {
+    open fun getFromSp(sp: SharedPreferences) {
         if (sp.contains(mSpKey)) {
             val type = getType()
             val typeStr = mType.toString()
@@ -118,13 +120,10 @@ open class SpProperty<T : Any> : Property<T> {
                     if (stringSet != null) {
                         HashSet<String>(stringSet) as? T
                     } else {
-                        JsonApi.fromJsonOrNull(sp.getString(mSpKey, "") ?: "", type)
+                        JsonApi.parseJson(sp.getString(mSpKey, "") ?: "", type)
                     }
                 }
-                else -> JsonApi.fromJsonOrNull(sp.getString(mSpKey, "") ?: "", type)
-            }
-            if (post) {
-                postValue(mData)
+                else -> JsonApi.parseJson(sp.getString(mSpKey, "") ?: "", type)
             }
         }
     }
@@ -139,11 +138,13 @@ open class ContextSpProperty<T : Any> : SpProperty<T> {
 
     constructor(desc: String, data: T, spKey: String, context: Context) : super(desc, data, spKey) {
         getFromSp(context.getSharedPreferences(PROPERTY_SP_NAME, mode))
+        super.setValue(mData)
         this.context = context
     }
 
     constructor(desc: String, type: Type, spKey: String, context: Context) : super(desc, type, spKey) {
         getFromSp(context.getSharedPreferences(PROPERTY_SP_NAME, mode))
+        super.setValue(mData)
         this.context = context
     }
 
@@ -157,7 +158,7 @@ open class ContextSpProperty<T : Any> : SpProperty<T> {
         saveInSp(context.getSharedPreferences(PROPERTY_SP_NAME, mode))
     }
 
-    open fun remove() = context.getSharedPreferences(PROPERTY_SP_NAME, mode).edit().remove(mSpKey).apply()
+    open fun remove() = context.getSharedPreferences(PROPERTY_SP_NAME, mode).edit().remove(mSpKey).remove("${mSpKey}_DESC").apply()
 
     companion object {
         const val PROPERTY_SP_NAME = "PROPERTY_SP_NAME"
@@ -181,8 +182,8 @@ fun ContextSpProperty<HashSet<String>>.remove(data: String) {
 }
 
 open class AppSpProperty<T : Any> : ContextSpProperty<T> {
-    constructor(desc: String, data: T, spKey: String) : super(desc, data, spKey, ContextApi.appContext)
-    constructor(desc: String, type: Type, spKey: String) : super(desc, type, spKey, ContextApi.appContext)
+    constructor(desc: String, data: T, spKey: String) : super(desc, data, spKey, ContextApi.app)
+    constructor(desc: String, type: Type, spKey: String) : super(desc, type, spKey, ContextApi.app)
 }
 
 open class NetProperty<T : Any> : Property<T> {

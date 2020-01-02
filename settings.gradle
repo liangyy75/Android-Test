@@ -1,9 +1,23 @@
-include ':app', ':lib', ':remote', ':utils', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lualib', ':uilib', ':netlib'
+include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':popup',
+        ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
 project(":spi_impl1").projectDir = new File("spi/spi_impl1")
 project(":spi_impl2").projectDir = new File("spi/spi_impl2")
 
 project(":plugin").projectDir = new File("plugins/plugin")
-project(":uilib").projectDir = new File("ui/uilib")
-project(":netlib").projectDir = new File("net/netlib")
+
+project(":block").projectDir = new File("ui/block")
+project(":popup").projectDir = new File("ui/popup")
+
+project(":utils-ktx").projectDir = new File("utils-ktx/utils-ktx")
+project(":view-ktx").projectDir = new File("utils-ktx/view-ktx")
+project(":context-ktx").projectDir = new File("utils-ktx/context-ktx")
+project(":logger").projectDir = new File("utils-ktx/logger")
+project(":basic-ktx").projectDir = new File("utils-ktx/basic-ktx")
+project(":json-ktx").projectDir = new File("utils-ktx/json-ktx")
+project(":xml-ktx").projectDir = new File("utils-ktx/xml-ktx")
+
+project(":priority").projectDir = new File("custom/priority")
+project(":network").projectDir = new File("custom/network")
+project(":lua").projectDir = new File("custom/lua")

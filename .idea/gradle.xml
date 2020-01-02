@@ -9,16 +9,24 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/custom/lua" />
+            <option value="$PROJECT_DIR$/custom/network" />
+            <option value="$PROJECT_DIR$/custom/priority" />
             <option value="$PROJECT_DIR$/lib" />
-            <option value="$PROJECT_DIR$/lualib" />
-            <option value="$PROJECT_DIR$/net/netlib" />
             <option value="$PROJECT_DIR$/plugins/plugin" />
             <option value="$PROJECT_DIR$/remote" />
             <option value="$PROJECT_DIR$/spi/spi_impl1" />
             <option value="$PROJECT_DIR$/spi/spi_impl2" />
             <option value="$PROJECT_DIR$/spi/spi_interface" />
-            <option value="$PROJECT_DIR$/ui/uilib" />
-            <option value="$PROJECT_DIR$/utils" />
+            <option value="$PROJECT_DIR$/ui/block" />
+            <option value="$PROJECT_DIR$/ui/popup" />
+            <option value="$PROJECT_DIR$/utils-ktx/basic-ktx" />
+            <option value="$PROJECT_DIR$/utils-ktx/context-ktx" />
+            <option value="$PROJECT_DIR$/utils-ktx/json-ktx" />
+            <option value="$PROJECT_DIR$/utils-ktx/logger" />
+            <option value="$PROJECT_DIR$/utils-ktx/utils-ktx" />
+            <option value="$PROJECT_DIR$/utils-ktx/view-ktx" />
+            <option value="$PROJECT_DIR$/utils-ktx/xml-ktx" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

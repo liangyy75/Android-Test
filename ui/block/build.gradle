@@ -1,0 +1,54 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.2"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs = [
+                'src/main/java',
+                'src/main/kotlin',
+                'src/main/groovy',
+        ]
+    }
+}
+
+dependencies {
+    api fileTree(dir: 'libs', include: ['*.jar'])
+    add(deps.kotlin.stdlib[0], deps.kotlin.stdlib[1])
+    add(deps.support.app_compat[0], deps.support.app_compat[1])
+    add(deps.support.core_ktx[0], deps.support.core_ktx[1])
+
+    api 'androidx.appcompat:appcompat:1.1.0'
+    api 'androidx.constraintlayout:constraintlayout:1.1.3'
+    api 'com.google.android.material:material:1.2.0-alpha03'
+    api 'androidx.cardview:cardview:1.0.0'
+
+    add(deps.rxjava2[0], deps.rxjava2[1])
+    add(deps.rx_android[0], deps.rx_android[1])
+    add(deps.rxkotlin2[0], deps.rxkotlin2[1])
+    add(deps.async_layout_inflater[0], deps.async_layout_inflater[1])
+
+    deps.lifecycle.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
+
+    api project(":view-ktx")
+}

@@ -18,12 +18,11 @@ buildscript {
         classpath "org.aspectj:aspectjtools:${versions.aspectj}"
 
         // classpath "com.liang.example.plugin:groovy-plugin1:1.0.0"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-
         // classpath "com.google.gms:google-services:4.3.3"
 
         classpath 'org.codehaus.groovy:groovy-android-gradle-plugin:2.0.1'
         classpath "org.anarres.jarjar:jarjar-gradle:1.0.1"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
     repositories {
         google()

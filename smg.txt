@@ -1,0 +1,14 @@
+appcompat    1.1M
+material    1.1M
+glide    0.538M
+rxJava    2.2M
+rxkotlin    0.169M
+greendao    0.132M
+recyclerview    0.35M
+gson    0.229M
+okhttp    0.677M
+kotlin-stdlib    1.3M
+aspectjrt    0.115M
+auto-value    2M
+java-websocket    0.114M
+groovy    4.7M
