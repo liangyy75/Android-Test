@@ -12,3 +12,17 @@ aspectjrt    0.115M
 auto-value    2M
 java-websocket    0.114M
 groovy    4.7M
+
+1. popup -- toast/dialog/popupWindow统一管理，计划使用groovy实现。
+2. basic-block -- 尽量只使用android原声api实现ui管理，将ui从activity/fragment划分得更细更深，即activity/fragment/block。并且有简单的消息处理、从json/xml中创建block layout等等能力，计划使用kotlin实现。
+    1. 愿景1: block使开发更简单，而且可以从xml/json中生成block，那么就可以使用android studio来写布局了。
+        1. simpleJsonApi完成
+        2. reflectJsonApi完成
+        3. TODO: layoutJsonApi
+        4. TODO: simpleXmlApi
+        5. TODO: reflectXmlApi
+        6. TODO: layoutJsonApi
+        7. TODO: basic-block
+    2. 愿景2: groovy的GroovyScriptEngine很厉害，能解析String然后生成xxx.class，可以利用这一点来下发布局，甚至下发具体逻辑，让android动态性更强，不用总是依赖javascript，但要注意够轻量。
+3. lua -- 计划将lua这一异常简单的语言加入到android中(其实github上已经有了，但还是想自己试试)。lua的pcall可以让android的动态能力更强。两种实现方式——java的ScriptEngine和jni。
+4.

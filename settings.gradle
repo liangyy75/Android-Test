@@ -1,4 +1,4 @@
-include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':popup',
+include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':popup', ':basic-block',
         ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
@@ -8,6 +8,7 @@ project(":spi_impl2").projectDir = new File("spi/spi_impl2")
 project(":plugin").projectDir = new File("plugins/plugin")
 
 project(":block").projectDir = new File("ui/block")
+project(":basic-block").projectDir = new File("ui/basic-block")
 project(":popup").projectDir = new File("ui/popup")
 
 project(":utils-ktx").projectDir = new File("utils-ktx/utils-ktx")

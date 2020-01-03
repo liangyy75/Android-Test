@@ -92,7 +92,7 @@ open class Block() : ActivityProxy() {
             this.provider = bg.provider
         }
         this.ai = bm
-        this.swb.putData(KEY_INFLATED, false)
+        this.swb.putData(KEY_INFLATED, false)  // TODO: fix -- 多个block共用一个KEY_INFLATED的
         return this
     }
 

@@ -22,11 +22,7 @@ open class Block {
     protected var view: View? = null
     open val viewId: Int
         get() = view?.id ?: View.NO_ID
-    open var strId: String = EMPTY_VIEW_STR_ID
-        set(value) {
-            field = value
-            view?.strId = value
-        }
+    open var strId: String? = null
 }
 
 // 1. TODO: initInContext / initInBlock / initInGroup / initInManager
