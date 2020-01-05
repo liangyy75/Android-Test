@@ -4,7 +4,6 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.liang.example.view_ktx.EMPTY_VIEW_STR_ID
 import com.liang.example.view_ktx.strId
 
 open class Block {

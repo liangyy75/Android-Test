@@ -118,11 +118,9 @@ fun generateViewId(): Int {
 val strToIdMaps = ConcurrentHashMap<String, Int>()
 val idToStrMaps = ConcurrentHashMap<Int, String>()
 
-const val EMPTY_VIEW_STR_ID = "EMPTY_VIEW_STR_ID"
-
-var View.strId: String
+var View.strId: String?
     set(value) {
-        if (value == EMPTY_VIEW_STR_ID) {
+        if (value == null) {
             val id = this.id
             if (idToStrMaps.containsKey(id)) {
                 strToIdMaps.remove(idToStrMaps[id])
@@ -138,7 +136,7 @@ var View.strId: String
     get() {
         val id = this.id
         if (id == View.NO_ID || !idToStrMaps.containsKey(id)) {
-            return EMPTY_VIEW_STR_ID
+            return null
         }
         return idToStrMaps[id]!!
     }

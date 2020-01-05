@@ -9,7 +9,7 @@ import java.util.Observable
 import java.util.Observer
 import java.util.concurrent.ConcurrentHashMap
 
-@Suppress("MemberVisibilityCanBePrivate")
+@Suppress("MemberVisibilityCanBePrivate", "UNCHECKED_CAST")
 open class DataCenter<T> : ViewModel(), Observer {
     /**
      * 每个 observer 刚 add 进来的时候就获取当前数据值
@@ -92,6 +92,15 @@ open class DataCenter<T> : ViewModel(), Observer {
      */
     @JvmOverloads
     open fun getData(key: T, default: Any? = null) = dataMap[key] ?: default
+
+    /**
+     * 获取带类型数据
+     *
+     * @param key
+     * @param default
+     */
+    @JvmOverloads
+    open fun <T2 : Any> getTypedData(key: T, default: T2? = null) = dataMap[key] as? T2 ?: default
 
     /**
      * 获取 Observable ，这个 Observable 会对 key 对应的数据进行监听
