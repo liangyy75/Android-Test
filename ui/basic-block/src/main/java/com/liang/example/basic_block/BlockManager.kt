@@ -1,6 +1,12 @@
 package com.liang.example.basic_block
 
-open class BlockManager : BlockGroup()
+import android.view.ViewGroup
+import androidx.annotation.LayoutRes
+
+open class BlockManager : BlockGroup {
+    constructor(@LayoutRes layoutId: Int, strId: String?) : super(layoutId, strId)
+    constructor(viewGroup: ViewGroup, strId: String?) : super(viewGroup, strId)
+}
 
 // 1. TODO: initInContext / initInBlock / initInGroup / initInManager
 // 2. TODO: default constructor / constructor(layoutId) / constructor(view)

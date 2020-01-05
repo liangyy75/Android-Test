@@ -11,12 +11,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
+import androidx.annotation.LayoutRes
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.liang.example.view_ktx.EMPTY_VIEW_STR_ID
+import com.liang.example.view_ktx.strId
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("MemberVisibilityCanBePrivate", "UNCHECKED_CAST", "LeakingThis")
-open class Block(protected var layoutId: Int = 0) {
+open class Block : ActivityProxy {
     protected var viewModelProvider: ViewModelProvider? = null
     protected var swb: DataCenter<String>? = null
     protected var cwb: DataCenter<Class<*>>? = null
@@ -32,22 +36,34 @@ open class Block(protected var layoutId: Int = 0) {
     open var inflateViewAsync: Boolean = false
     open var inflateViewDelay: Long = 0L
     protected var viewCustomTask: Runnable? = null  // 用于设置view，注意这时候parent可能还是null
+    protected var afterInflatedTask: Runnable? = null
 
-    protected var parent: ViewGroup? = null
-    protected var view: View? = null
+    protected var layoutId: Int = 0
+    open var parent: ViewGroup? = null
+    open var view: View? = null
     open val viewId: Int
         get() = view?.id ?: View.NO_ID
-    open var strId: String? = null  // fromXml 和 fromJson 后的关键
+    protected var strId: String? = null  // fromXml 和 fromJson 后的关键
+    protected var inflated = AtomicBoolean(false)
 
-    constructor(view: View) : this(0) {
+    constructor(@LayoutRes layoutId: Int, strId: String?) : super() {
+        this.layoutId = layoutId
+        this.strId = strId
+    }
+
+    constructor(view: View, strId: String?) : super() {
         this.view = view
+        this.strId = strId
+        if (this.strId != null) {
+            this.view!!.strId = strId!!
+        }
+        inflated.compareAndSet(false, true)
         putData(blockKey, STATUS_INFLATED, this)
     }
 
     // init
 
-    @JvmOverloads
-    open fun init(context: Context, setProvider: Boolean = true): Block {
+    open fun init(context: Context, setProvider: Boolean): Block {
         if (getData(blockKey) != null) {
             return this
         }
@@ -133,7 +149,11 @@ open class Block(protected var layoutId: Int = 0) {
         val inflateTask = Runnable {
             beforeInflateView()
             view = onInflateView(this.context!!, this.inflater!!, parent) ?: this.inflater!!.inflate(layoutId, null, false)
+            if (this.strId != null) {
+                view!!.strId = this.strId!!
+            }
             putData(blockKey, STATUS_INFLATED, this)
+            inflated.compareAndSet(false, true)
             Log.d("Block", "inflate -- view: ${view!!.javaClass.name}, viewId: $viewId, ${parent?.javaClass?.name}, ${this.javaClass.name}")
             if (view!!.parent == null) {
                 val task = when {
@@ -158,6 +178,9 @@ open class Block(protected var layoutId: Int = 0) {
                 putData(blockKey, STATUS_ATTACHED, this)
             }
             viewCustomTask?.run()
+            viewCustomTask = null
+            afterInflatedTask?.run()
+            afterInflatedTask = null
             afterInflateView()
         }
         if (inflateViewAsync) {
@@ -165,6 +188,19 @@ open class Block(protected var layoutId: Int = 0) {
         } else {
             inflateTask.run()
         }
+        return this
+    }
+
+    open fun getInflated(): Boolean = inflated.get()
+    open fun getStringId(): String = strId ?: EMPTY_VIEW_STR_ID
+
+    open fun <T : View> setViewCustomTask(task: T.() -> Unit): Block {
+        viewCustomTask = Runnable { (this.view as T).task() }
+        return this
+    }
+
+    open fun setInflatedTask(task: Block.() -> Unit): Block {
+        afterInflatedTask = Runnable { this.task() }
         return this
     }
 
@@ -188,7 +224,7 @@ open class Block(protected var layoutId: Int = 0) {
         TODO()
     }
 
-    open fun copyAndInit() = Block(this.layoutId).init(this)
+    open fun copyAndInit(strId: String) = Block(this.layoutId, strId).init(this)
 
     open fun releaseBlock() {
         this.swb?.release(this)
@@ -315,8 +351,11 @@ open class Block(protected var layoutId: Int = 0) {
     }
 }
 
-open class FragmentBlock : Block(), FragmentLifeCycleInter {
+open class FragmentBlock : Block, FragmentLifeCycleInter {
     open var bundle: Bundle? = null
+
+    constructor(@LayoutRes layoutId: Int, strId: String?) : super(layoutId, strId)
+    constructor(view: View, strId: String?) : super(view, strId)
 
     // lifecycle
 
@@ -355,8 +394,11 @@ open class FragmentBlock : Block(), FragmentLifeCycleInter {
     override fun onSaveInstanceState(bundle: Bundle) = Unit
 }
 
-open class ActivityBlock : Block(), ActivityLifeCycleInter {
+open class ActivityBlock : Block, ActivityLifeCycleInter {
     open var bundle: Bundle? = null
+
+    constructor(@LayoutRes layoutId: Int, strId: String?) : super(layoutId, strId)
+    constructor(view: View, strId: String?) : super(view, strId)
 
     @CallSuper
     override fun onCreate(bundle: Bundle?) {
