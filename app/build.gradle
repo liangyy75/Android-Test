@@ -1,12 +1,14 @@
-// import com.liang.example.plugin.MyGroovyPlugin
-// apply plugin: MyGroovyPlugin
-
 apply plugin: 'com.android.application'
 apply plugin: 'groovyx.android'
-apply plugin: 'org.anarres.jarjar'
+apply plugin: 'org.anarres.jarjar'  // TODO: 我来实现一个JarJar吧
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'org.greenrobot.greendao' // apply plugin
+
+import com.android.build.gradle.AppExtension
+
+// import com.liang.example.plugin.MyGroovyPlugin
+// apply plugin: MyGroovyPlugin
 
 class GreetingPluginExtension {
     String msg = 'Hello from GreetingPlugin'
@@ -152,7 +154,7 @@ dependencies {
     annotationProcessor "com.ryanharter.auto.value:auto-value-parcel:${versions.auto_value_parcel}"
     api "com.ryanharter.auto.value:auto-value-parcel-adapter:${versions.auto_value_parcel}"
 
-    api jarjar.repackage {
+    api jarjar.repackage("grooid") {
         from("org.codehaus.groovy:groovy:2.4.16:grooid")
         classDelete('org.codehaus.groovy.vmplugin.v7.IndyInterface')
     }
@@ -163,3 +165,92 @@ greeting {
 }
 
 // apply plugin: 'com.google.gms.google-services'
+
+File.metaClass.allFiles = { ->
+    def files = []
+    def thisObj = delegate as File
+    thisObj.listFiles().each {
+        if (it.isDirectory()) {
+            files.addAll(it.allFiles())
+        } else {
+            files.add(it)
+        }
+    }
+    return files
+}
+
+task("learn") {
+    doLast {
+        def ifs = inputs.files
+        def ips = inputs.properties
+        def isfs = inputs.sourceFiles
+        def ofs = outputs.files
+        def jcofs = getTask("compileDebugJavaWithJavac").outputs.files
+        def jcoafs = jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.collect { it.length() > 0 ? it.allFiles().join('\n\t\t') : '' }.findAll { it.size() > 0 }.join('\n\t\t'))
+        println "\tinputs.files: ${ifs.size() == 0 ? '' : ('\n\t\t' + ifs.join('\n\t\t'))}" +
+                "\n\tinputs.properties: ${ips.size() == 0 ? '' : ('\n\t\t' + ips.entrySet().join('\n\t\t'))}" +
+                "\n\tinputs.sourceFiles: ${isfs.size() == 0 ? '' : ('\n\t\t' + isfs.join('\n\t\t'))}" +
+                "\n\toutputs.files: ${ofs.size() == 0 ? '' : ('\n\t\t' + ofs.join('\n\t\t'))}" +
+                "\n\tcompileDebugJavaWithJavac.outputs.files: ${jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.join('\n\t\t'))}" +
+                "\n\tcompileDebugJavaWithJavac.outputs.allFiles: ${jcoafs}"
+    }
+}
+
+afterEvaluate {
+    tasks.forEach { Task task ->
+        task.doFirst {
+            // def ifs = task.inputs.files
+            // def ips = task.inputs.properties
+            // def isfs = task.inputs.sourceFiles
+            // def ofs = task.outputs.files
+            // println "\tinputs.files: ${ifs.size() == 0 ? '' : ('\n\t\t' + ifs.join('\n\t\t'))}" +
+            //         "\n\tinputs.properties: ${ips.size() == 0 ? '' : ('\n\t\t' + ips.entrySet().join('\n\t\t'))}" +
+            //         "\n\tinputs.sourceFiles: ${isfs.size() == 0 ? '' : ('\n\t\t' + isfs.join('\n\t\t'))}" +
+            //         "\n\toutputs.files: ${ofs.size() == 0 ? '' : ('\n\t\t' + ofs.join('\n\t\t'))}"
+            println(task.class.name)
+        }
+    }
+    // println "tasks: ${tasks.join(",")}"
+    // println "defaultTasks: ${defaultTasks.join(",")}"
+    getTasksByName("compileDebugAidl", false)[0].enabled = false
+    getTasksByName("compileDebugRenderscript", false)[0].enabled = false
+    getTasksByName("mergeDebugShaders", false)[0].enabled = false
+    getTasksByName("compileDebugShaders", false)[0].enabled = false
+    getTasksByName("generateDebugAssets", false)[0].enabled = false
+    getTasksByName("mergeDebugAssets", false)[0].enabled = false
+    getTasksByName("processDebugJavaRes", false)[0].enabled = false
+
+    insert(getTask("learn"), getTask("compileDebugJavaWithJavac"), getTask("transformClassesWithDexBuilderForDebug"))
+
+    def sss = project.extensions.getByType(AppExtension.class).sourceSets
+    println "\tproject.projectDir: ${project.projectDir}" +
+            "\n\tproject.buildDir: ${project.buildDir}" +
+            "\n\tproject.rootDir: ${project.rootDir}" +
+            "\n\tproject.sourceSets: ${sss.getNames().join(', ')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.java.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.res.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.resources.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jni.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jniLibs.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.assets.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.aidl.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.renderscript.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.shaders.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}"
+}
+
+def getTask(String name) {
+    return getTasksByName(name, false)[0]
+}
+
+static def insert(Task targetTask, Task beforeTask, Task afterTask) {
+    before(targetTask, afterTask)
+    after(targetTask, beforeTask)
+}
+
+static def before(Task targetTask, Task afterTask) {
+    afterTask.dependsOn(targetTask)
+}
+
+static def after(Task targetTask, Task beforeTask) {
+    targetTask.dependsOn(beforeTask)
+}

@@ -2,6 +2,7 @@
 
 buildscript {
     ext.kotlin_version = '1.3.61'
+    ext.aspectj = '1.9.5'
 
     apply from: 'versions.gradle'
     addRepos(repositories)
@@ -9,20 +10,17 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.3'
 
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-
         classpath 'org.greenrobot:greendao-gradle-plugin:3.2.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:${versions.kotlin}"
-        classpath "org.aspectj:aspectjtools:${versions.aspectj}"
-
-        // classpath "com.liang.example.plugin:groovy-plugin1:1.0.0"
-        // classpath "com.google.gms:google-services:4.3.3"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        classpath "org.jetbrains.kotlin:kotlin-android-extensions:${kotlin_version}"
+        classpath "org.aspectj:aspectjtools:${aspectj}"
 
         classpath 'org.codehaus.groovy:groovy-android-gradle-plugin:2.0.1'
         classpath "org.anarres.jarjar:jarjar-gradle:1.0.1"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+
+        // classpath "com.liang.example.plugin:groovy-plugin1:1.0.0"
+        // classpath "com.google.gms:google-services:4.3.3"
     }
     repositories {
         google()
