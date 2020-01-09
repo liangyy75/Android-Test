@@ -192,6 +192,7 @@ def addRepos(RepositoryHandler handler) {
     handler.maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     handler.maven { url "${rootDir}\\plugins\\repo" }
     handler.maven { url "https://mvnrepository.com/repos/central" }
+    handler.maven { url 'https://dl.bintray.com/anggrayudi/maven/' }
 }
 
 ext.addRepos = this.&addRepos
