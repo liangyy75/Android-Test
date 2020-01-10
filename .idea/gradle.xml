@@ -20,7 +20,9 @@
             <option value="$PROJECT_DIR$/spi/spi_interface" />
             <option value="$PROJECT_DIR$/ui/basic-block" />
             <option value="$PROJECT_DIR$/ui/block" />
+            <option value="$PROJECT_DIR$/ui/json-inflater" />
             <option value="$PROJECT_DIR$/ui/popup" />
+            <option value="$PROJECT_DIR$/ui/xml-inflater" />
             <option value="$PROJECT_DIR$/utils-ktx/basic-ktx" />
             <option value="$PROJECT_DIR$/utils-ktx/context-ktx" />
             <option value="$PROJECT_DIR$/utils-ktx/json-ktx" />

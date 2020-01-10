@@ -76,12 +76,12 @@ object ReflectHelper {
         return cls
     }
 
-    fun findCtor(cls: Class<*>, vararg args: Any?): Constructor<*>? {
+    fun findCtor(cls: Class<*>, vararg args: Class<*>?): Constructor<*>? {
         val key = cls.name
         var constructor = constructors[key]
         if (constructor == null) {
             try {
-                constructor = cls.getDeclaredConstructor(*args.map { it!!::class.java }.toTypedArray())
+                constructor = cls.getDeclaredConstructor(*args)
                 constructor.isAccessible = true
                 constructors[key] = constructor
             } catch (e: Exception) {
@@ -97,12 +97,12 @@ object ReflectHelper {
     fun calculateName(thisObj: Any, name: String) = thisObj::class.java.toString() + name  // todo: 其实不对，因为方法可能name一样，但参数列表不一样
     fun calculateName(cls: Class<*>, name: String) = cls.toString() + name  // todo: 其实不对，因为方法可能name一样，但参数列表不一样
 
-    fun findMethod(name: String, cls: Class<*>, vararg args: Any?): Method? {
+    fun findMethod(name: String, cls: Class<*>, vararg args: Class<*>?): Method? {
         val key = calculateName(cls, name)
         var method = methods[key]
         if (method == null) {
             try {
-                method = cls.getDeclaredMethod(name, *args.map { it!!::class.java }.toTypedArray())
+                method = cls.getDeclaredMethod(name, *args)
                 method.isAccessible = true
                 methods[key] = method
             } catch (e: Exception) {
@@ -133,13 +133,21 @@ object ReflectHelper {
         return field
     }
 
-    fun findMethod(name: String, thisObj: Any, vararg args: Any?): Method? = findMethod(name, thisObj::class.java, args)
+    fun findMethod(name: String, thisObj: Any, vararg args: Any?): Method? = findMethod(name, thisObj::class.java, *args.map { it!!::class.java }.toTypedArray())
     fun findField(name: String, thisObj: Any): Field? = findField(name, thisObj::class.java)
 
-    fun <T> newInstance(cls: Class<*>, vararg args: Any?): T? = tryAction { findCtor(cls, args)?.newInstance(*args) } as? T
-    fun <T> newInstance(name: String, vararg args: Any?): T? = tryAction { findCls(name)?.let { findCtor(it, args)?.newInstance(*args) } } as? T
-    fun <T> invoke(name: String, thisObj: Any, vararg args: Any?): T? = tryAction { findMethod(name, thisObj::class.java, args)?.invoke(thisObj, *args) } as? T
-    fun <T> invokeS(name: String, cls: Class<*>, vararg args: Any?): T? = tryAction { findMethod(name, cls, args)?.invoke(null, *args) } as? T
+    fun <T> newInstance(cls: Class<*>, vararg args: Any?): T? =
+            tryAction { findCtor(cls, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } as? T
+
+    fun <T> newInstance(name: String, vararg args: Any?): T? =
+            tryAction { findCls(name)?.let { findCtor(it, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } } as? T
+
+    fun <T> invoke(name: String, thisObj: Any, vararg args: Any?): T? =
+            tryAction { findMethod(name, thisObj::class.java, args)?.invoke(thisObj, *args) } as? T
+
+    fun <T> invokeS(name: String, cls: Class<*>, vararg args: Any?): T? =
+            tryAction { findMethod(name, cls, args)?.invoke(null, *args) } as? T
+
     fun invokeN(name: String, thisObj: Any, vararg args: Any?) {
         tryAction { findMethod(name, thisObj::class.java, args)?.invoke(thisObj, *args) }
     }
