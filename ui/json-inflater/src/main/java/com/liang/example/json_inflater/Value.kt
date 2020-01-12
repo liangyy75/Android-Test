@@ -1,26 +1,38 @@
-@file:Suppress("MemberVisibilityCanBePrivate")
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
 package com.liang.example.json_inflater
 
 import android.R
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Resources
 import android.content.res.TypedArray
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.text.TextUtils
 import android.util.LruCache
 import android.util.StateSet
 import android.util.TypedValue
 import android.view.ViewGroup
+import androidx.annotation.StringDef
+import com.flipkart.android.proteus.processor.ColorResourceProcessor
 import com.liang.example.basic_ktx.KKMap
 import com.liang.example.json_inflater.NullV.Companion.nullV
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.util.*
+import java.util.regex.Pattern
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 import kotlin.collections.set
 
 abstract class Value {
     abstract fun copy(): Value
-    open fun getAsString(): String = throw UnsupportedOperationException(javaClass.simpleName)
+    abstract fun string(): String
 }
 
 open class ArrayV : Value {
@@ -43,6 +55,7 @@ open class ArrayV : Value {
     }
 
     override fun copy(): ArrayV = ArrayV(values)
+    override fun string(): String = '[' + values.joinToString { it?.string() ?: nullV.string() } + ']'
 
     open fun add(value: Boolean?) = values.add(if (value == null) nullV else PrimitiveV(value))
     open fun add(value: String?) = values.add(if (value == null) nullV else PrimitiveV(value))
@@ -50,22 +63,35 @@ open class ArrayV : Value {
     open fun add(value: Number?) = values.add(if (value == null) nullV else PrimitiveV(value))
     open fun add(value: Value?, pos: Int = -1) = values.add(if (pos == -1) values.size else pos, value ?: nullV)
     open fun addAll(value: ArrayV) = values.addAll(value.values)
-    open fun set(value: Value?, pos: Int) = values.set(pos, value)
-    open fun get(pos: Int) = values.get(pos)
+    open operator fun set(pos: Int, value: Value?) = values.set(pos, value)
+    open operator fun get(pos: Int) = values[pos]
     open fun remove(value: Value) = values.remove(value)
     open fun removeAll(value: ArrayV) = values.removeAll(value.values)
     open fun remove(pos: Int) = values.removeAt(pos)
-    open fun contains(value: Value) = value in values
+    open operator fun contains(value: Value) = value in values
     open fun containsAll(value: ArrayV) = values.containsAll(value.values)
     open fun size() = values.size
-    open fun iterator() = values.iterator()
+    open operator fun iterator() = values.iterator()
+    open fun values() = values.toMutableList()
 
     override fun equals(other: Any?): Boolean = other === this || other is ArrayV && other.values == values
     override fun hashCode(): Int = values.hashCode()
 }
 
-open class ObjectV : Value() {
-    protected val values: MutableMap<String, Value?> = mutableMapOf()
+open class ObjectV : Value {
+    protected val values: MutableMap<String, Value?>
+
+    constructor() {
+        values = mutableMapOf()
+    }
+
+    constructor(values: MutableMap<String, Value?>) {
+        this.values = values
+    }
+
+    override fun string(): String = '{' + values.map {
+        "\"${it.key}\": \"${it.value?.string() ?: nullV.string()}\""
+    }.joinToString() + '}'
 
     override fun copy(): ObjectV {
         val result = ObjectV()
@@ -79,21 +105,23 @@ open class ObjectV : Value() {
     open fun add(property: String, value: Number?) = values.put(property, if (value != null) PrimitiveV(value) else nullV)
     open fun add(property: String, value: Value?) = values.put(property, value ?: nullV)
     open fun addAll(value: ObjectV) = values.putAll(value.values)
-    open fun get(property: String) = values[property]
+    open operator fun get(property: String) = values[property]
+    open operator fun set(property: String, value: Value?) = add(property, value)
     open fun remove(property: String) = values.remove(property)
     open fun entries() = values.entries
     open fun size() = values.size
-    open fun contains(property: String) = values.containsKey(property)
-    open fun contains(value: Value) = values.containsValue(value)
+    open operator fun contains(property: String) = values.containsKey(property)
+    open operator fun contains(value: Value) = values.containsValue(value)
+    open operator fun iterator() = values.iterator()
 
     override fun equals(other: Any?): Boolean = this === other || other is ObjectV && other.values == values
     override fun hashCode(): Int = values.hashCode()
 }
 
 open class NullV private constructor() : Value() {
-    override fun copy(): Value = this
-    override fun toString(): String = "NULL"
-    override fun getAsString() = ""
+    override fun copy(): NullV = this
+    override fun toString(): String = "null"
+    override fun string() = "null"
     override fun hashCode(): Int = NullV::class.java.hashCode()
     override fun equals(other: Any?): Boolean = this === other || other is NullV
 
@@ -112,6 +140,10 @@ open class PrimitiveV : Value {
         val INTEGER_PRIMITIVE_TYPES = arrayOf(Byte::class.javaPrimitiveType, Short::class.javaPrimitiveType, Int::class.javaPrimitiveType, Long::class.javaPrimitiveType,
                 Byte::class.java, Short::class.java, Int::class.java, Long::class.java, Float::class.java, BigInteger::class.java)
         val DECIMAL_PRIMITIVE_TYPES = arrayOf(Float::class.javaPrimitiveType, Double::class.javaPrimitiveType, Float::class.java, Double::class.java, BigDecimal::class.java)
+
+        val EMPTY_STR = PrimitiveV("")
+        val TRUE_V = PrimitiveV(true)
+        val FALSE_V = PrimitiveV(false)
     }
 
     protected var value: Any
@@ -141,7 +173,7 @@ open class PrimitiveV : Value {
     open fun isNumber() = value is Number
     open fun isString() = value is String
 
-    override fun getAsString(): String = if (value is String) value as String else value.toString()
+    override fun string(): String = if (value is String) value as String else value.toString()
     open fun toBoolean() = if (value is Boolean) value as Boolean else java.lang.Boolean.parseBoolean(value as String)
     open fun toNumber() = if (value is Number) value as Number else LazilyParsedNumber(value as String)
 
@@ -180,9 +212,25 @@ open class PrimitiveV : Value {
         return super.equals(other)
     }
 
-    override fun toString(): String = getAsString()
-    open fun getAsSingleQuotedString(): String? = "'${getAsString()}'"
-    open fun getAsDoubleQuotedString(): String? = "\"${getAsString()}\""
+    override fun toString(): String = string()
+    open fun singleQuotedString(): String? = "'${string()}'"
+    open fun doubleQuotedString(): String? = "\"${string()}\""
+
+    class LazilyParsedNumber(val value: String) : Number() {
+        override fun toByte(): Byte = value.toByte()
+        override fun toChar(): Char = value.toCharArray()[0]
+        override fun toDouble(): Double = value.toDouble()
+        override fun toFloat(): Float = value.toFloat()
+        override fun toInt(): Int = value.toInt()
+        override fun toLong(): Long = value.toLong()
+        override fun toShort(): Short = value.toShort()
+        fun toBigInteger(): BigInteger = value.toBigInteger()
+        fun toBigDecimal(): BigDecimal = value.toBigDecimal()
+
+        override fun toString(): String = value
+        override fun hashCode(): Int = value.hashCode()
+        override fun equals(other: Any?): Boolean = this === other || other is LazilyParsedNumber && other.value == value
+    }
 }
 
 open class LayoutV(
@@ -192,7 +240,18 @@ open class LayoutV(
         open var extra: ObjectV?
 ) : Value() {
 
-    override fun copy(): Value = LayoutV(type, attributes?.map { it.copy() }?.toMutableList(), data, extra)
+    override fun copy(): LayoutV = LayoutV(type, attributes?.map { it.copy() }?.toMutableList(), data, extra)
+    override fun string(): String {
+        var result = "{\"type\": \"${type ?: "unknown"}\""
+        attributes?.forEach { it ->
+            TODO()
+        }
+        data?.forEach { (name, value) ->
+            TODO()
+        }
+        """"extra": "${extra?.string() ?: "\"null\""}""""
+        return "$result}"
+    }
 
     open fun merge(include: LayoutV): LayoutV {
         val attributes = this.attributes?.map { it.copy() }?.toMutableList()
@@ -250,12 +309,17 @@ open class DimensionV : Value {
             sDimensionsUnitsMap[SUFFIX_MM] = DIMENSION_UNIT_MM
         }
 
-        fun valueOf(dimension: String?): DimensionV = if (null == dimension) ZERO else cache[dimension] ?: DimensionV(dimension)
+        fun valueOf(dimension: String?): DimensionV = if (null == dimension) {
+            cache.put(dimension, ZERO)
+            ZERO
+        } else cache[dimension] ?: DimensionV(dimension).cache()
+
         fun apply(dimension: String?, context: Context): Float = valueOf(dimension).apply(context)
     }
 
     open val value: Double
     open val unit: Int
+    open var dimension: String? = null
 
     constructor(value: Double, unit: Int) {
         this.value = value
@@ -292,10 +356,13 @@ open class DimensionV : Value {
 
         this.value = value
         this.unit = unit
-        cache.put(dimension, this)
+        this.dimension = dimension
     }
 
-    override fun copy(): Value = this
+    open fun cache(): DimensionV = if (dimension == null) this else cache.put(dimension, this)
+
+    override fun copy(): DimensionV = this
+    override fun string(): String = dimension ?: TODO()
 
     open fun apply(context: Context): Float {
         var result = 0.0
@@ -340,22 +407,17 @@ open class StyleResourceV : Value {
 
         val cache = LruCache<String, StyleResourceV>(64)
 
-        fun valueOf(value: String, context: Context): StyleResourceV? {
-            var result = cache[value]
-            if (result == null) {
-                result = try {
-                    StyleResourceV(value, context)
-                } catch (e: Exception) {
-                    NULL
-                    cache.put(value, result)
-                }
-            }
-            return if (result == NULL) null else result
+        fun valueOf(value: String, context: Context): StyleResourceV? = cache[value] ?: try {
+            StyleResourceV(value, context).cache()
+        } catch (e: Exception) {
+            cache.put(value, NULL)
+            null
         }
     }
 
     open val styleId: Int
     open val attributeId: Int
+    open var strStyleAttr: String? = null
 
     constructor(styleId: Int, attributeId: Int) {
         this.styleId = styleId
@@ -392,10 +454,13 @@ open class StyleResourceV : Value {
             attributeMap[attr] = attrId
         }
         this.attributeId = attrId
-        cache.put(value, this)
+        this.strStyleAttr = value
     }
 
-    override fun copy(): Value = this
+    open fun cache(): StyleResourceV = if (strStyleAttr == null) this else cache.put(strStyleAttr, this)
+    override fun string(): String = strStyleAttr ?: TODO()
+
+    override fun copy(): StyleResourceV = this
 
     fun apply(context: Context): TypedArray = context.obtainStyledAttributes(styleId, intArrayOf(attributeId))
 }
@@ -403,51 +468,48 @@ open class StyleResourceV : Value {
 abstract class ColorV : Value() {
     companion object {
         const val COLOR_PREFIX_LITERAL = "#"
+        val sColorNameMap: MutableMap<String, Int> = mutableMapOf("black" to Color.BLACK, "darkgray" to Color.DKGRAY, "gray" to Color.GRAY,
+                "lightgray" to Color.LTGRAY, "white" to Color.WHITE, "red" to Color.RED, "green" to Color.GREEN, "blue" to Color.BLUE,
+                "yellow" to Color.YELLOW, "cyan" to Color.CYAN, "magenta" to Color.MAGENTA, "aqua" to 0xFF00FFFF.toInt(),
+                "fuchsia" to 0xFFFF00FF.toInt(), "darkgrey" to Color.DKGRAY, "grey" to Color.GRAY, "lightgrey" to Color.LTGRAY,
+                "lime" to 0xFF00FF00.toInt(), "maroon" to 0xFF800000.toInt(), "navy" to 0xFF000080.toInt(), "olive" to 0xFF808000.toInt(),
+                "purple" to 0xFF800080.toInt(), "silver" to 0xFFC0C0C0.toInt(), "teal" to 0xFF008080.toInt())
         val sAttributesMap: HashMap<String, Int> = HashMap(15)
         val cache: LruCache<String, ColorV> = LruCache(64)
 
-        fun apply(value: String?): Int {
-            val color = valueOf(value)
-            return if (color is IntV) {
-                color.value
-            } else {
-                IntV.BLACK.value
-            }
+        fun apply(value: String?): Int = when (val color = valueOf(value)) {
+            is IntV -> color.value
+            else -> IntV.BLACK.value
         }
 
-        fun valueOf(value: String?, defValue: ColorV = IntV.BLACK): ColorV {
-            if (value.isNullOrEmpty()) {
-                return defValue
+        fun valueOf(value: String?, defValue: ColorV = IntV.BLACK): ColorV = when {
+            value.isNullOrEmpty() -> defValue
+            else -> cache.get(value) ?: when {
+                value in sColorNameMap -> IntV(sColorNameMap[value]!!).cache()
+                value.startsWith(COLOR_PREFIX_LITERAL) -> IntV(Color.parseColor(value)).cache()
+                else -> defValue
             }
-            var result = cache.get(value)
-            if (result == null) {
-                result = if (value.startsWith(COLOR_PREFIX_LITERAL)) {
-                    IntV(Color.parseColor(value))
-                } else {
-                    defValue
-                }
-                cache.put(value, result)
-            }
-            return result
         }
 
         fun isColor(color: String): Boolean = color.startsWith(COLOR_PREFIX_LITERAL)
 
-        fun modulateColorAlpha(baseColor: Int, alphaMod: Float): Int {
-            if (alphaMod == 1.0f) {
-                return baseColor
-            }
-            val baseAlpha = Color.alpha(baseColor)
-            val alpha = constrain((baseAlpha * alphaMod + 0.5f).toInt(), 0, 255)
-            return baseColor and 0xFFFFFF or (alpha shl 24)
+        fun modulateColorAlpha(baseColor: Int, alphaMod: Float): Int = when (alphaMod) {
+            1.0f -> baseColor
+            else -> baseColor and 0xFFFFFF or (constrain(((baseColor shr 24) * alphaMod + 0.5f).toInt(), 0, 255) shl 24)
         }
 
-        fun constrain(amount: Int, low: Int, high: Int): Int = if (amount < low) low else if (amount > high) high else amount
+        fun constrain(amount: Int, low: Int, high: Int): Int = when {
+            amount < low -> low
+            amount > high -> high
+            else -> amount
+        }
 
         fun idealByteArraySize(need: Int): Int {
+            Int.MAX_VALUE
             (4..31).forEach {
-                if (need <= (1 shl it) - 12) {
-                    return (1 shl it) - 12
+                val temp = 1 shl it - 12
+                if (need <= temp) {
+                    return temp
                 }
             }
             return need
@@ -455,70 +517,83 @@ abstract class ColorV : Value() {
 
         fun idealIntArraySize(need: Int): Int = idealByteArraySize(need * 4) / 4
 
-        fun getAttribute(attribute: String?): Int? = sAttributesMap[attribute]
+        /**
+         * {
+         *     "type": "selector",
+         *     "children": [
+         *         {
+         *             "type": "item",
+         *             "color": "#000000",
+         *             "alpha": "0.50"
+         *             "state_pressed": "true"
+         *         },
+         *         {
+         *             /* ...类似 */
+         *         }
+         *     ]
+         * }
+         */
+        fun valueOf(value: ObjectV): ColorV {
+            if (value["type"] !is PrimitiveV || !TextUtils.equals((value["type"] as PrimitiveV).string(), "selector") ||
+                    value["children"] !is ArrayV) {
+                return IntV.BLACK
+            }
 
-        fun valueOf(value: ObjectV, context: Context?): ColorV {
-            if (value.get("type") !is PrimitiveV) {
-                return IntV.BLACK
-            }
-            if (!TextUtils.equals((value.get("type") as PrimitiveV).getAsString(), "selector") || value.get("children") !is ArrayV) {
-                return IntV.BLACK
-            }
-            val iterator = (value.get("children") as ArrayV).iterator()
+            val iterator = (value["children"] as ArrayV).iterator()
             var child: ObjectV
             var listAllocated = 20
             var listSize = 0
             var colorList = IntArray(listAllocated)
             var stateSpecList = arrayOfNulls<IntArray>(listAllocated)
-            while (iterator.hasNext()) {
+
+            parseColorStateList@ while (iterator.hasNext()) {
                 child = iterator.next() as ObjectV
-                if (child.size() == 0) continue
+                if (child.size() == 0) {
+                    continue
+                }
                 var j = 0
                 var baseColor: Int? = null
                 var alphaMod = 1.0f
-                var stateSpec = IntArray(child.size() - 1)
-                var ignoreItem = false
-                for ((key, value1) in child.entries()) {
-                    if (ignoreItem) break
-                    if (value1 !is PrimitiveV) continue
-                    val attributeId = sAttributesMap[key]
-                    if (null != attributeId) {
-                        when (attributeId) {
-                            R.attr.type -> if (!TextUtils.equals("item", value1.getAsString())) ignoreItem = true
-                            R.attr.color -> {
-                                val colorRes = value1.getAsString()
-                                if (!TextUtils.isEmpty(colorRes)) {
-                                    baseColor = apply(colorRes)
-                                }
+                val stateSpec = IntArray(child.size() - 1)
+
+                parseItem@ for ((key, value1) in child.entries()) {
+                    if (value1 !is PrimitiveV) {
+                        continue
+                    }
+                    val attributeId = sAttributesMap[key] ?: continue
+                    when (attributeId) {
+                        R.attr.type -> if (!TextUtils.equals("item", value1.string())) continue@parseColorStateList
+                        R.attr.color -> {
+                            val colorRes = value1.string()
+                            if (!TextUtils.isEmpty(colorRes)) {
+                                baseColor = apply(colorRes)
                             }
-                            R.attr.alpha -> {
-                                val alphaStr = value1.getAsString()
-                                if (!TextUtils.isEmpty(alphaStr)) {
-                                    alphaMod = alphaStr.toFloat()
-                                }
-                            }
-                            else -> stateSpec[j++] = if (value1.toBoolean()) attributeId else -attributeId
                         }
+                        R.attr.alpha -> {
+                            val alphaStr = value1.string()
+                            if (!TextUtils.isEmpty(alphaStr)) {
+                                alphaMod = alphaStr.toFloat()
+                            }
+                        }
+                        else -> stateSpec[j++] = if (value1.toBoolean()) attributeId else -attributeId
                     }
                 }
-                if (!ignoreItem) {
-                    stateSpec = StateSet.trimStateSet(stateSpec, j)
-                    checkNotNull(baseColor) { "No ColorValue Specified" }
-                    if (listSize + 1 >= listAllocated) {
-                        listAllocated = idealIntArraySize(listSize + 1)
-                        val ncolor = IntArray(listAllocated)
-                        System.arraycopy(colorList, 0, ncolor, 0, listSize)
-                        val nstate = arrayOfNulls<IntArray>(listAllocated)
-                        System.arraycopy(stateSpecList, 0, nstate, 0, listSize)
-                        colorList = ncolor
-                        stateSpecList = nstate
-                    }
-                    val color = modulateColorAlpha(baseColor, alphaMod)
-                    colorList[listSize] = color
-                    stateSpecList[listSize] = stateSpec
-                    listSize++
+
+                checkNotNull(baseColor) { "No ColorValue Specified" }
+                if (listSize + 1 >= listAllocated) {
+                    listAllocated = idealIntArraySize(listSize + 1)
+                    val colorTempArr = IntArray(listAllocated)
+                    System.arraycopy(colorList, 0, colorTempArr, 0, listSize)
+                    val stateTempArr = arrayOfNulls<IntArray>(listAllocated)
+                    System.arraycopy(stateSpecList, 0, stateTempArr, 0, listSize)
+                    colorList = colorTempArr
+                    stateSpecList = stateTempArr
                 }
+                colorList[listSize] = modulateColorAlpha(baseColor, alphaMod)
+                stateSpecList[listSize] = StateSet.trimStateSet(stateSpec, j)
+                listSize++
             }
+
             if (listSize > 0) {
                 val colors = IntArray(listSize)
                 val stateSpecs = arrayOfNulls<IntArray>(listSize)
@@ -545,32 +620,577 @@ abstract class ColorV : Value() {
 
     abstract fun apply(context: Context): Result
 
-    class IntV(val value: Int) : ColorV() {
+    @Suppress("LeakingThis")
+    open class IntV(open val value: Int) : ColorV() {
         companion object {
-            val BLACK = IntV(0)
+            val BLACK = IntV(0).cache()
 
-            fun valueOf(number: Int): IntV {
-                if (number == 0) {
-                    return BLACK
-                }
-                return cache.get(number.toString()) as? IntV ?: IntV(number)
+            fun valueOf(number: Int): IntV = when (number) {
+                0 -> BLACK
+                else -> cache.get(number.toString()) as? IntV ?: IntV(number).cache()
             }
         }
 
-        init {
-            cache.put(value.toString(), this)
-        }
+        open fun cache(): IntV = cache.put(value.toString(), this) as IntV
 
         override fun copy(): IntV = this
         override fun apply(context: Context): Result = Result(value, null)
+        override fun string(): String = TODO()
     }
 
-    class StateList(val colors: IntArray, val states: Array<IntArray?>) : ColorV() {
-        override fun copy(): Value = this
+    open class StateList(open val colors: IntArray, open val states: Array<IntArray?>) : ColorV() {
+        override fun copy(): StateList = this
         override fun apply(context: Context): Result = Result(null, ColorStateList(states, colors))
+        override fun string(): String = TODO()
     }
 
     data class Result(val color: Int?, val colors: ColorStateList?)
 }
 
-open class DrawableV : Value {}
+@Suppress("LeakingThis")
+open class AttributeResourceV : Value {
+    companion object {
+        val NULL = AttributeResourceV(-1)
+
+        const val ATTR_START_LITERAL = "?"
+        const val ATTR_LITERAL = "attr/"
+        val attributePattern: Pattern = Pattern.compile("(\\?)(\\S*)(:?)(attr/?)(\\S*)", Pattern.CASE_INSENSITIVE or Pattern.DOTALL)
+        val sHashMap: MutableMap<String, Class<*>> = HashMap()
+
+        fun isAttributeResource(value: String): Boolean = value.startsWith(ATTR_START_LITERAL) && value.contains(ATTR_LITERAL)
+
+        val cache = LruCache<String, AttributeResourceV>(16)
+
+        fun valueOf(value: String, context: Context): AttributeResourceV? = cache[value] ?: try {
+            AttributeResourceV(value, context).cache()
+        } catch (e: java.lang.Exception) {
+            cache.put(value, NULL)
+            null
+        }
+    }
+
+    open val attributeId: Int
+    open var strAttr: String? = null
+
+    constructor(attributeId: Int) {
+        this.attributeId = attributeId
+    }
+
+    constructor(value: String, context: Context) {
+        var packageName: String? = null
+        val matcher = attributePattern.matcher(value)
+        val attributeName: String = when {
+            matcher.matches() -> {
+                packageName = matcher.group(2)
+                matcher.group(5)!!
+            }
+            else -> value.substring(1)
+        }
+        var clazz: Class<*>?
+        packageName = when {
+            packageName.isNullOrEmpty() -> context.packageName
+            else -> packageName.substring(0, packageName.length - 1)
+        }
+        val className = "$packageName.R\$attr"
+        clazz = sHashMap[className]
+        if (null == clazz) {
+            clazz = Class.forName(className)
+            sHashMap[className] = clazz
+        }
+        attributeId = clazz.getField(attributeName).getInt(null)
+    }
+
+    open fun cache(): AttributeResourceV = if (strAttr == null) this else cache.put(strAttr, this)
+    override fun copy(): AttributeResourceV = this
+    open fun apply(context: Context): TypedArray = context.obtainStyledAttributes(intArrayOf(attributeId))
+    override fun string(): String = strAttr ?: TODO()
+}
+
+open class ResourceV(open val resId: Int) : Value() {
+    companion object {
+        const val RESOURCE_PREFIX_ANIMATION = "@anim/"
+        const val RESOURCE_PREFIX_BOOLEAN = "@bool/"
+        const val RESOURCE_PREFIX_COLOR = "@color/"
+        const val RESOURCE_PREFIX_DIMENSION = "@dimen/"
+        const val RESOURCE_PREFIX_DRAWABLE = "@drawable/"
+        const val RESOURCE_PREFIX_STRING = "@string/"
+
+        const val ANIM = "anim"
+        const val BOOLEAN = "bool"
+        const val COLOR = "color"
+        const val DIMEN = "dimen"
+        const val DRAWABLE = "drawable"
+        const val STRING = "string"
+
+        val NOT_FOUND: ResourceV = ResourceV(0)
+        val cache: LruCache<String, ResourceV> = LruCache(64)
+
+        fun isAnimation(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_ANIMATION)
+        fun isBoolean(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_BOOLEAN)
+        fun isColor(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_COLOR)
+        fun isDimension(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_DIMENSION)
+        fun isDrawable(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_DRAWABLE)
+        fun isString(string: String): Boolean = string.startsWith(RESOURCE_PREFIX_STRING)
+        fun isResource(string: String): Boolean =
+                isAnimation(string) || isBoolean(string) || isColor(string) || isDimension(string) || isDrawable(string) || isString(string)
+
+        fun getInteger(resId: Int, context: Context) = context.resources.getInteger(resId)
+
+        fun getBoolean(resId: Int, context: Context): Boolean? = try {
+            context.resources.getBoolean(resId)
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
+
+        fun getColor(resId: Int, context: Context): Int? = try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> context.resources.getColor(resId, context.theme)
+                else -> context.resources.getColor(resId)
+            }
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
+
+        fun getColorStateList(resId: Int, context: Context): ColorStateList? = try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> context.getColorStateList(resId)
+                else -> context.resources.getColorStateList(resId)
+            }
+        } catch (nfe: Resources.NotFoundException) {
+            null
+        }
+
+        fun getDrawable(resId: Int, context: Context): Drawable? = try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP -> context.resources.getDrawable(resId, context.theme)
+                else -> context.resources.getDrawable(resId)
+            }
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
+
+        fun getDimension(resId: Int, context: Context): Float? = try {
+            context.resources.getDimension(resId)
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
+
+        fun getString(resId: Int, context: Context): String? = try {
+            context.getString(resId)
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
+
+        fun valueOf(value: String, @ResourceVType type: String?, context: Context): ResourceV {
+            var result = cache[value]
+            if (result == null) {
+                result = when (val resId = context.resources.getIdentifier(value, type, context.packageName)) {
+                    0 -> NOT_FOUND
+                    else -> ResourceV(resId)
+                }
+                cache.put(value, result)
+            }
+            return result
+        }
+    }
+
+    @StringDef(ANIM, BOOLEAN, COLOR, DRAWABLE, DIMEN, STRING)
+    @kotlin.annotation.Retention(AnnotationRetention.SOURCE)
+    annotation class ResourceVType
+
+    override fun copy(): ResourceV = this
+    override fun string(): String = TODO()
+}
+
+abstract class BindingV : Value() {
+    companion object {
+        const val BINDING_PREFIX_0 = '@'
+        const val BINDING_PREFIX_1 = '{'
+        const val BINDING_SUFFIX = '}'
+
+        const val INDEX = "\$index"
+
+        const val ARRAY_DATA_LENGTH_REFERENCE = "\$length"
+        const val ARRAY_DATA_LAST_INDEX_REFERENCE = "\$last"
+
+        val BINDING_PATTERN = Pattern.compile("@\\{fn:(\\S+?)\\(((?:(?<!\\\\)'.*?(?<!\\\\)'|.?)+)\\)}|@\\{(.+)}")
+        val FUNCTION_ARGS_DELIMITER = Pattern.compile(",(?=(?:[^']*'[^']*')*[^']*$)")
+
+        const val DATA_PATH_DELIMITERS = ".]"
+
+        const val DELIMITER_OBJECT = '.'
+        const val DELIMITER_ARRAY_OPENING = '['
+        const val DELIMITER_ARRAY_CLOSING = ']'
+
+        fun isBindingValue(value: String): Boolean = value.length > 3 && value[0] == BINDING_PREFIX_0 && value[1] == BINDING_PREFIX_1 && value[value.length - 1] == BINDING_SUFFIX
+
+        fun valueOf(value: String, context: Context, funcManager: FuncManager?): BindingV {
+            val matcher = BINDING_PATTERN.matcher(value)
+            return when {
+                matcher.find() -> when {
+                    matcher.group(3) != null -> DataBinding.valueOf(matcher.group(3)!!)
+                    else -> FuncBinding.valueOf(matcher.group(1)!!, matcher.group(2)!!, context, funcManager!!)
+                }
+                else -> throw IllegalArgumentException("$value is not a binding")
+            }
+        }
+    }
+
+    override fun toString(): String = string()
+    override fun copy(): Value = this
+    abstract fun evaluate(context: Context, data: Value?, index: Int): Value?
+
+    open class Token(open var value: String, open var isArray: Boolean, open var isArrayIndex: Boolean) {
+        open var isBinding: Boolean = false
+    }
+
+    open class DataBinding(open val tokens: Array<Token>) : BindingV() {
+        companion object {
+            val cache: LruCache<String, DataBinding> = LruCache(64)
+
+            fun valueOf(path: String): DataBinding {
+                var result = cache[path]
+                if (result == null) {
+                    val tokenizer = StringTokenizer(path, DATA_PATH_DELIMITERS, true)
+                    val tokens = mutableListOf<Token>()
+                    var token: String
+                    var length: Int
+                    var first: Char
+                    while (tokenizer.hasMoreTokens()) {
+                        token = tokenizer.nextToken()
+                        length = token.length
+                        first = token[0]
+                        if (length == 1 || first == DELIMITER_OBJECT) {
+                            continue
+                        }
+                        if (length == 1 || first == DELIMITER_ARRAY_CLOSING) {
+                            val last = tokens.last().value
+                            val index = last.indexOf(DELIMITER_ARRAY_OPENING)
+                            val prefix = last.substring(0, index)
+                            tokens.last().isArray = true
+                            if (prefix.isNotEmpty()) {
+                                tokens.last().value = prefix
+                            }
+                            tokens.add(Token(last.substring(index + 1), false, isArrayIndex = true))
+                            continue
+                        }
+                        tokens.add(Token(token, false, false))
+                    }
+                    result = DataBinding(tokens.toTypedArray())
+                    cache.put(path, result)
+                }
+                return result
+            }
+
+            fun getArrayItem(array: ArrayV, index: Int, isArray: Boolean): Value {
+                if (index > array.size()) {
+                    while (array.size() < index) {
+                        array.add(nullV)
+                    }
+                    array.add(if (isArray) ArrayV() else ObjectV())
+                }
+                return array[index]!!
+            }
+
+            fun getArrayIndex(token: String, dataIndex: Int) = when (token) {
+                INDEX -> dataIndex
+                else -> token.toInt()
+            }
+
+            fun getSubArray(parent: Value, token: String, index: Int): ArrayV = when (parent) {
+                is ArrayV -> {
+                    if (parent[index] == null || parent[index] !is ArrayV) {
+                        parent[index] = ArrayV()
+                    }
+                    parent[index] as ArrayV
+                }
+                is ObjectV -> {
+                    if (parent[token] == null || parent[token] !is ArrayV) {
+                        parent[token] = ArrayV()
+                    }
+                    parent[token] as ArrayV
+                }
+                else -> throw RuntimeException("parent should be ArrayV or ObjectV")
+            }
+
+            fun getSubObject(parent: Value, token: String, index: Int): ObjectV = when (parent) {
+                is ArrayV -> {
+                    if (parent[index] == null || parent[index] !is ObjectV) {
+                        parent[index] = ObjectV()
+                    }
+                    parent[index] as ObjectV
+                }
+                is ObjectV -> {
+                    if (parent[token] == null || parent[token] !is ObjectV) {
+                        parent[token] = ObjectV()
+                    }
+                    parent[token] as ObjectV
+                }
+                else -> throw RuntimeException("parent should be ArrayV or ObjectV")
+            }
+
+            // 使用 tokens 往 value 里面的某个 array / object 里面塞入 data ， key 则是 index / tokens[...].value
+            fun assign(tokens: Array<Token>, value: Value?, data: Value, index: Int) {
+                var nowData = data
+                var nowIndex = index
+                (0 until (tokens.size - 1)).forEach { i ->
+                    val token = tokens[i]
+                    nowData = when {
+                        token.isArrayIndex -> {
+                            try {
+                                nowIndex = getArrayIndex(token.value, index)
+                            } catch (e: NumberFormatException) {
+                                return
+                            }
+                            getArrayItem(nowData as ArrayV, nowIndex, token.isArray)
+                        }
+                        token.isArray -> getSubArray(nowData, token.value, nowIndex)
+                        else -> getSubObject(nowData, token.value, nowIndex)
+                    }
+                }
+                val token = tokens.last()
+                if (token.isArrayIndex) {
+                    try {
+                        nowIndex = getArrayIndex(token.value, index)
+                    } catch (e: NumberFormatException) {
+                        return
+                    }
+                    getArrayItem(nowData as ArrayV, nowIndex, false)
+                    (nowData as ArrayV)[index] = value
+                } else {
+                    (nowData as ObjectV)[token.value] = value
+                }
+            }
+
+            fun resolve(tokens: Array<Token>, data: Value?, index: Int): Pair<Value, Int> {
+                if (tokens.size == 1 && tokens[0].value == INDEX) {
+                    return Pair(PrimitiveV(index.toString()), RESULT_SUCCESS)
+                }
+                var result: Value? = data
+                var nowIndex = index
+                for (it in tokens) {
+                    if (result == null) {
+                        return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                    }
+                    if (result is NullV) {
+                        return Pair(nullV, RESULT_NULL_EXCEPTION)
+                    }
+                    val segment = it.value
+                    if (segment.isEmpty()) {
+                        continue
+                    }
+                    when (result) {
+                        is ArrayV -> {
+                            val arrSize = result.size()
+                            when (segment) {
+                                INDEX -> when {
+                                    nowIndex < arrSize -> result = result[nowIndex]
+                                    else -> return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                                }
+                                ARRAY_DATA_LENGTH_REFERENCE -> result = PrimitiveV(arrSize)
+                                ARRAY_DATA_LAST_INDEX_REFERENCE -> when (arrSize) {
+                                    0 -> return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                                    else -> result = result[arrSize - 1]
+                                }
+                                else -> {
+                                    try {
+                                        nowIndex = segment.toInt()
+                                    } catch (e: NumberFormatException) {
+                                        return Pair(nullV, RESULT_INVALID_DATA_PATH_EXCEPTION)
+                                    }
+                                    when {
+                                        nowIndex < arrSize -> result = result[nowIndex]
+                                        else -> return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                                    }
+                                }
+                            }
+                        }
+                        is ObjectV -> result = result[segment] ?: return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                        is PrimitiveV -> return Pair(nullV, RESULT_INVALID_DATA_PATH_EXCEPTION)
+                        else -> return Pair(nullV, RESULT_NO_SUCH_DATA_PATH_EXCEPTION)
+                    }
+                }
+                return when (result) {
+                    null, is NullV -> Pair(nullV, RESULT_NULL_EXCEPTION)
+                    else -> Pair(result, RESULT_SUCCESS)
+                }
+            }
+
+            const val RESULT_SUCCESS = 0
+            const val RESULT_NO_SUCH_DATA_PATH_EXCEPTION = -1
+            const val RESULT_INVALID_DATA_PATH_EXCEPTION = -2
+            const val RESULT_NULL_EXCEPTION = -3
+        }
+
+        override fun string(): String = "@{${tokens.map { it.value }.joinToString(".")}}"
+        open fun iterator() = tokens.iterator()
+        open fun assign(value: Value?, data: Value, index: Int) = assign(this.tokens, value, data, index)
+        override fun evaluate(context: Context, data: Value?, index: Int): Value = resolve(tokens, data, index).first  // 好像不用管失败原因。。。
+    }
+
+    open class FuncBinding(val func: Func, val args: Array<Value?>?) : BindingV() {
+        companion object {
+            fun valueOf(name: String, args: String, context: Context, funcManager: FuncManager): FuncBinding = FuncBinding(
+                    funcManager[name],
+                    FUNCTION_ARGS_DELIMITER.split(args).map {
+                        var temp = it.trim()
+                        if (temp.isNotEmpty() && temp[0] == '\'') {
+                            temp = temp.substring(1, temp.length - 1)
+                            PrimitiveV(temp)
+                        } else {
+                            NAttributeProcessor.staticPreCompile(PrimitiveV(temp), context, funcManager) ?: PrimitiveV(temp)
+                        }
+                    }.toTypedArray()
+            )
+
+            fun resolve(context: Context, inArr: Array<Value?>?, data: Value?, index: Int) =
+                    inArr?.map { NAttributeProcessor.evaluate(context, it, data, index) }?.toTypedArray() ?: arrayOf()
+        }
+
+        override fun string(): String = "@{fn:${func.getName()}(${args?.joinToString { it?.string() ?: nullV.string() }
+                ?: nullV.string()})}"
+
+        override fun evaluate(context: Context, data: Value?, index: Int): Value? {
+            return try {
+                func.call(context, data, index, *resolve(context, this.args, data, index))
+            } catch (e: Exception) {
+                nullV
+            }
+        }
+
+        open fun iterator() = args?.iterator()
+    }
+
+    open class NestedBinding(open val value: Value) : BindingV() {
+        override fun string(): String = "${javaClass.name}@${Integer.toHexString(hashCode())}"
+
+        override fun evaluate(context: Context, data: Value?, index: Int): Value? = evaluate(context, value, data, index)
+        open fun evaluate(context: Context, entry: Value?, data: Value?, index: Int): Value? = when (data) {
+            is BindingV -> data.evaluate(context, data, index)
+            is ObjectV -> ObjectV(data.entries().map { it.key to evaluate(context, it.value, data, index) }.toMap().toMutableMap())
+            is ArrayV -> ArrayV(data.values().map { evaluate(context, it, data, index) })
+            else -> data
+        }
+    }
+}
+
+abstract class DrawableV : Value() {
+    companion object {
+        const val TYPE = "type"
+        const val CHILDREN = "children"
+
+        const val DRAWABLE_SELECTOR = "selector"
+        const val DRAWABLE_SHAPE = "shape"
+        const val DRAWABLE_LAYER_LIST = "layer-list"
+        const val DRAWABLE_LEVEL_LIST = "level-list"
+        const val DRAWABLE_RIPPLE = "ripple"
+
+        const val TYPE_CORNERS = "corners"
+        const val TYPE_GRADIENT = "gradient"
+        const val TYPE_PADDING = "padding"
+        const val TYPE_SIZE = "size"
+        const val TYPE_SOLID = "solid"
+        const val TYPE_STROKE = "stroke"
+    }
+
+    abstract fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback)
+    override fun copy(): DrawableV = this
+
+    interface Callback {
+        fun apply(drawable: Drawable)
+    }
+
+    abstract class AsyncCallback : Callback {
+        private var recycled = false
+
+        open fun setBitmap(bitmap: Bitmap) {
+            if (recycled) {
+                throw RuntimeException("Cannot make calls to a recycled instance!")
+            }
+            apply(bitmap)
+            recycled = true
+        }
+
+        open fun setDrawable(drawable: Drawable) {
+            if (recycled) {
+                throw RuntimeException("Cannot make calls to a recycled instance!")
+            }
+            apply(drawable)
+            recycled = true
+        }
+
+        abstract fun apply(bitmap: Bitmap)
+    }
+
+    open class ColorDrawV(open val color: Value) : DrawableV() {
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) =
+                callback.apply(ColorDrawable(NColorResourceProcessor.evaluate(color, view).color))
+
+        companion object {
+            fun valueOf(value: String) = ColorDrawV(ColorV.valueOf(value))
+            fun valueOf(value: Value, context: Context) = ColorDrawV(NColorResourceProcessor.staticCompile(value, context))
+        }
+    }
+
+    open class ShapeDrawV : DrawableV() {
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    open class LayerListDrawV : DrawableV() {
+        override fun string(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    open class StateListDrawV : DrawableV() {
+        override fun string(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    open class LevelListDrawV : DrawableV() {
+        override fun string(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    open class RippleDrawV : DrawableV() {
+        override fun string(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    open class UrlDrawV : DrawableV() {
+        override fun string(): String {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+    }
+
+    abstract class DrawElementV : DrawableV() {
+        abstract fun apply(view: NView, drawable: GradientDrawable)
+    }
+}

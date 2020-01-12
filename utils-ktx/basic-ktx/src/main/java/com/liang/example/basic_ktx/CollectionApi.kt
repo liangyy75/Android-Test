@@ -31,6 +31,11 @@ open class KKMap<K, V> : MutableMap<K, V> {
         vkMap = HashMap(initialCapacity, loadFactor)
     }
 
+    constructor(kvMap: MutableMap<K, V>, vkMap: MutableMap<V, K>) {
+        this.kvMap = kvMap
+        this.vkMap = vkMap
+    }
+
     override fun containsKey(key: K): Boolean = kvMap.containsKey(key)
     override fun containsValue(value: V): Boolean = vkMap.containsKey(value)
     override fun get(key: K): V? = kvMap[key]

@@ -158,6 +158,8 @@ dependencies {
         from("org.codehaus.groovy:groovy:2.4.16:grooid")
         classDelete('org.codehaus.groovy.vmplugin.v7.IndyInterface')
     }
+
+    compileOnly 'com.anggrayudi:android-hidden-api:28.1'
 }
 
 greeting {
