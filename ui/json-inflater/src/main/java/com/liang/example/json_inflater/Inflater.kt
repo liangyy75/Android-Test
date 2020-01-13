@@ -116,6 +116,7 @@ open class DataContext {
 }
 
 interface NView {
+    @SuppressLint("CI_ByteDanceKotlinRules_Class_Camel_Case")
     interface NViewManager {
         fun update(data: ObjectV?)
         fun findViewById(id: String): View?
@@ -128,6 +129,8 @@ interface NView {
 
     val view: View
     var nViewManager: NViewManager
+    val context: Context
+        get() = view.context
 }
 
 abstract class ViewTypeParser
@@ -145,7 +148,7 @@ interface NInflater {
 
     interface Callback {
         fun onUnknownViewType(nContext: NContext, type: String, layoutV: LayoutV, data: ObjectV, dataIndex: Int)
-        fun onEvent(event: String, value: Value, nView: NView)
+        fun onEvent(event: String, value: Value?, nView: NView)
     }
 
     interface ImageLoader {
@@ -154,6 +157,7 @@ interface NInflater {
     }
 }
 
+@SuppressLint("CI_ByteDanceKotlinRules_Parcelable_Annotation")
 open class SimpleIdGenerator : ViewIdGenerator<String>, Parcelable {
     protected val idMap: KKMap<String, Int>
     protected val sNextGeneratedId: AtomicInteger
@@ -204,6 +208,7 @@ open class SimpleIdGenerator : ViewIdGenerator<String>, Parcelable {
 
     override fun describeContents(): Int = 0
 
+    @SuppressLint("CI_ByteDanceKotlinRules_Class_Camel_Case")
     companion object CREATOR : Parcelable.Creator<SimpleIdGenerator> {
         override fun createFromParcel(parcel: Parcel): SimpleIdGenerator = SimpleIdGenerator(parcel)
         override fun newArray(size: Int): Array<SimpleIdGenerator?> = arrayOfNulls(size)

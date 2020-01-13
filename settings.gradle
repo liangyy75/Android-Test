@@ -1,5 +1,5 @@
-include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':popup', ':basic-block', ':xml-inflater', ':json-inflater',
-        ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
+include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority' ,
+        ':popup', ':basic-block', ':xml-inflater', ':json-inflater', ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
 project(":spi_impl1").projectDir = new File("spi/spi_impl1")

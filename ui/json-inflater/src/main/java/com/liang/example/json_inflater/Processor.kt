@@ -2,14 +2,18 @@ package com.liang.example.json_inflater
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Resources
 import android.content.res.TypedArray
-import android.view.View
+import android.graphics.drawable.Drawable
+import android.util.Log
+import android.view.animation.Animation
+import androidx.annotation.IntDef
 
 // TODO: 理解
 /**
  * precompile / staticPreCompile 是为了方便对 value 的各种 handle ，而 compile 则是直接将 value 转换为目的类型
  */
-abstract class NAttributeProcessor<V : View?> {
+abstract class NAttributeProcessor<V : NView?> {
     companion object {
         fun evaluate(context: Context, input: Value?, data: Value?, index: Int): Value {
             val processor = DefaultImpl(context, data, index)
@@ -19,12 +23,12 @@ abstract class NAttributeProcessor<V : View?> {
 
         fun staticPreCompile(value: Value?, context: Context, funcManager: FuncManager?): Value? = when (value) {
             is PrimitiveV -> staticPreCompile(value, context, funcManager)
-            is ObjectV -> staticPreCompile(value, context, funcManager)
+            is ObjectV -> staticPreCompile(value)
             is BindingV, is ResourceV, is AttributeResourceV, is StyleResourceV -> value
             else -> null
         }
 
-        fun staticPreCompile(value: ObjectV, context: Context, funcManager: FuncManager?): Value? = value["@"]?.let { BindingV.NestedBinding(it) }
+        fun staticPreCompile(value: ObjectV): Value? = value["@"]?.let { BindingV.NestedBinding(it) }
 
         fun staticPreCompile(value: PrimitiveV, context: Context, funcManager: FuncManager?): Value? {
             val str = value.string()
@@ -43,7 +47,7 @@ abstract class NAttributeProcessor<V : View?> {
     abstract fun handleStyleResource(view: V, style: StyleResourceV)
     abstract fun handleAttributeResource(view: V, attribute: AttributeResourceV)
 
-    open fun handleBinding(view: V, binding: BindingV) = if (view is NView) {
+    open fun handleBinding(view: V, binding: BindingV) = if (view != null) {
         val dataContext = view.nViewManager.dataContext
         handleValue(view, evaluate(binding, view.context, dataContext.data, dataContext.index))
     } else Unit
@@ -62,7 +66,7 @@ abstract class NAttributeProcessor<V : View?> {
             staticPreCompile(value, context, funcManager) ?: compile(value, context)
 
     // 这里的 DefaultImpl 配合 Companion 里面的 evaluate ，方便 Binding 的 arguments 的转换
-    class DefaultImpl(private val context: Context, private val data: Value?, private val index: Int) : NAttributeProcessor<View?>() {
+    class DefaultImpl(private val context: Context, private val data: Value?, private val index: Int) : NAttributeProcessor<NView?>() {
         var output: Value? = null
 
         private fun innerSetOutput(output: Value?) {
@@ -74,15 +78,15 @@ abstract class NAttributeProcessor<V : View?> {
             else -> NullV.nullV
         }
 
-        override fun handleBinding(view: View?, binding: BindingV) = innerSetOutput(binding.evaluate(context, data, index))
-        override fun handleValue(view: View?, value: Value?) = innerSetOutput(value)
-        override fun handleResource(view: View?, resource: ResourceV) = innerSetOutput(innerGetValue(ResourceV.getString(resource.resId, context)))
-        override fun handleStyleResource(view: View?, style: StyleResourceV) = innerSetOutput(innerGetValue(style.apply(context).getString(0)))
-        override fun handleAttributeResource(view: View?, attribute: AttributeResourceV) = innerSetOutput(innerGetValue(attribute.apply(context).getString(0)))
+        override fun handleBinding(view: NView?, binding: BindingV) = innerSetOutput(binding.evaluate(context, data, index))
+        override fun handleValue(view: NView?, value: Value?) = innerSetOutput(value)
+        override fun handleResource(view: NView?, resource: ResourceV) = innerSetOutput(innerGetValue(ResourceV.getString(resource.resId, context)))
+        override fun handleStyleResource(view: NView?, style: StyleResourceV) = innerSetOutput(innerGetValue(style.apply(context).getString(0)))
+        override fun handleAttributeResource(view: NView?, attribute: AttributeResourceV) = innerSetOutput(innerGetValue(attribute.apply(context).getString(0)))
     }
 }
 
-abstract class NBooleanResourceProcessor<V : View> : NAttributeProcessor<V>() {
+abstract class NBooleanAttributeProcessor<V : NView> : NAttributeProcessor<V>() {
     override fun handleValue(view: V, value: Value?) = when {
         value is PrimitiveV && value.isBoolean() -> setBoolean(view, value.toBoolean())
         else -> process(view, precompile(value, view.context, (view.context as NContext).getFuncManager()))
@@ -98,7 +102,7 @@ abstract class NBooleanResourceProcessor<V : View> : NAttributeProcessor<V>() {
     abstract fun setBoolean(view: V, value: Boolean)
 }
 
-abstract class NColorResourceProcessor<V : View> : NAttributeProcessor<V>() {
+abstract class NColorResourceProcessor<V : NView> : NAttributeProcessor<V>() {
     override fun handleValue(view: V, value: Value?) = when (value) {
         is ColorV -> apply(view, value)
         else -> process(view, precompile(value, view.context, (view.context as NContext).getFuncManager()))
@@ -144,27 +148,27 @@ abstract class NColorResourceProcessor<V : View> : NAttributeProcessor<V>() {
             else -> ColorV.IntV.BLACK
         }
 
-        fun evaluate(value: Value?, view: View): ColorV.Result {
+        fun evaluate(value: Value?, view: NView): ColorV.Result {
             val processor = DefaultColorImpl()
             processor.process(view, value)
             return processor.result
         }
     }
 
-    class DefaultColorImpl : NColorResourceProcessor<View>() {
+    class DefaultColorImpl : NColorResourceProcessor<NView>() {
         lateinit var result: ColorV.Result
 
-        override fun setColor(view: View, color: Int) {
+        override fun setColor(view: NView, color: Int) {
             result = ColorV.Result(color, null)
         }
 
-        override fun setColor(view: View, colors: ColorStateList) {
+        override fun setColor(view: NView, colors: ColorStateList) {
             result = ColorV.Result(null, colors)
         }
     }
 }
 
-abstract class NDimensionResourceProcessor<V : View> : NAttributeProcessor<V>() {
+abstract class NDimensionAttributeProcessor<V : NView> : NAttributeProcessor<V>() {
     override fun handleValue(view: V, value: Value?) = when (value) {
         is DimensionV -> setDimension(view, value.apply(view.context))
         is PrimitiveV -> process(view, precompile(value, view.context, (view.context as NContext).getFuncManager()))
@@ -181,13 +185,13 @@ abstract class NDimensionResourceProcessor<V : View> : NAttributeProcessor<V>() 
     abstract fun setDimension(view: V, dimension: Float)
 
     companion object {
-        fun staticCompile(value: Value?, context: Context): Value = when (value) {
+        fun staticCompile(value: Value?, context: Context): Value? = when (value) {
+            null, !is PrimitiveV -> null
             is DimensionV -> value
-            null, !is PrimitiveV -> DimensionV.ZERO
             else -> staticPreCompile(value, context, null) ?: DimensionV.valueOf(value.string())
         }
 
-        fun evaluate(value: Value?, view: View): Float = when (value) {
+        fun evaluate(value: Value?, view: NView): Float = when (value) {
             null -> DimensionV.ZERO.apply(view.context)
             else -> {
                 val processor = DefaultDimenImpl()
@@ -197,39 +201,127 @@ abstract class NDimensionResourceProcessor<V : View> : NAttributeProcessor<V>() 
         }
     }
 
-    class DefaultDimenImpl : NDimensionResourceProcessor<View>() {
+    class DefaultDimenImpl : NDimensionAttributeProcessor<NView>() {
         var result: Float = 0f
-        override fun setDimension(view: View, dimension: Float) {
+        override fun setDimension(view: NView, dimension: Float) {
             result = dimension
         }
     }
 }
 
-abstract class NDrawableResourceProcessor<V : View> : NAttributeProcessor<V>() {
-    override fun handleValue(view: V, value: Value?) = TODO("not implemented")
-    override fun handleResource(view: V, resource: ResourceV) = TODO("not implemented")
-    override fun handleStyleResource(view: V, style: StyleResourceV) = TODO("not implemented")
-    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = TODO("not implemented")
-    override fun compile(value: Value?, context: Context): Value? = TODO("not implemented")
+abstract class NDrawableResourceProcessor<V : NView> : NAttributeProcessor<V>() {
+    override fun handleValue(view: V, value: Value?) {
+        if (value is DrawableV) {
+            val loader = view.nViewManager.nContext.loader ?: return
+            value.apply(view, view.context, loader, object : DrawableV.Callback {
+                override fun apply(drawable: Drawable?) {
+                    if (drawable != null) {
+                        setDrawable(view, drawable)
+                    }
+                }
+            })
+        } else {
+            process(view, precompile(value, view.context, (view.context as NContext).getFuncManager()))
+        }
+    }
+
+    override fun handleResource(view: V, resource: ResourceV) {
+        val d = ResourceV.getDrawable(resource.resId, view.context)
+        if (d != null) {
+            setDrawable(view, d)
+        }
+    }
+
+    override fun handleStyleResource(view: V, style: StyleResourceV) = set(view, style.apply(view.context))
+    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = set(view, attribute.apply(view.context))
+    override fun compile(value: Value?, context: Context): Value? = staticCompile(value, context)
+
+    private fun set(view: V, a: TypedArray) {
+        val d = a.getDrawable(0)
+        if (d != null) {
+            setDrawable(view, d)
+        }
+    }
+
+    abstract fun setDrawable(view: V, drawable: Drawable)
+
+    companion object {
+        fun staticCompile(value: Value?, context: Context): Value = when (value) {
+            null -> DrawableV.ColorDrawV.BLACK
+            is DrawableV -> value
+            is PrimitiveV -> staticPreCompile(value, context, null) ?: DrawableV.valueOf(value.string()) ?: DrawableV.ColorDrawV.BLACK
+            is ObjectV -> DrawableV.valueOf(value.string()) ?: DrawableV.ColorDrawV.BLACK
+            else -> DrawableV.ColorDrawV.BLACK
+        }
+
+        fun evaluate(value: Value?, view: NView): Drawable? {
+            if (value == null) {
+                return null
+            }
+            val processor = DefaultDrawableImpl()
+            processor.process(view, value)
+            return processor.drawable
+        }
+    }
+
+    class DefaultDrawableImpl : NDrawableResourceProcessor<NView>() {
+        lateinit var drawable: Drawable
+
+        override fun setDrawable(view: NView, drawable: Drawable) {
+            this.drawable = drawable
+        }
+    }
 }
 
-abstract class NEventResourceProcessor<V : View> : NAttributeProcessor<V>() {
-    override fun handleValue(view: V, value: Value?) = TODO("not implemented")
-    override fun handleResource(view: V, resource: ResourceV) = TODO("not implemented")
-    override fun handleStyleResource(view: V, style: StyleResourceV) = TODO("not implemented")
-    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = TODO("not implemented")
-    override fun compile(value: Value?, context: Context): Value? = TODO("not implemented")
+abstract class NEventProcessor<V : NView> : NAttributeProcessor<V>() {
+    override fun handleValue(view: V, value: Value?) = setOnEventListener(view, value)
+    override fun handleResource(view: V, resource: ResourceV) = setOnEventListener(view, resource)
+    override fun handleStyleResource(view: V, style: StyleResourceV) = setOnEventListener(view, style)
+    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = setOnEventListener(view, attribute)
+
+    abstract fun setOnEventListener(view: V, value: Value?)
+
+    open fun trigger(event: String, value: Value?, view: NView) = view.nViewManager.nContext.callback?.onEvent(event, value, view) ?: Unit
 }
 
-abstract class NGravityResourceProcessor<V : View> : NAttributeProcessor<V>() {
-    override fun handleValue(view: V, value: Value?) = TODO("not implemented")
-    override fun handleResource(view: V, resource: ResourceV) = TODO("not implemented")
-    override fun handleStyleResource(view: V, style: StyleResourceV) = TODO("not implemented")
-    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = TODO("not implemented")
-    override fun compile(value: Value?, context: Context): Value? = TODO("not implemented")
+abstract class NGravityAttributeProcessor<V : NView> : NAttributeProcessor<V>() {
+    override fun handleValue(view: V, value: Value?) = setGravity(view, when {
+        value is PrimitiveV && value.isNumber() -> value.toInt()
+        value is PrimitiveV -> Util.parseGravity(value.string())
+        else -> android.view.Gravity.NO_GRAVITY
+    })
+
+    override fun handleResource(view: V, resource: ResourceV) = setGravity(view, try {
+        ResourceV.getInteger(resource.resId, view.context)
+    } catch (e: Resources.NotFoundException) {
+        android.view.Gravity.NO_GRAVITY
+    })
+
+    override fun handleStyleResource(view: V, style: StyleResourceV) = setGravity(view, style.apply(view.context).getInt(0, android.view.Gravity.NO_GRAVITY))
+    override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = setGravity(view, attribute.apply(view.context).getInt(0, android.view.Gravity.NO_GRAVITY))
+    override fun compile(value: Value?, context: Context): Value? = when (value) {
+        null -> NO_GRAVITY
+        else -> Util.getGravity(value.string())
+    }
+
+    private fun set(view: V, a: TypedArray) = setGravity(view, a.getInt(0, android.view.Gravity.NO_GRAVITY))
+
+    @IntDef(android.view.Gravity.NO_GRAVITY, android.view.Gravity.TOP, android.view.Gravity.BOTTOM, android.view.Gravity.LEFT, android.view.Gravity.RIGHT,
+            android.view.Gravity.START, android.view.Gravity.END, android.view.Gravity.CENTER_VERTICAL, android.view.Gravity.FILL_VERTICAL,
+            android.view.Gravity.CENTER_HORIZONTAL, android.view.Gravity.FILL_HORIZONTAL, android.view.Gravity.CENTER, android.view.Gravity.FILL)
+    @kotlin.annotation.Retention(AnnotationRetention.SOURCE)
+    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.CLASS)
+    annotation class Gravity
+
+    abstract fun setGravity(view: V, @Gravity gravity: Int)
+
+    companion object {
+        val NO_GRAVITY = PrimitiveV(android.view.Gravity.NO_GRAVITY)
+    }
 }
 
-abstract class NNumberResourceProcessor<V : View> : NAttributeProcessor<V>() {
+abstract class NNumberAttributeProcessor<V : NView> : NAttributeProcessor<V>() {
     override fun handleValue(view: V, value: Value?) = when (value) {
         is PrimitiveV -> setNumber(view, value.toNumber())
         else -> Unit
@@ -242,7 +334,7 @@ abstract class NNumberResourceProcessor<V : View> : NAttributeProcessor<V>() {
     abstract fun setNumber(view: V, value: Number)
 }
 
-abstract class NStringResourceProcessor<V : View> : NAttributeProcessor<V>() {
+abstract class NStringAttributeProcessor<V : NView> : NAttributeProcessor<V>() {
     override fun handleValue(view: V, value: Value?) = setString(view, when (value) {
         is PrimitiveV, is NullV -> value.string()
         else -> "[Object]"
@@ -259,10 +351,20 @@ abstract class NStringResourceProcessor<V : View> : NAttributeProcessor<V>() {
     abstract fun setString(view: V, value: String?)
 }
 
-abstract class NTweenAnimResourceProcessor<V : View> : NAttributeProcessor<V>() {
-    override fun handleValue(view: V, value: Value?) = TODO("not implemented")
+abstract class NTweenAnimResourceProcessor<V : NView> : NAttributeProcessor<V>() {
+    override fun handleValue(view: V, value: Value?) {
+        val animation = AnimationUtils.loadAnimation(view.context, value)
+        if (null != animation) {
+            setAnimation(view, animation)
+        } else {
+            Log.e("NTweenAnimResourceProcessor", "Animation Resource must be a primitive or an object. value -> " + value.toString())
+        }
+    }
+
     override fun handleResource(view: V, resource: ResourceV) = TODO("not implemented")
     override fun handleStyleResource(view: V, style: StyleResourceV) = TODO("not implemented")
     override fun handleAttributeResource(view: V, attribute: AttributeResourceV) = TODO("not implemented")
     override fun compile(value: Value?, context: Context): Value? = TODO("not implemented")
+
+    abstract fun setAnimation(view: V, animation: Animation?)
 }

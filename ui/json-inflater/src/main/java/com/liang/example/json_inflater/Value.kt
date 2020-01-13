@@ -9,9 +9,15 @@ import android.content.res.Resources
 import android.content.res.TypedArray
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.LevelListDrawable
+import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.text.TextUtils
 import android.util.LruCache
@@ -19,7 +25,6 @@ import android.util.StateSet
 import android.util.TypedValue
 import android.view.ViewGroup
 import androidx.annotation.StringDef
-import com.flipkart.android.proteus.processor.ColorResourceProcessor
 import com.liang.example.basic_ktx.KKMap
 import com.liang.example.json_inflater.NullV.Companion.nullV
 import java.math.BigDecimal
@@ -76,6 +81,20 @@ open class ArrayV : Value {
 
     override fun equals(other: Any?): Boolean = other === this || other is ArrayV && other.values == values
     override fun hashCode(): Int = values.hashCode()
+
+    open fun getBoolean(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toBoolean() else false
+    open fun getChar(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toChar() else null
+    open fun getByte(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toByte() else null
+    open fun getShort(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toShort() else null
+    open fun getInt(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toInt() else null
+    open fun getLong(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toLong() else null
+    open fun getFloat(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toFloat() else null
+    open fun getDouble(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toDouble() else null
+    open fun getBigInteger(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toBigInteger() else null
+    open fun getBigDecimal(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).toBigDecimal() else null
+    open fun getString(pos: Int) = if (values[pos] is PrimitiveV) (values[pos] as PrimitiveV).string() else null
+    open fun getArray(pos: Int) = if (values[pos] is ArrayV) values[pos] as ArrayV else null
+    open fun getObject(pos: Int) = if (values[pos] is ObjectV) values[pos] as ObjectV else null
 }
 
 open class ObjectV : Value {
@@ -116,6 +135,20 @@ open class ObjectV : Value {
 
     override fun equals(other: Any?): Boolean = this === other || other is ObjectV && other.values == values
     override fun hashCode(): Int = values.hashCode()
+
+    open fun getBoolean(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toBoolean() else null
+    open fun getChar(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toChar() else null
+    open fun getByte(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toByte() else null
+    open fun getShort(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toShort() else null
+    open fun getInt(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toInt() else null
+    open fun getLong(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toLong() else null
+    open fun getFloat(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toFloat() else null
+    open fun getDouble(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toDouble() else null
+    open fun getBigInteger(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toBigInteger() else null
+    open fun getBigDecimal(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).toBigDecimal() else null
+    open fun getString(property: String) = if (values[property] is PrimitiveV) (values[property] as PrimitiveV).string() else null
+    open fun getArray(property: String) = if (values[property] is ArrayV) values[property] as ArrayV else null
+    open fun getObject(property: String) = if (values[property] is ObjectV) values[property] as ObjectV else null
 }
 
 open class NullV private constructor() : Value() {
@@ -177,6 +210,7 @@ open class PrimitiveV : Value {
     open fun toBoolean() = if (value is Boolean) value as Boolean else java.lang.Boolean.parseBoolean(value as String)
     open fun toNumber() = if (value is Number) value as Number else LazilyParsedNumber(value as String)
 
+    open fun toChar() = if (value is Number) (value as Number).toChar() else (value as String).toCharArray()[0]
     open fun toByte() = if (value is Number) (value as Number).toByte() else (value as String).toByte()
     open fun toShort() = if (value is Number) (value as Number).toShort() else (value as String).toShort()
     open fun toInt() = if (value is Number) (value as Number).toInt() else (value as String).toInt()
@@ -534,8 +568,7 @@ abstract class ColorV : Value() {
          * }
          */
         fun valueOf(value: ObjectV): ColorV {
-            if (value["type"] !is PrimitiveV || !TextUtils.equals((value["type"] as PrimitiveV).string(), "selector") ||
-                    value["children"] !is ArrayV) {
+            if (value["type"] !is PrimitiveV || !TextUtils.equals((value["type"] as PrimitiveV).string(), "selector") || value["children"] !is ArrayV) {
                 return IntV.BLACK
             }
 
@@ -1079,25 +1112,38 @@ abstract class DrawableV : Value() {
         const val TYPE = "type"
         const val CHILDREN = "children"
 
-        const val DRAWABLE_SELECTOR = "selector"
+        const val DRAWABLE_COLOR = "color"
         const val DRAWABLE_SHAPE = "shape"
+        const val DRAWABLE_SELECTOR = "selector"
         const val DRAWABLE_LAYER_LIST = "layer-list"
         const val DRAWABLE_LEVEL_LIST = "level-list"
         const val DRAWABLE_RIPPLE = "ripple"
 
-        const val TYPE_CORNERS = "corners"
         const val TYPE_GRADIENT = "gradient"
-        const val TYPE_PADDING = "padding"
-        const val TYPE_SIZE = "size"
+        const val TYPE_CORNERS = "corners"
         const val TYPE_SOLID = "solid"
+        const val TYPE_SIZE = "size"
         const val TYPE_STROKE = "stroke"
+        const val TYPE_PADDING = "padding"
+
+        fun valueOf(string: String): DrawableV = if (ColorV.isColor(string)) ColorDrawV.valueOf(string) else UrlDrawV(string)
+        fun valueOf(objectV: ObjectV, context: Context): DrawableV? = when (objectV.getString(TYPE)) {
+            DRAWABLE_SELECTOR -> StateListDrawV(objectV.getArray(CHILDREN)!!, context)
+            DRAWABLE_SHAPE -> ShapeDrawV(objectV, context)
+            DRAWABLE_LAYER_LIST -> LayerListDrawV(objectV.getArray(CHILDREN)!!, context)
+            DRAWABLE_LEVEL_LIST -> LevelListDrawV(objectV.getArray(CHILDREN)!!, context)
+            DRAWABLE_RIPPLE -> RippleDrawV(objectV, context)
+            else -> null
+        }
     }
 
-    abstract fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback)
+    abstract fun apply(view: NView, context: Context, loader: NInflater.ImageLoader? /*这里只有urlDrawV需要用到*/, callback: Callback)
     override fun copy(): DrawableV = this
 
+    // callback
+
     interface Callback {
-        fun apply(drawable: Drawable)
+        fun apply(drawable: Drawable?)
     }
 
     abstract class AsyncCallback : Callback {
@@ -1122,75 +1168,481 @@ abstract class DrawableV : Value() {
         abstract fun apply(bitmap: Bitmap)
     }
 
-    open class ColorDrawV(open val color: Value) : DrawableV() {
+    // element
+
+    abstract class DrawElementV : Value() {
+        override fun copy(): Value = this
+        abstract fun apply(view: NView, drawable: GradientDrawable)
+    }
+
+    open class Gradient(gradient: ObjectV, context: Context) : DrawElementV() {
+        val gradientType: Int = when (gradient.getString(GRADIENT_TYPE)) {
+            LINEAR_GRADIENT -> GradientDrawable.LINEAR_GRADIENT
+            RADIAL_GRADIENT -> GradientDrawable.RADIAL_GRADIENT
+            SWEEP_GRADIENT -> GradientDrawable.SWEEP_GRADIENT
+            else -> GRADIENT_TYPE_NONE
+        }
+        val angle: Int? = gradient.getInt(ANGLE)
+        val centerX: Float? = gradient.getFloat(CENTER_X)
+        val centerY: Float? = gradient.getFloat(CENTER_Y)
+        val startColor: Value = gradient[START_COLOR]!!.let { NColorResourceProcessor.staticCompile(it, context) }
+        val centerColor: Value? = gradient[CENTER_COLOR]?.let { NColorResourceProcessor.staticCompile(it, context) }
+        val endColor: Value = gradient[END_COLOR]!!.let { NColorResourceProcessor.staticCompile(it, context) }
+        val gradientRadius: Value? = gradient[GRADIENT_RADIUS]?.let { NColorResourceProcessor.staticCompile(it, context) }
+        val useLevel: Boolean = gradient.getBoolean(USE_LEVEL)
+
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) =
-                callback.apply(ColorDrawable(NColorResourceProcessor.evaluate(color, view).color))
+        override fun apply(view: NView, drawable: GradientDrawable) {
+            if (centerX != null && centerY != null) {
+                drawable.setGradientCenter(centerX, centerY)
+            }
+            if (gradientRadius != null) {
+                drawable.gradientRadius = NDimensionAttributeProcessor.evaluate(gradientRadius, view)
+            }
+            if (gradientType != GRADIENT_TYPE_NONE) {
+                drawable.gradientType = gradientType
+            }
+        }
+
+        open fun init(view: NView): GradientDrawable = init(when (centerColor) {
+            null -> intArrayOf(NColorResourceProcessor.evaluate(startColor, view).color!!, NColorResourceProcessor.evaluate(centerColor, view).color!!,
+                    NColorResourceProcessor.evaluate(endColor, view).color!!)
+            else -> intArrayOf(NColorResourceProcessor.evaluate(startColor, view).color!!, NColorResourceProcessor.evaluate(endColor, view).color!!)
+        }, angle)
 
         companion object {
+            const val ANGLE = "angle"
+            const val CENTER_X = "centerX"
+            const val CENTER_Y = "centerY"
+            const val CENTER_COLOR = "centerColor"
+            const val START_COLOR = "startColor"
+            const val END_COLOR = "endColor"
+            const val GRADIENT_RADIUS = "gradientRadius"
+            const val GRADIENT_TYPE = "gradientType"
+            const val USE_LEVEL = "useLevel"
+
+            private const val GRADIENT_TYPE_NONE = -1
+
+            private const val LINEAR_GRADIENT = "linear"
+            private const val RADIAL_GRADIENT = "radial"
+            private const val SWEEP_GRADIENT = "sweep"
+
+            fun getOrientation(angle: Int?): GradientDrawable.Orientation {
+                var orientation = GradientDrawable.Orientation.LEFT_RIGHT
+                if (angle != null) {
+                    val angle1 = angle % 360
+                    if (angle1 % 45 == 0) {
+                        orientation = when (angle1) {
+                            0 -> GradientDrawable.Orientation.LEFT_RIGHT
+                            45 -> GradientDrawable.Orientation.BL_TR
+                            90 -> GradientDrawable.Orientation.BOTTOM_TOP
+                            135 -> GradientDrawable.Orientation.BR_TL
+                            180 -> GradientDrawable.Orientation.RIGHT_LEFT
+                            225 -> GradientDrawable.Orientation.TR_BL
+                            270 -> GradientDrawable.Orientation.TOP_BOTTOM
+                            315 -> GradientDrawable.Orientation.TL_BR
+                            else -> GradientDrawable.Orientation.LEFT_RIGHT
+                        }
+                    }
+                }
+                return orientation
+            }
+
+            fun init(colors: IntArray?, angle: Int?): GradientDrawable = when {
+                angle == null -> GradientDrawable()
+                else -> GradientDrawable(getOrientation(angle), colors)
+            }
+        }
+    }
+
+    open class Corners(corner: ObjectV, context: Context) : DrawElementV() {
+        val radius: Value? = NDimensionAttributeProcessor.staticCompile(corner[RADIUS], context)
+        val topLeftRadius: Value? = NDimensionAttributeProcessor.staticCompile(corner[TOP_LEFT_RADIUS], context)
+        val topRightRadius: Value? = NDimensionAttributeProcessor.staticCompile(corner[TOP_RIGHT_RADIUS], context)
+        val bottomLeftRadius: Value? = NDimensionAttributeProcessor.staticCompile(corner[BOTTOM_LEFT_RADIUS], context)
+        val bottomRightRadius: Value? = NDimensionAttributeProcessor.staticCompile(corner[BOTTOM_RIGHT_RADIUS], context)
+
+        override fun string(): String = TODO()
+        override fun apply(view: NView, drawable: GradientDrawable) {
+            if (radius != null) {
+                drawable.gradientRadius = NDimensionAttributeProcessor.evaluate(radius, view)
+            }
+            val fTopLeftRadius = NDimensionAttributeProcessor.evaluate(topLeftRadius, view)
+            val fTopRightRadius = NDimensionAttributeProcessor.evaluate(topRightRadius, view)
+            val fBottomRightRadius = NDimensionAttributeProcessor.evaluate(bottomRightRadius, view)
+            val fBottomLeftRadius = NDimensionAttributeProcessor.evaluate(bottomLeftRadius, view)
+            if (fTopLeftRadius != 0f || fTopRightRadius != 0f || fBottomLeftRadius != 0f || fBottomRightRadius != 0f) {
+                drawable.cornerRadii = floatArrayOf(
+                        fTopLeftRadius, fTopLeftRadius,
+                        fTopRightRadius, fTopRightRadius,
+                        fBottomRightRadius, fBottomRightRadius,
+                        fBottomLeftRadius, fBottomLeftRadius
+                )
+            }
+        }
+
+        companion object {
+            const val RADIUS = "radius"
+            const val TOP_LEFT_RADIUS = "topLeftRadius"
+            const val TOP_RIGHT_RADIUS = "topRightRadius"
+            const val BOTTOM_LEFT_RADIUS = "bottomLeftRadius"
+            const val BOTTOM_RIGHT_RADIUS = "bottomRightRadius"
+        }
+    }
+
+    open class Solid(value: ObjectV, context: Context) : DrawElementV() {
+        val color = NColorResourceProcessor.staticCompile(value[COLOR], context)
+
+        override fun string(): String = TODO()
+        override fun apply(view: NView, drawable: GradientDrawable) {
+            val result = NColorResourceProcessor.evaluate(color, view)
+            if (result.colors != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                drawable.color = result.colors
+            } else if (result.color != null) {
+                drawable.setColor(result.color)
+            }
+        }
+
+        companion object {
+            const val COLOR = "color"
+        }
+    }
+
+    open class Size(size: ObjectV, context: Context) : DrawElementV() {
+        val width = NDimensionAttributeProcessor.staticCompile(size[WIDTH], context)
+        val height = NDimensionAttributeProcessor.staticCompile(size[HEIGHT], context)
+
+        override fun string(): String = TODO()
+        override fun apply(view: NView, drawable: GradientDrawable) =
+                drawable.setSize(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NDimensionAttributeProcessor.evaluate(height, view).toInt())
+
+        companion object {
+            const val WIDTH = "width"
+            const val HEIGHT = "height"
+        }
+    }
+
+    open class Stroke(stroke: ObjectV, context: Context) : DrawElementV() {
+        val width = NDimensionAttributeProcessor.staticCompile(stroke[WIDTH], context)
+        val color = NColorResourceProcessor.staticCompile(stroke[COLOR], context)
+        val dashWidth = NDimensionAttributeProcessor.staticCompile(stroke[DASH_WIDTH], context)
+        val dashGap = NDimensionAttributeProcessor.staticCompile(stroke[DASH_GAP], context)
+
+        override fun string(): String = TODO()
+        override fun apply(view: NView, drawable: GradientDrawable) = when {
+            null == dashWidth -> drawable.setStroke(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NColorResourceProcessor.evaluate(color, view).color!!)
+            null != dashGap -> drawable.setStroke(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NColorResourceProcessor.evaluate(color, view).color!!,
+                    NDimensionAttributeProcessor.evaluate(dashWidth, view), NDimensionAttributeProcessor.evaluate(dashGap, view))
+            else -> Unit
+        }
+
+        companion object {
+            const val WIDTH = "width"
+            const val COLOR = "color"
+            const val DASH_WIDTH = "dashWidth"
+            const val DASH_GAP = "dashGap"
+        }
+    }
+
+    // real type
+
+    open class ColorDrawV(open val color: Value) : DrawableV() {
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) =
+                callback.apply(ColorDrawable(NColorResourceProcessor.evaluate(color, view).color!!))
+
+        companion object {
+            val BLACK = ColorDrawV(ColorV.IntV.BLACK)
+
             fun valueOf(value: String) = ColorDrawV(ColorV.valueOf(value))
             fun valueOf(value: Value, context: Context) = ColorDrawV(NColorResourceProcessor.staticCompile(value, context))
         }
     }
 
-    open class ShapeDrawV : DrawableV() {
+    open class ShapeDrawV : DrawableV {
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+            val d = this.gradient?.init(view) ?: GradientDrawable()
+            if (shape != SHAPE_NONE) {
+                d.shape = shape
+            }
+            elements?.forEach { it.apply(view, d) }
+            callback.apply(d)
+        }
+
+        val shape: Int
+        var gradient: Gradient?
+        var elements: Array<DrawElementV>?
+
+        constructor(shape: Int, gradient: Gradient?, elements: Array<DrawElementV>?) {
+            this.shape = shape
+            this.gradient = gradient
+            this.elements = elements
+        }
+
+        constructor(value: ObjectV, context: Context) {
+            if (value[SHAPE] !is PrimitiveV) {
+                this.shape = SHAPE_NONE
+            } else {
+                this.shape = when ((value[SHAPE] as PrimitiveV).string()) {
+                    SHAPE_RECTANGLE -> GradientDrawable.RECTANGLE
+                    SHAPE_OVAL -> GradientDrawable.OVAL
+                    SHAPE_LINE -> GradientDrawable.LINE
+                    SHAPE_RING -> GradientDrawable.RING
+                    else -> SHAPE_NONE
+                }
+            }
+            val children = value[CHILDREN]
+            if (children !is ArrayV || children.size() == 0) {
+                this.gradient = null
+                this.elements = null
+            } else {
+                val elementList = mutableListOf<DrawElementV>()
+                this.gradient = null
+                for (element in children) {
+                    if (element is ObjectV) {
+                        val typeKey = element[TYPE]
+                        if (typeKey !is PrimitiveV) {
+                            continue
+                        }
+                        when (typeKey.string()) {
+                            TYPE_CORNERS -> elementList.add(Corners(element, context))
+                            TYPE_PADDING -> Unit
+                            TYPE_SIZE -> elementList.add(Size(element, context))
+                            TYPE_SOLID -> elementList.add(Solid(element, context))
+                            TYPE_STROKE -> elementList.add(Stroke(element, context))
+                            TYPE_GRADIENT -> {
+                                this.gradient = Gradient(element, context)
+                                elementList.add(this.gradient!!)
+                            }
+                        }
+                    }
+                }
+                this.elements = elementList.toTypedArray()
+            }
+        }
+
+        companion object {
+            const val SHAPE_NONE = -1
+            const val SHAPE = "shape"
+
+            const val SHAPE_RECTANGLE = "rectangle"
+            const val SHAPE_OVAL = "oval"
+            const val SHAPE_LINE = "line"
+            const val SHAPE_RING = "ring"
         }
     }
 
-    open class LayerListDrawV : DrawableV() {
-        override fun string(): String {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    open class LayerListDrawV : DrawableV {
+        val ids: IntArray
+        val layers: Array<Value>
+
+        constructor(ids: IntArray, layers: Array<Value>) {
+            this.ids = ids
+            this.layers = layers
         }
 
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-    }
-
-    open class StateListDrawV : DrawableV() {
-        override fun string(): String {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-    }
-
-    open class LevelListDrawV : DrawableV() {
-        override fun string(): String {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        constructor(layers: ArrayV, context: Context) {
+            val ids = mutableListOf<Int>()
+            val layers2 = mutableListOf<Value>()
+            for (layer in layers) {
+                if (layer is ObjectV) {
+                    ids.add(getAndroidXmlResId(layer.getString(ID_STR)))
+                    layers.add(NDrawableResourceProcessor.staticCompile(layer[DRAWABLE_STR], context))
+                }
+            }
+            this.ids = ids.toIntArray()
+            this.layers = layers2.toTypedArray()
         }
 
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-    }
-
-    open class RippleDrawV : DrawableV() {
-        override fun string(): String {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+            val drawable = LayerDrawable(layers.map { NDrawableResourceProcessor.evaluate(it, view) }.toTypedArray())
+            ids.forEachIndexed { i, id -> drawable.setId(i, id) }
+            callback.apply(drawable)
         }
 
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        open operator fun iterator() = layers.iterator()
+        open fun idIterator() = ids.iterator()
+
+        companion object {
+            const val ID_STR = "id"
+            const val DRAWABLE_STR = "drawable"
         }
     }
 
-    open class UrlDrawV : DrawableV() {
-        override fun string(): String {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    open class StateListDrawV : DrawableV {
+        val states: Array<IntArray>
+        val values: Array<Value>
+
+        constructor(states: Array<IntArray>, values: Array<Value>) {
+            this.states = states
+            this.values = values
         }
 
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader, callback: Callback) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        constructor(states: ArrayV, context: Context) {
+            val states2 = mutableListOf<IntArray>()
+            val values = mutableListOf<Value>()
+            for (state in states) {
+                if (state is ObjectV) {
+                    val statesEntry = mutableListOf<Int>()
+                    values.add(NDrawableResourceProcessor.staticCompile(state[DRAWABLE_STR], context))
+                    for ((key, entry) in state) {
+                        val stateEntry = sStateMap[key] ?: throw RuntimeException("$key is not a valid state")
+                        statesEntry.add(if (parseBoolean(entry)) stateEntry else -stateEntry)
+                    }
+                    states2.add(statesEntry.toIntArray())
+                }
+            }
+            this.states = states2.toTypedArray()
+            this.values = values.toTypedArray()
+        }
+
+        open operator fun iterator() = values.iterator()
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+            val d = StateListDrawable()
+            states.forEachIndexed { index, ints -> d.addState(ints, NDrawableResourceProcessor.evaluate(values[index], view)) }
+            callback.apply(d)
+        }
+
+        companion object {
+            const val DRAWABLE_STR = "drawable"
+            val sStateMap: MutableMap<String, Int> = java.util.HashMap()
+
+            init {
+                sStateMap["state_pressed"] = R.attr.state_pressed
+                sStateMap["state_enabled"] = R.attr.state_enabled
+                sStateMap["state_focused"] = R.attr.state_focused
+                sStateMap["state_hovered"] = R.attr.state_hovered
+                sStateMap["state_selected"] = R.attr.state_selected
+                sStateMap["state_checkable"] = R.attr.state_checkable
+                sStateMap["state_checked"] = R.attr.state_checked
+                sStateMap["state_activated"] = R.attr.state_activated
+                sStateMap["state_window_focused"] = R.attr.state_window_focused
+            }
         }
     }
 
-    abstract class DrawElementV : DrawableV() {
-        abstract fun apply(view: NView, drawable: GradientDrawable)
+    @Suppress("LeakingThis")
+    open class LevelListDrawV : DrawableV {
+        open val levels: Array<Level>
+
+        constructor(levelArr: ArrayV, context: Context) {
+            val levels = mutableListOf<Level>()
+            for (level in levelArr) {
+                if (level is ObjectV) {
+                    levels.add(Level(level, context))
+                }
+            }
+            this.levels = levels.toTypedArray()
+        }
+
+        constructor(levels: Array<Level>) {
+            this.levels = levels
+        }
+
+        open operator fun iterator() = levels.iterator()
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+            val d = LevelListDrawable()
+            levels.forEach { it.apply(view, d) }
+            callback.apply(d)
+        }
+
+        @Suppress("LeakingThis")
+        open class Level {
+            open val minLevel: Int
+            open val maxLevel: Int
+            open val drawable: Value
+
+            constructor(minLevel: Int, maxLevel: Int, drawable: Value, context: Context) {
+                this.minLevel = minLevel
+                this.maxLevel = maxLevel
+                this.drawable = NDrawableResourceProcessor.staticCompile(drawable, context)
+            }
+
+            constructor(value: ObjectV, context: Context) {
+                this.minLevel = value.getInt(MIN_LEVEL) ?: -1
+                this.maxLevel = value.getInt(MAX_LEVEL) ?: -1
+                this.drawable = NDrawableResourceProcessor.staticCompile(value[DRAWABLE], context)
+            }
+
+            open fun apply(view: NView, levelListDrawable: LevelListDrawable) = levelListDrawable.addLevel(minLevel, maxLevel, NDrawableResourceProcessor.evaluate(drawable, view))
+
+            companion object {
+                const val MIN_LEVEL = "minLevel"
+                const val MAX_LEVEL = "maxLevel"
+                const val DRAWABLE = "drawable"
+            }
+        }
+    }
+
+    @Suppress("LeakingThis")
+    open class RippleDrawV : DrawableV {
+        open val color: Value
+        open val mask: Value?
+        open val content: Value?
+        open val defaultBackground: Value?
+
+        constructor(color: Value, mask: Value?, content: Value?, defaultBackground: Value?) {
+            this.color = color
+            this.mask = mask
+            this.content = content
+            this.defaultBackground = defaultBackground
+        }
+
+        constructor(objectV: ObjectV, context: Context) {
+            this.color = objectV[COLOR]!!
+            this.mask = NDrawableResourceProcessor.staticCompile(objectV[MASK], context)
+            this.content = NDrawableResourceProcessor.staticCompile(objectV[CONTENT], context)
+            this.defaultBackground = NDrawableResourceProcessor.staticCompile(objectV[DEFAULT_BACKGROUND], context)
+        }
+
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+            val result = NColorResourceProcessor.evaluate(color, view)
+            val colorStateList = result.colors ?: ColorStateList(arrayOf(intArrayOf()), intArrayOf(result.color!!))
+            val contentDrawable = NDrawableResourceProcessor.evaluate(content, view)
+            val resultDrawable = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP -> RippleDrawable(colorStateList, contentDrawable, NDrawableResourceProcessor.evaluate(mask, view))
+                defaultBackground != null -> NDrawableResourceProcessor.evaluate(defaultBackground, view)
+                contentDrawable != null -> {
+                    val pressedColor = colorStateList.getColorForState(intArrayOf(R.attr.state_pressed), colorStateList.defaultColor)
+                    val focusedColor = colorStateList.getColorForState(intArrayOf(R.attr.state_focused), pressedColor)
+                    val stateListDrawable = StateListDrawable()
+                    stateListDrawable.addState(intArrayOf(R.attr.state_enabled, R.attr.state_pressed), ColorDrawable(pressedColor))
+                    stateListDrawable.addState(intArrayOf(R.attr.state_enabled, R.attr.state_focused), ColorDrawable(focusedColor))
+                    stateListDrawable.addState(intArrayOf(R.attr.state_enabled), contentDrawable)
+                    stateListDrawable
+                }
+                else -> null
+            }
+            callback.apply(resultDrawable)
+        }
+
+        companion object {
+            const val COLOR = "color"
+            const val MASK = "mask"
+            const val CONTENT = "content"
+            const val DEFAULT_BACKGROUND = "defaultBackground"
+        }
+    }
+
+    open class UrlDrawV(open val url: String) : DrawableV() {
+        override fun string(): String = TODO()
+        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) = loader!!.getBitmap(view, url, object : AsyncCallback() {
+            override fun apply(drawable: Drawable?) = callback.apply(drawable)
+            override fun apply(bitmap: Bitmap) = callback.apply(convertBitmapToDrawable(bitmap, view.context))
+        })
+
+        companion object {
+            fun convertBitmapToDrawable(original: Bitmap, context: Context): Drawable {
+                val displayMetrics = context.resources.displayMetrics
+                val matrix = Matrix()
+                matrix.postScale(displayMetrics.scaledDensity, displayMetrics.scaledDensity)
+                return BitmapDrawable(context.resources, Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true) /*resizedBitmap*/)
+            }
+        }
     }
 }
