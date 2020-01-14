@@ -997,8 +997,7 @@ class Attributes2 {
         val hand_minute = Attr("hand_minute", "reference")
     }
 
-    object Button {
-    }
+    object Button
 
     object Chronometer {
         val format = Attr("format", "string")
@@ -1020,8 +1019,7 @@ class Attributes2 {
         val checkMarkGravity = Attr("checkMarkGravity", "flag", mutableMapOf("left" to 0x03, "right" to 0x05, "start" to 0x00800003, "end" to 0x00800005))
     }
 
-    object EditText {
-    }
+    object EditText
 
     object FastScroll {
         val thumbDrawable = Attr("thumbDrawable", "reference")
@@ -1074,8 +1072,7 @@ class Attributes2 {
         val gravity = Attr("gravity", "")
     }
 
-    object ImageSwitcher {
-    }
+    object ImageSwitcher
 
     object ImageView {
         val src = Attr("src", "reference|color")
@@ -1230,8 +1227,7 @@ class Attributes2 {
         val collapseColumns = Attr("collapseColumns", "string")
     }
 
-    object TableRow {
-    }
+    object TableRow
 
     object TableRow_Cell {
         val layout_column = Attr("layout_column", "integer")
@@ -1275,8 +1271,7 @@ class Attributes2 {
         val timeZone = Attr("timeZone", "string")
     }
 
-    object TextSwitcher {
-    }
+    object TextSwitcher
 
     object TextView {
         val bufferType = Attr("bufferType", "enum", mutableMapOf("normal" to 0, "spannable" to 1, "editable" to 2))
@@ -1396,8 +1391,7 @@ class Attributes2 {
         val textUnderlineThickness = Attr("textUnderlineThickness", "")
     }
 
-    object InputExtras {
-    }
+    object InputExtras
 
     object AutoCompleteTextView {
         val completionHint = Attr("completionHint", "string")
@@ -1448,8 +1442,7 @@ class Attributes2 {
         val autoStart = Attr("autoStart", "")
     }
 
-    object ViewSwitcher {
-    }
+    object ViewSwitcher
 
     object ScrollView {
         val fillViewport = Attr("fillViewport", "boolean")
@@ -1709,8 +1702,7 @@ class Attributes2 {
         val alpha = Attr("alpha", "")
     }
 
-    object AnimationScaleListDrawable {
-    }
+    object AnimationScaleListDrawable
 
     object AnimationScaleListDrawableItem {
         val drawable = Attr("drawable", "")
@@ -2297,8 +2289,7 @@ class Attributes2 {
         val apiKey = Attr("apiKey", "string")
     }
 
-    object Menu {
-    }
+    object Menu
 
     object MenuGroup {
         val id = Attr("id", "")
@@ -2415,8 +2406,7 @@ class Attributes2 {
         val imeExtractExitAnimation = Attr("imeExtractExitAnimation", "reference")
     }
 
-    object VoiceInteractionSession {
-    }
+    object VoiceInteractionSession
 
     object KeyboardView {
         val keyboardViewStyle = Attr("keyboardViewStyle", "reference")

@@ -1,14 +1,116 @@
 package com.liang.example.json_inflater
 
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.GridView
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ListView
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.RelativeLayout
+import android.widget.ScrollView
+import android.widget.Switch
+import android.widget.TabHost
+import android.widget.TextClock
+import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.bottomappbar.BottomAppBar
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import java.lang.RuntimeException
 
 object Support {
     const val VIEW = "View"
+    const val VIEW_GROUP = "ViewGroup"
+    const val VIEW_STUB = "ViewStub"
+    const val FRAGMENT = "Fragment"
+    const val INCLUDE = "Include"
+    const val MERGE = "Merge"
+
+    const val TEXT_VIEW = "TextView"
+    const val BUTTON = "Button"
+    const val EDIT_TEXT = "EditText"
+    const val CHECK_EDIT_TEXT = "CheckEditText"
+
+    const val IMAGE_VIEW = "ImageView"
+    const val IMAGE_BUTTON = "ImageButton"
+    const val FLOATING_ACTION_BUTTON = "FloatingActionButton"
+
+    const val CHECK_BOX = "CheckBox"
+    const val RADIO_BUTTON = "RadioButton"
+    const val SWITCH = "Switch"
+    const val TOGGLE_BUTTON = "ToggleButton"
+    const val RADIO_GROUP = "RadioGroup"
+
+    const val ANALOG_CLOCK = "AnalogClock"
+    const val CHRONOMETER = "Chronometer"
+    const val DIGITAL_CLOCK = "DigitalClock"
+    const val TEXT_CLOCK = "TextClock"
+
+    const val PROGRESS_BAR = "ProgressBar"
+    const val RATING_BAR = "RatingBar"
+    const val SEEK_BAR = "SeekBar"
+    const val SLIDE = "Slide"
+    const val CALENDAR = "Calendar"
+
+    const val SURFACE_VIEW = "SurfaceView"
+    const val TEXTURE_VIEW = "TextureView"
+    const val SEARCH_VIEW = "SearchView"
+
+    const val TAB_ITEM = "TabItem"
+    const val VIDEO_VIEW = "VideoView"
+    const val VIDEO_VIEW2 = "VideoView2"
+    const val WEB_VIEW2 = "WebView2"
+
+    const val VIEW_PAGER = "ViewPager"
+    const val VIEW_PAGER2 = "ViewPager2"
+    const val VIEW_CARD = "ViewCard"
+    const val VIEW_RECYCLER = "RecyclerView"
+    const val VIEW_GRID = "GridView"
+    const val VIEW_LIST = "ListView"
+    const val VIEW_SCROLL = "ScrollView"
+    const val VIEW_SPINNER = "Spinner"
+    const val VIEW_SCROLL_HORIZONTAL = "HorizontalScrollView"
+    const val VIEW_SCROLL_NESTED = "NestedScrollView"
+
+    const val VIEW_AD = "AdView"
+    const val VIEW_MAP = "MapView"
+
+    const val LAYOUT_ABSOLUTE = "AbsoluteLayout"
+    const val LAYOUT_FRAME = "FrameLayout"
+    const val LAYOUT_LINEAR = "LinearLayout"
+    const val LAYOUT_RELATIVE = "RelativeLayout"
+    const val LAYOUT_GRID = "GridLayout"
+    const val LAYOUT_TABLE = "TableLayout"
+    const val LAYOUT_TABLE_ROW = "TableRow"
+    const val LAYOUT_GOORDINATOR = "GoordinatorLayout"
+    const val LAYOUT_GONSTRAINT = "GonstraintLayout"
+
+    const val LAYOUT_SPACE = "Space"
+    const val LAYOUT_TAB_HOST = "TabHost"
+    const val LAYOUT_TAB = "TabLayout"
+    const val LAYOUT_TAB_ITEM = "TabItem"
+    const val LAYOUT_TOOL_BAR = "Toolbar"
+
+    const val LAYOUT_APPBAR = "AppBarLayout"
+    const val LAYOUT_BOTTOM_APPBAR = "BottomAppBar"
+    const val LAYOUT_BOTTOM_NAVIGATION = "BottomNavigationView"
+    const val LAYOUT_DRAWER = "DrawerLayout"
 }
 
 open class NViewHolder2<V : View>(override val view: V, override var nManager: NView.NManager? = null) : NView<V>
 
+// TODO
 open class NViewParser2<V : NView<View>> : ViewTypeParser<V>() {
     override fun getType(): String = Support.VIEW
     override fun getParentType(): String? = null
@@ -126,5 +228,504 @@ open class NViewParser2<V : NView<View>> : ViewTypeParser<V>() {
         addAttributeProcessor(Attributes2.View.outlineSpotShadowColor.name, TODO())
         addAttributeProcessor(Attributes2.View.outlineAmbientShadowColor.name, TODO())
         addAttributeProcessor(Attributes2.View.forceDarkAllowed.name, TODO())
+    }
+}
+
+// TODO
+open class NViewGroupParser2<V : NView<ViewGroup>> : ViewTypeParser<V>() {
+    override fun getType(): String = VIEW_GROUP
+    override fun getParentType(): String? = Support.VIEW
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> =
+            throw RuntimeException("not support create viewGroup directly")
+
+    override fun addAttributeProcessors() {
+        addAttributeProcessor(Attributes2.ViewGroup.animateLayoutChanges.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.clipChildren.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.clipToPadding.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.layoutAnimation.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.animationCache.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.persistentDrawingCache.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.alwaysDrawnWithCache.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.addStatesFromChildren.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.descendantFocusability.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.touchscreenBlocksFocus.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.splitMotionEvents.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.layoutMode.name, TODO())
+        addAttributeProcessor(Attributes2.ViewGroup.transitionGroup.name, TODO())
+    }
+}
+
+// TODO
+open class NTextViewParser2<V : NView<TextView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NEditTextParser2<V : NView<EditText>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NButtonParser2<V : NView<Button>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NImageViewParser2<V : NView<ImageView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NCheckBoxParser2<V : NView<CheckBox>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NSwitchParser2<V : NView<Switch>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NRadioButtonParser2<V : NView<RadioButton>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NRadioGroupParser2<V : NView<RadioGroup>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NTextureViewParser2<V : NView<TextureView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NTextClockParser2<V : NView<TextClock>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NViewPagerParser2<V : NView<ViewPager>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NScrollViewParser2<V : NView<ScrollView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NRecyclerViewParser2<V : NView<RecyclerView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NListViewParser2<V : NView<ListView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NGridViewParser2<V : NView<GridView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NDrawerLayoutParser2<V : NView<DrawerLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+
+
+// TODO
+open class NFrameLayoutParser2<V : NView<FrameLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NLinearLayoutParser2<V : NView<LinearLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NRelativeLayoutParser2<V : NView<RelativeLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NConstraintLayoutParser2<V : NView<ConstraintLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+// TODO
+open class NCoordinatorLayoutParser2<V : NView<CoordinatorLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+
+
+open class NTabHostParser2<V : NView<TabHost>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+open class NAppBarLayoutParser2<V : NView<AppBarLayout>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+open class NBottomAppBarParser2<V : NView<BottomAppBar>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
+
+open class NBottomNavigationViewParser2<V : NView<BottomNavigationView>> : ViewTypeParser<V>() {
+    override fun getType(): String {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun getParentType(): String? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun addAttributeProcessors() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
