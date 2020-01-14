@@ -9,6 +9,7 @@ import com.liang.example.context_ktx.ContextApi
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+fun View.setPadding(p: Int) = this.setPadding(p, p, p, p)
 fun View.setPaddingLeft(p: Int) = this.setPadding(p, this.paddingTop, this.paddingRight, this.paddingBottom)
 fun View.setPaddingRight(p: Int) = this.setPadding(this.paddingLeft, this.paddingTop, p, this.paddingBottom)
 fun View.setPaddingTop(p: Int) = this.setPadding(this.paddingLeft, p, this.paddingRight, this.paddingBottom)

@@ -268,7 +268,7 @@ open class PrimitiveV : Value {
 }
 
 open class LayoutV(
-        open var type: String?,
+        open var type: String,
         open var attributes: MutableList<Attribute>?,
         open var data: MutableMap<String, Value>?,
         open var extra: ObjectV?
@@ -276,7 +276,7 @@ open class LayoutV(
 
     override fun copy(): LayoutV = LayoutV(type, attributes?.map { it.copy() }?.toMutableList(), data, extra)
     override fun string(): String {
-        var result = "{\"type\": \"${type ?: "unknown"}\""
+        var result = "{\"type\": \"${type}\""
         attributes?.forEach { it ->
             TODO()
         }
@@ -297,8 +297,8 @@ open class LayoutV(
         return LayoutV(type, attributes, data, extra)
     }
 
-    open class Attribute(open var id: Int, open var value: Value?) {
-        open fun copy(): Attribute = Attribute(id, value?.copy() ?: nullV)
+    open class Attribute(open var id: Int, open var value: Value) {
+        open fun copy(): Attribute = Attribute(id, value.copy())
     }
 }
 
@@ -767,7 +767,11 @@ open class ResourceV(open val resId: Int) : Value() {
         fun isResource(string: String): Boolean =
                 isAnimation(string) || isBoolean(string) || isColor(string) || isDimension(string) || isDrawable(string) || isString(string)
 
-        fun getInteger(resId: Int, context: Context) = context.resources.getInteger(resId)
+        fun getInteger(resId: Int, context: Context) = try {
+            context.resources.getInteger(resId)
+        } catch (e: Resources.NotFoundException) {
+            null
+        }
 
         fun getBoolean(resId: Int, context: Context): Boolean? = try {
             context.resources.getBoolean(resId)
@@ -846,8 +850,8 @@ abstract class BindingV : Value() {
         const val ARRAY_DATA_LENGTH_REFERENCE = "\$length"
         const val ARRAY_DATA_LAST_INDEX_REFERENCE = "\$last"
 
-        val BINDING_PATTERN = Pattern.compile("@\\{fn:(\\S+?)\\(((?:(?<!\\\\)'.*?(?<!\\\\)'|.?)+)\\)}|@\\{(.+)}")
-        val FUNCTION_ARGS_DELIMITER = Pattern.compile(",(?=(?:[^']*'[^']*')*[^']*$)")
+        val BINDING_PATTERN: Pattern = Pattern.compile("@\\{fn:(\\S+?)\\(((?:(?<!\\\\)'.*?(?<!\\\\)'|.?)+)\\)}|@\\{(.+)}")
+        val FUNCTION_ARGS_DELIMITER: Pattern = Pattern.compile(",(?=(?:[^']*'[^']*')*[^']*$)")
 
         const val DATA_PATH_DELIMITERS = ".]"
 
@@ -907,7 +911,7 @@ abstract class BindingV : Value() {
                             tokens.add(Token(last.substring(index + 1), false, isArrayIndex = true))
                             continue
                         }
-                        tokens.add(Token(token, false, false))
+                        tokens.add(Token(token, false, isArrayIndex = false))
                     }
                     result = DataBinding(tokens.toTypedArray())
                     cache.put(path, result)
@@ -1055,13 +1059,13 @@ abstract class BindingV : Value() {
             const val RESULT_NULL_EXCEPTION = -3
         }
 
-        override fun string(): String = "@{${tokens.map { it.value }.joinToString(".")}}"
+        override fun string(): String = "@{${tokens.joinToString(".") { it.value }}}"
         open fun iterator() = tokens.iterator()
         open fun assign(value: Value?, data: Value, index: Int) = assign(this.tokens, value, data, index)
         override fun evaluate(context: Context, data: Value?, index: Int): Value = resolve(tokens, data, index).first  // 好像不用管失败原因。。。
     }
 
-    open class FuncBinding(val func: Func, val args: Array<Value?>?) : BindingV() {
+    open class FuncBinding(val func: FuncManager.Func, val args: Array<Value?>?) : BindingV() {
         companion object {
             fun valueOf(name: String, args: String, context: Context, funcManager: FuncManager): FuncBinding = FuncBinding(
                     funcManager[name],
@@ -1137,7 +1141,7 @@ abstract class DrawableV : Value() {
         }
     }
 
-    abstract fun apply(view: NView, context: Context, loader: NInflater.ImageLoader? /*这里只有urlDrawV需要用到*/, callback: Callback)
+    abstract fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader? /*这里只有urlDrawV需要用到*/, callback: Callback)
     override fun copy(): DrawableV = this
 
     // callback
@@ -1172,7 +1176,7 @@ abstract class DrawableV : Value() {
 
     abstract class DrawElementV : Value() {
         override fun copy(): Value = this
-        abstract fun apply(view: NView, drawable: GradientDrawable)
+        abstract fun apply(view: NView<*>, drawable: GradientDrawable)
     }
 
     open class Gradient(gradient: ObjectV, context: Context) : DrawElementV() {
@@ -1189,10 +1193,10 @@ abstract class DrawableV : Value() {
         val centerColor: Value? = gradient[CENTER_COLOR]?.let { NColorResourceProcessor.staticCompile(it, context) }
         val endColor: Value = gradient[END_COLOR]!!.let { NColorResourceProcessor.staticCompile(it, context) }
         val gradientRadius: Value? = gradient[GRADIENT_RADIUS]?.let { NColorResourceProcessor.staticCompile(it, context) }
-        val useLevel: Boolean = gradient.getBoolean(USE_LEVEL)
+        val useLevel: Boolean? = gradient.getBoolean(USE_LEVEL)
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, drawable: GradientDrawable) {
+        override fun apply(view: NView<*>, drawable: GradientDrawable) {
             if (centerX != null && centerY != null) {
                 drawable.setGradientCenter(centerX, centerY)
             }
@@ -1204,7 +1208,7 @@ abstract class DrawableV : Value() {
             }
         }
 
-        open fun init(view: NView): GradientDrawable = init(when (centerColor) {
+        open fun init(view: NView<*>): GradientDrawable = init(when (centerColor) {
             null -> intArrayOf(NColorResourceProcessor.evaluate(startColor, view).color!!, NColorResourceProcessor.evaluate(centerColor, view).color!!,
                     NColorResourceProcessor.evaluate(endColor, view).color!!)
             else -> intArrayOf(NColorResourceProcessor.evaluate(startColor, view).color!!, NColorResourceProcessor.evaluate(endColor, view).color!!)
@@ -1248,8 +1252,8 @@ abstract class DrawableV : Value() {
                 return orientation
             }
 
-            fun init(colors: IntArray?, angle: Int?): GradientDrawable = when {
-                angle == null -> GradientDrawable()
+            fun init(colors: IntArray?, angle: Int?): GradientDrawable = when (angle) {
+                null -> GradientDrawable()
                 else -> GradientDrawable(getOrientation(angle), colors)
             }
         }
@@ -1263,7 +1267,7 @@ abstract class DrawableV : Value() {
         val bottomRightRadius: Value? = NDimensionAttributeProcessor.staticCompile(corner[BOTTOM_RIGHT_RADIUS], context)
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, drawable: GradientDrawable) {
+        override fun apply(view: NView<*>, drawable: GradientDrawable) {
             if (radius != null) {
                 drawable.gradientRadius = NDimensionAttributeProcessor.evaluate(radius, view)
             }
@@ -1294,7 +1298,7 @@ abstract class DrawableV : Value() {
         val color = NColorResourceProcessor.staticCompile(value[COLOR], context)
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, drawable: GradientDrawable) {
+        override fun apply(view: NView<*>, drawable: GradientDrawable) {
             val result = NColorResourceProcessor.evaluate(color, view)
             if (result.colors != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 drawable.color = result.colors
@@ -1313,7 +1317,7 @@ abstract class DrawableV : Value() {
         val height = NDimensionAttributeProcessor.staticCompile(size[HEIGHT], context)
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, drawable: GradientDrawable) =
+        override fun apply(view: NView<*>, drawable: GradientDrawable) =
                 drawable.setSize(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NDimensionAttributeProcessor.evaluate(height, view).toInt())
 
         companion object {
@@ -1329,7 +1333,7 @@ abstract class DrawableV : Value() {
         val dashGap = NDimensionAttributeProcessor.staticCompile(stroke[DASH_GAP], context)
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, drawable: GradientDrawable) = when {
+        override fun apply(view: NView<*>, drawable: GradientDrawable) = when {
             null == dashWidth -> drawable.setStroke(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NColorResourceProcessor.evaluate(color, view).color!!)
             null != dashGap -> drawable.setStroke(NDimensionAttributeProcessor.evaluate(width, view).toInt(), NColorResourceProcessor.evaluate(color, view).color!!,
                     NDimensionAttributeProcessor.evaluate(dashWidth, view), NDimensionAttributeProcessor.evaluate(dashGap, view))
@@ -1348,7 +1352,7 @@ abstract class DrawableV : Value() {
 
     open class ColorDrawV(open val color: Value) : DrawableV() {
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) =
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) =
                 callback.apply(ColorDrawable(NColorResourceProcessor.evaluate(color, view).color!!))
 
         companion object {
@@ -1361,7 +1365,7 @@ abstract class DrawableV : Value() {
 
     open class ShapeDrawV : DrawableV {
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
             val d = this.gradient?.init(view) ?: GradientDrawable()
             if (shape != SHAPE_NONE) {
                 d.shape = shape
@@ -1456,7 +1460,7 @@ abstract class DrawableV : Value() {
         }
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
             val drawable = LayerDrawable(layers.map { NDrawableResourceProcessor.evaluate(it, view) }.toTypedArray())
             ids.forEachIndexed { i, id -> drawable.setId(i, id) }
             callback.apply(drawable)
@@ -1500,7 +1504,7 @@ abstract class DrawableV : Value() {
 
         open operator fun iterator() = values.iterator()
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
             val d = StateListDrawable()
             states.forEachIndexed { index, ints -> d.addState(ints, NDrawableResourceProcessor.evaluate(values[index], view)) }
             callback.apply(d)
@@ -1544,7 +1548,7 @@ abstract class DrawableV : Value() {
 
         open operator fun iterator() = levels.iterator()
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
             val d = LevelListDrawable()
             levels.forEach { it.apply(view, d) }
             callback.apply(d)
@@ -1568,7 +1572,7 @@ abstract class DrawableV : Value() {
                 this.drawable = NDrawableResourceProcessor.staticCompile(value[DRAWABLE], context)
             }
 
-            open fun apply(view: NView, levelListDrawable: LevelListDrawable) = levelListDrawable.addLevel(minLevel, maxLevel, NDrawableResourceProcessor.evaluate(drawable, view))
+            open fun apply(view: NView<*>, levelListDrawable: LevelListDrawable) = levelListDrawable.addLevel(minLevel, maxLevel, NDrawableResourceProcessor.evaluate(drawable, view))
 
             companion object {
                 const val MIN_LEVEL = "minLevel"
@@ -1600,7 +1604,7 @@ abstract class DrawableV : Value() {
         }
 
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) {
             val result = NColorResourceProcessor.evaluate(color, view)
             val colorStateList = result.colors ?: ColorStateList(arrayOf(intArrayOf()), intArrayOf(result.color!!))
             val contentDrawable = NDrawableResourceProcessor.evaluate(content, view)
@@ -1631,9 +1635,9 @@ abstract class DrawableV : Value() {
 
     open class UrlDrawV(open val url: String) : DrawableV() {
         override fun string(): String = TODO()
-        override fun apply(view: NView, context: Context, loader: NInflater.ImageLoader?, callback: Callback) = loader!!.getBitmap(view, url, object : AsyncCallback() {
+        override fun apply(view: NView<*>, context: Context, loader: NInflater.ImageLoader?, callback: Callback) = loader!!.getBitmap(view, url, object : AsyncCallback() {
             override fun apply(drawable: Drawable?) = callback.apply(drawable)
-            override fun apply(bitmap: Bitmap) = callback.apply(convertBitmapToDrawable(bitmap, view.context))
+            override fun apply(bitmap: Bitmap) = callback.apply(convertBitmapToDrawable(bitmap, view.viewContext))
         })
 
         companion object {

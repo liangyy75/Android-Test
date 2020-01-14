@@ -54,6 +54,7 @@ object ReflectHelper {
     fun <T> tryAction(action: () -> T): T? = try {
         action()
     } catch (e: Exception) {
+        println(e)
         if (ConfigApi.debug) {
             throw e
         }
@@ -76,7 +77,10 @@ object ReflectHelper {
         return cls
     }
 
-    fun findCtor(cls: Class<*>, vararg args: Class<*>?): Constructor<*>? {
+    fun findCtor(cls: Class<*>?, vararg args: Class<*>?): Constructor<*>? {
+        if (cls == null) {
+            return null
+        }
         val key = cls.name
         var constructor = constructors[key]
         if (constructor == null) {
@@ -97,7 +101,10 @@ object ReflectHelper {
     fun calculateName(thisObj: Any, name: String) = thisObj::class.java.toString() + name  // todo: 其实不对，因为方法可能name一样，但参数列表不一样
     fun calculateName(cls: Class<*>, name: String) = cls.toString() + name  // todo: 其实不对，因为方法可能name一样，但参数列表不一样
 
-    fun findMethod(name: String, cls: Class<*>, vararg args: Class<*>?): Method? {
+    fun findMethod(name: String, cls: Class<*>?, vararg args: Class<*>?): Method? {
+        if (cls == null) {
+            return null
+        }
         val key = calculateName(cls, name)
         var method = methods[key]
         if (method == null) {
@@ -115,7 +122,10 @@ object ReflectHelper {
         return method
     }
 
-    fun findField(name: String, cls: Class<*>): Field? {
+    fun findField(name: String, cls: Class<*>?): Field? {
+        if (cls == null) {
+            return null
+        }
         val key = calculateName(cls, name)
         var field = fields[key]
         if (field == null) {
@@ -133,42 +143,45 @@ object ReflectHelper {
         return field
     }
 
-    fun findMethod(name: String, thisObj: Any, vararg args: Any?): Method? = findMethod(name, thisObj::class.java, *args.map { it!!::class.java }.toTypedArray())
-    fun findField(name: String, thisObj: Any): Field? = findField(name, thisObj::class.java)
+    fun findMethod(name: String, thisObj: Any?, vararg args: Any?): Method? =
+            findMethod(name, if (thisObj != null) thisObj::class.java else null, *args.map { it!!::class.java }.toTypedArray())
 
-    fun <T> newInstance(cls: Class<*>, vararg args: Any?): T? =
+    fun findField(name: String, thisObj: Any?): Field? =
+            findField(name, if (thisObj != null) thisObj::class.java else null)
+
+    fun <T> newInstance(cls: Class<*>?, vararg args: Any?): T? =
             tryAction { findCtor(cls, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } as? T
 
     fun <T> newInstance(name: String, vararg args: Any?): T? =
             tryAction { findCls(name)?.let { findCtor(it, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } } as? T
 
-    fun <T> invoke(name: String, thisObj: Any, vararg args: Any?): T? =
-            tryAction { findMethod(name, thisObj::class.java, args)?.invoke(thisObj, *args) } as? T
+    fun <T> invoke(name: String, thisObj: Any?, vararg args: Any?): T? =
+            tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, args)?.invoke(thisObj, *args) } as? T
 
-    fun <T> invokeS(name: String, cls: Class<*>, vararg args: Any?): T? =
+    fun <T> invokeS(name: String, cls: Class<*>?, vararg args: Any?): T? =
             tryAction { findMethod(name, cls, args)?.invoke(null, *args) } as? T
 
-    fun invokeN(name: String, thisObj: Any, vararg args: Any?) {
-        tryAction { findMethod(name, thisObj::class.java, args)?.invoke(thisObj, *args) }
+    fun invokeN(name: String, thisObj: Any?, vararg args: Any?) {
+        tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, args)?.invoke(thisObj, *args) }
     }
 
-    fun get(name: String, thisObj: Any): Any? = tryAction { findField(name, thisObj)?.get(thisObj) }
-    fun getByte(name: String, thisObj: Any): Byte = tryAction { findField(name, thisObj)?.getByte(thisObj) } ?: 0
-    fun getShort(name: String, thisObj: Any): Short = tryAction { findField(name, thisObj)?.getShort(thisObj) } ?: 0
-    fun getInt(name: String, thisObj: Any): Int = tryAction { findField(name, thisObj)?.getInt(thisObj) } ?: 0
-    fun getLong(name: String, thisObj: Any): Long = tryAction { findField(name, thisObj)?.getLong(thisObj) } ?: 0
-    fun getFloat(name: String, thisObj: Any): Float = tryAction { findField(name, thisObj)?.getFloat(thisObj) } ?: 0f
-    fun getDouble(name: String, thisObj: Any): Double = tryAction { findField(name, thisObj)?.getDouble(thisObj) } ?: 0.0
-    fun getChar(name: String, thisObj: Any): Char = tryAction { findField(name, thisObj)?.getChar(thisObj) } ?: '\u0000'
-    fun getBoolean(name: String, thisObj: Any): Boolean = tryAction { findField(name, thisObj)?.getBoolean(thisObj) } ?: false
+    fun get(name: String, thisObj: Any?): Any? = tryAction { findField(name, thisObj)?.get(thisObj) }
+    fun getByte(name: String, thisObj: Any?): Byte = tryAction { findField(name, thisObj)?.getByte(thisObj) } ?: 0
+    fun getShort(name: String, thisObj: Any?): Short = tryAction { findField(name, thisObj)?.getShort(thisObj) } ?: 0
+    fun getInt(name: String, thisObj: Any?): Int = tryAction { findField(name, thisObj)?.getInt(thisObj) } ?: 0
+    fun getLong(name: String, thisObj: Any?): Long = tryAction { findField(name, thisObj)?.getLong(thisObj) } ?: 0
+    fun getFloat(name: String, thisObj: Any?): Float = tryAction { findField(name, thisObj)?.getFloat(thisObj) } ?: 0f
+    fun getDouble(name: String, thisObj: Any?): Double = tryAction { findField(name, thisObj)?.getDouble(thisObj) } ?: 0.0
+    fun getChar(name: String, thisObj: Any?): Char = tryAction { findField(name, thisObj)?.getChar(thisObj) } ?: '\u0000'
+    fun getBoolean(name: String, thisObj: Any?): Boolean = tryAction { findField(name, thisObj)?.getBoolean(thisObj) } ?: false
 
-    fun set(name: String, thisObj: Any, value: Any?) = tryAction { findField(name, thisObj)?.set(thisObj, value) }
-    fun setByte(name: String, thisObj: Any, value: Byte?) = tryAction { findField(name, thisObj)?.setByte(thisObj, value ?: 0) }
-    fun setShort(name: String, thisObj: Any, value: Short?) = tryAction { findField(name, thisObj)?.setShort(thisObj, value ?: 0) }
-    fun setInt(name: String, thisObj: Any, value: Int?) = tryAction { findField(name, thisObj)?.setInt(thisObj, value ?: 0) }
-    fun setLong(name: String, thisObj: Any, value: Long?) = tryAction { findField(name, thisObj)?.setLong(thisObj, value ?: 0L) }
-    fun setFloat(name: String, thisObj: Any, value: Float?) = tryAction { findField(name, thisObj)?.setFloat(thisObj, value ?: 0f) }
-    fun setDouble(name: String, thisObj: Any, value: Double?) = tryAction { findField(name, thisObj)?.setDouble(thisObj, value ?: 0.0) }
-    fun setChar(name: String, thisObj: Any, value: Char?) = tryAction { findField(name, thisObj)?.setChar(thisObj, value ?: '\u0000') }
-    fun setBoolean(name: String, thisObj: Any, value: Boolean?) = tryAction { findField(name, thisObj)?.setBoolean(thisObj, value ?: false) }
+    fun set(name: String, thisObj: Any?, value: Any?) = tryAction { findField(name, thisObj)?.set(thisObj, value) }
+    fun setByte(name: String, thisObj: Any?, value: Byte?) = tryAction { findField(name, thisObj)?.setByte(thisObj, value ?: 0) }
+    fun setShort(name: String, thisObj: Any?, value: Short?) = tryAction { findField(name, thisObj)?.setShort(thisObj, value ?: 0) }
+    fun setInt(name: String, thisObj: Any?, value: Int?) = tryAction { findField(name, thisObj)?.setInt(thisObj, value ?: 0) }
+    fun setLong(name: String, thisObj: Any?, value: Long?) = tryAction { findField(name, thisObj)?.setLong(thisObj, value ?: 0L) }
+    fun setFloat(name: String, thisObj: Any?, value: Float?) = tryAction { findField(name, thisObj)?.setFloat(thisObj, value ?: 0f) }
+    fun setDouble(name: String, thisObj: Any?, value: Double?) = tryAction { findField(name, thisObj)?.setDouble(thisObj, value ?: 0.0) }
+    fun setChar(name: String, thisObj: Any?, value: Char?) = tryAction { findField(name, thisObj)?.setChar(thisObj, value ?: '\u0000') }
+    fun setBoolean(name: String, thisObj: Any?, value: Boolean?) = tryAction { findField(name, thisObj)?.setBoolean(thisObj, value ?: false) }
 }

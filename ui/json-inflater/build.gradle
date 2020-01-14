@@ -41,4 +41,6 @@ dependencies {
     deps.proteus.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
 
     api project(":basic-ktx")
+    api project(":json-ktx")
+    api project(":view-ktx")
 }

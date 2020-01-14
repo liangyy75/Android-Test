@@ -1,9 +1,13 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package com.liang.example.json_inflater
 
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.content.Context
 import android.content.res.Resources
 import android.os.Build
+import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -24,8 +28,12 @@ import android.view.animation.PathInterpolator
 import android.view.animation.RotateAnimation
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
+import android.widget.ImageView.ScaleType
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
 
 var debug = false
+const val TAG = "NUtils"
 
 fun parseBoolean(value: Value?): Boolean =
         value != null && value is PrimitiveV && value.toBoolean()
@@ -49,6 +57,19 @@ fun getResId(variableName: String, clazz: Class<*>): Int = try {
     0
 }
 
+fun parseRelativeLayoutBoolean(value: Boolean): Int = if (value) RelativeLayout.TRUE else 0
+
+fun addRelativeLayoutRule(view: View, verb: Int, anchor: Int) {
+    val layoutParams = view.layoutParams
+    if (layoutParams is RelativeLayout.LayoutParams) {
+        layoutParams.addRule(verb, anchor)
+        view.layoutParams = layoutParams
+    } else if (debug) {
+        Log.e(TAG, "cannot add relative layout rules when container is not relative")
+    }
+}
+
+@SuppressLint("RtlHardcoded")
 object Util {
     const val CENTER = "center"
     const val CENTER_HORIZONTAL = "center_horizontal"
@@ -63,7 +84,29 @@ object Util {
     const val BEGINNING = "beginning"
     const val MARQUEE = "marquee"
 
+    const val VISIBLE = "visible"
+    const val INVISIBLE = "invisible"
+    const val GONE = "gone"
+
+    const val BOLD = "bold"
+    const val ITALIC = "italic"
+    const val BOLD_ITALIC = "bold|italic"
+
+    const val TEXT_ALIGNMENT_INHERIT = "inherit"
+    const val TEXT_ALIGNMENT_GRAVITY = "gravity"
+    const val TEXT_ALIGNMENT_CENTER = "center"
+    const val TEXT_ALIGNMENT_TEXT_START = "start"
+    const val TEXT_ALIGNMENT_TEXT_END = "end"
+    const val TEXT_ALIGNMENT_VIEW_START = "viewStart"
+    const val TEXT_ALIGNMENT_VIEW_END = "viewEnd"
+
     val sGravityMap: MutableMap<String, PrimitiveV> = HashMap()
+    val sVisibilityMap: MutableMap<Int, PrimitiveV> = HashMap()
+    val sVisibilityMode: MutableMap<String, Int> = HashMap()
+    val sDividerMode: MutableMap<String, Int> = HashMap()
+    val sEllipsizeMode: MutableMap<String, Enum<*>> = HashMap()
+    val sTextAlignment: MutableMap<String, Int> = HashMap()
+    val sImageScaleType: MutableMap<String, ScaleType> = HashMap()
 
     init {
         sGravityMap[CENTER] = PrimitiveV(Gravity.CENTER)
@@ -75,6 +118,42 @@ object Util {
         sGravityMap[BOTTOM] = PrimitiveV(Gravity.BOTTOM)
         sGravityMap[START] = PrimitiveV(Gravity.START)
         sGravityMap[END] = PrimitiveV(Gravity.END)
+
+        sVisibilityMap[View.VISIBLE] = PrimitiveV(View.VISIBLE)
+        sVisibilityMap[View.INVISIBLE] = PrimitiveV(View.INVISIBLE)
+        sVisibilityMap[View.GONE] = PrimitiveV(View.GONE)
+
+        sVisibilityMode[VISIBLE] = View.VISIBLE
+        sVisibilityMode[INVISIBLE] = View.INVISIBLE
+        sVisibilityMode[GONE] = View.GONE
+
+        sDividerMode[END] = LinearLayout.SHOW_DIVIDER_END
+        sDividerMode[MIDDLE] = LinearLayout.SHOW_DIVIDER_MIDDLE
+        sDividerMode[BEGINNING] = LinearLayout.SHOW_DIVIDER_BEGINNING
+
+        sEllipsizeMode[END] = TextUtils.TruncateAt.END
+        sEllipsizeMode[START] = TextUtils.TruncateAt.START
+        sEllipsizeMode[MARQUEE] = TextUtils.TruncateAt.MARQUEE
+        sEllipsizeMode[MIDDLE] = TextUtils.TruncateAt.MIDDLE
+
+        sImageScaleType[CENTER] = ScaleType.CENTER
+        sImageScaleType["center_crop"] = ScaleType.CENTER_CROP
+        sImageScaleType["center_inside"] = ScaleType.CENTER_INSIDE
+        sImageScaleType["fitCenter"] = ScaleType.FIT_CENTER
+        sImageScaleType["fit_xy"] = ScaleType.FIT_XY
+        sImageScaleType["matrix"] = ScaleType.MATRIX
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            sTextAlignment[TEXT_ALIGNMENT_INHERIT] = View.TEXT_ALIGNMENT_INHERIT
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            sTextAlignment[TEXT_ALIGNMENT_GRAVITY] = View.TEXT_ALIGNMENT_GRAVITY
+            sTextAlignment[TEXT_ALIGNMENT_CENTER] = View.TEXT_ALIGNMENT_CENTER
+            sTextAlignment[TEXT_ALIGNMENT_TEXT_START] = View.TEXT_ALIGNMENT_TEXT_START
+            sTextAlignment[TEXT_ALIGNMENT_TEXT_END] = View.TEXT_ALIGNMENT_TEXT_END
+            sTextAlignment[TEXT_ALIGNMENT_VIEW_START] = View.TEXT_ALIGNMENT_VIEW_START
+            sTextAlignment[TEXT_ALIGNMENT_VIEW_END] = View.TEXT_ALIGNMENT_VIEW_END
+        }
     }
 
     fun parseGravity(value: String): Int {
@@ -92,6 +171,22 @@ object Util {
     fun getGravity(value: String): PrimitiveV? {
         return PrimitiveV(parseGravity(value))
     }
+
+    fun parseVisibility(value: Value?): Int {
+        var returnValue: Int? = null
+        if (null != value && value is PrimitiveV) {
+            val attributeValue = value.string()
+            returnValue = sVisibilityMode[attributeValue]
+            if (null == returnValue && (attributeValue.isEmpty() || "false" == attributeValue || "null" == attributeValue)) {
+                returnValue = View.GONE
+            }
+        } else if (value is NullV) {
+            returnValue = View.GONE
+        }
+        return returnValue ?: View.VISIBLE
+    }
+
+    fun getVisibility(visibility: Int): PrimitiveV? = sVisibilityMap[visibility] ?: sVisibilityMap[View.GONE]
 }
 
 object AnimationUtils {
@@ -474,7 +569,7 @@ object AnimationUtils {
         abstract fun createInterpolator(context: Context?): Interpolator?
     }
 
-    open class PathInterpolatorProperties(parser: ObjectV) : InterpolatorProperties(){
+    open class PathInterpolatorProperties(parser: ObjectV) : InterpolatorProperties() {
         open var controlX1 = parser.getFloat(CONTROL_X1)
         open var controlY1 = parser.getFloat(CONTROL_Y1)
         open var controlX2 = parser.getFloat(CONTROL_X2)
@@ -494,7 +589,7 @@ object AnimationUtils {
         }
     }
 
-    open class AnticipateInterpolatorProperties(parser: ObjectV) : InterpolatorProperties(){
+    open class AnticipateInterpolatorProperties(parser: ObjectV) : InterpolatorProperties() {
         open var tension: Float = parser.getFloat(TENSION)!!
 
         override fun createInterpolator(context: Context?): Interpolator = AnticipateInterpolator(tension)
@@ -504,7 +599,7 @@ object AnimationUtils {
         }
     }
 
-    open class OvershootInterpolatorProperties(parser: ObjectV) : InterpolatorProperties(){
+    open class OvershootInterpolatorProperties(parser: ObjectV) : InterpolatorProperties() {
         open var tension: Float? = parser.getFloat(TENSION)
 
         override fun createInterpolator(context: Context?): Interpolator = if (tension == null) OvershootInterpolator() else OvershootInterpolator(tension!!)
@@ -514,7 +609,7 @@ object AnimationUtils {
         }
     }
 
-    open class AnticipateOvershootInterpolatorProperties(parser: ObjectV) : InterpolatorProperties(){
+    open class AnticipateOvershootInterpolatorProperties(parser: ObjectV) : InterpolatorProperties() {
         open var tension: Float? = parser.getFloat(TENSION)
         open var extraTension: Float? = parser.getFloat(EXTRA_TENSION)
 
@@ -530,7 +625,7 @@ object AnimationUtils {
         }
     }
 
-    open class CycleInterpolatorProperties(parser: ObjectV) : InterpolatorProperties(){
+    open class CycleInterpolatorProperties(parser: ObjectV) : InterpolatorProperties() {
         open var cycles: Float = parser.getFloat(CYCLES)!!
 
         override fun createInterpolator(context: Context?): Interpolator = CycleInterpolator(cycles)
