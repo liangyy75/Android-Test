@@ -1,8 +1,11 @@
 package com.liang.example.json_inflater
 
+import android.os.Build
+import android.text.TextUtils
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -27,6 +30,13 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.liang.example.view_ktx.setPadding
+import com.liang.example.view_ktx.setPaddingBottom
+import com.liang.example.view_ktx.setPaddingHorizontal
+import com.liang.example.view_ktx.setPaddingLeft
+import com.liang.example.view_ktx.setPaddingRight
+import com.liang.example.view_ktx.setPaddingTop
+import com.liang.example.view_ktx.setPaddingVertical
 import java.lang.RuntimeException
 
 object Support {
@@ -112,27 +122,66 @@ open class NViewHolder2<V : View>(override val view: V, override var nManager: N
 
 // TODO
 open class NViewParser2<V : NView<View>> : ViewTypeParser<V>() {
+    companion object {
+        const val ID_STRING_START_PATTERN = "@+id/"
+        const val ID_STRING_START_PATTERN1 = "@id/"
+        const val ID_STRING_NORMALIZED_PATTERN = ":id/"
+    }
+
     override fun getType(): String = Support.VIEW
     override fun getParentType(): String? = null
 
     override fun createView(context: NContext, layoutV: LayoutV, data: ObjectV, parent: ViewGroup?, dataIndex: Int): NView<*> = NViewHolder2(View(context))
 
     override fun addAttributeProcessors() {
-        addAttributeProcessor(Attributes2.View.id.name, TODO())
-        addAttributeProcessor(Attributes2.View.tag.name, TODO())
-        addAttributeProcessor(Attributes2.View.scrollX.name, TODO())
-        addAttributeProcessor(Attributes2.View.scrollY.name, TODO())
-        addAttributeProcessor(Attributes2.View.background.name, TODO())
-        addAttributeProcessor(Attributes2.View.padding.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingHorizontal.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingVertical.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingLeft.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingTop.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingRight.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingBottom.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingStart.name, TODO())
-        addAttributeProcessor(Attributes2.View.paddingEnd.name, TODO())
-        addAttributeProcessor(Attributes2.View.focusable.name, TODO())
+        addAttributeProcessor(Attributes2.View.id.name, NStringAttributeProcessor.create { view, value ->
+            view.view.id = view.nManager!!.nContext.getInflater().getUniqueViewId(value!!)
+            // set view id resource name
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                view.view.accessibilityDelegate = object : View.AccessibilityDelegate() {
+                    override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                        super.onInitializeAccessibilityNodeInfo(host, info)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                            info.viewIdResourceName = when {
+                                !TextUtils.isEmpty(value) -> view.viewContext.packageName + ID_STRING_NORMALIZED_PATTERN + when {
+                                    value.startsWith(ID_STRING_START_PATTERN) -> value.substring(ID_STRING_START_PATTERN.length)
+                                    value.startsWith(ID_STRING_START_PATTERN1) -> value.substring(ID_STRING_START_PATTERN1.length)
+                                    else -> value
+                                }
+                                else -> ""
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        addAttributeProcessor(Attributes2.View.tag.name, NStringAttributeProcessor.create { view, value -> view.view.tag = value })
+
+        addAttributeProcessor(Attributes2.View.scrollX.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.scrollX = dimension.toInt() })
+        addAttributeProcessor(Attributes2.View.scrollY.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.scrollY = dimension.toInt() })
+
+        addAttributeProcessor(Attributes2.View.background.name, NDrawableResourceProcessor.create { view, drawable ->
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+                view.view.setBackgroundDrawable(drawable)
+            } else {
+                view.view.background = drawable
+            }
+        })
+
+        // 很多setter都会触发requestLayout/invalidate，但是刷新界面的时间是固定的，不会因此而多次触发，只要设置得够快就行了
+        addAttributeProcessor(Attributes2.View.padding.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPadding(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingHorizontal.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingHorizontal(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingVertical.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingVertical(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingLeft.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingLeft(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingTop.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingTop(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingRight.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingRight(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingBottom.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingBottom(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingStart.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingLeft(dimension.toInt()) })
+        addAttributeProcessor(Attributes2.View.paddingEnd.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.setPaddingRight(dimension.toInt()) })
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            addAttributeProcessor(Attributes2.View.focusable.name, NDimensionAttributeProcessor.create { view, dimension -> view.view.focusable = dimension.toInt() })
+        }
         addAttributeProcessor(Attributes2.View.__removed3.name, TODO())
         addAttributeProcessor(Attributes2.View.__removed4.name, TODO())
         addAttributeProcessor(Attributes2.View.__removed5.name, TODO())
@@ -560,7 +609,6 @@ open class NDrawerLayoutParser2<V : NView<DrawerLayout>> : ViewTypeParser<V>() {
 }
 
 
-
 // TODO
 open class NFrameLayoutParser2<V : NView<FrameLayout>> : ViewTypeParser<V>() {
     override fun getType(): String {
@@ -655,7 +703,6 @@ open class NCoordinatorLayoutParser2<V : NView<CoordinatorLayout>> : ViewTypePar
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
-
 
 
 open class NTabHostParser2<V : NView<TabHost>> : ViewTypeParser<V>() {

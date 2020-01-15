@@ -40,11 +40,11 @@ enum class JsonNumberType {
 enum class JsonStrategy {
     SIMPLEST,
     USE_NULL,
-    USE_TAB,
-    USE_NULL_AND_TAB;
+    USE_BLANK,
+    USE_NULL_AND_BLANK;
 
-    fun useNull(): Boolean = this == USE_NULL_AND_TAB || this == USE_NULL
-    fun useTab(): Boolean = this == USE_NULL_AND_TAB || this == USE_TAB
+    fun useNull(): Boolean = this == USE_NULL_AND_BLANK || this == USE_NULL
+    fun useBLANK(): Boolean = this == USE_NULL_AND_BLANK || this == USE_BLANK
 }
 
 interface SimpleJsonValue<T : Any> : Cloneable {
@@ -71,8 +71,8 @@ abstract class SimpleJsonValueAdapter<T : Any>(var mValue: T?, protected val mTy
 }
 
 open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<Map<String, SimpleJsonValue<*>?>>(m, JsonType.OBJECT) {
-    var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
-    var mDepth: Int = 0
+    open var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
+    open var mDepth: Int = 0
 
     override fun string(): String {
         if (mValue == null) {
@@ -90,7 +90,7 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonVa
         }
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
-        return if (!mStrategy.useTab()) {
+        return if (!mStrategy.useBLANK()) {
             """{${tempValue.map { "\"${it.key}\":${it.value?.string() ?: "null"}" }.joinToString(",")}}"""
         } else {
             val prefix1 = "\t".repeat(mDepth)
@@ -141,11 +141,12 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonVa
     }
 
     operator fun get(key: String) = if (mValue.isNullOrEmpty()) mValue!![key] else null
+    operator fun iterator() = mValue?.iterator() ?: EMPTY_OBJECT.iterator()
 }
 
 open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<List<SimpleJsonValue<*>?>>(l, JsonType.ARRAY) {
-    var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
-    var mDepth: Int = 0
+    open var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
+    open var mDepth: Int = 0
 
     init {
         if (mValue != null) {
@@ -165,7 +166,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapt
         val tempValue = mValue!!
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
-        return if (!mStrategy.useTab()) {
+        return if (!mStrategy.useBLANK()) {
             "[${tempValue.joinToString(",") { it?.string() ?: "null" }}]"
         } else {
             val prefix1 = "\t".repeat(mDepth)
@@ -213,6 +214,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapt
     }
 
     operator fun get(index: Int) = if (mValue.isNullOrEmpty()) mValue!![index] else null
+    operator fun iterator() = mValue?.iterator() ?: EMPTY_ARRAY.iterator()
 }
 
 open class SimpleJsonNumber(n: Number? = null) : SimpleJsonValueAdapter<Number>(n, JsonType.NUMBER) {

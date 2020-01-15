@@ -207,7 +207,7 @@ abstract class NDimensionAttributeProcessor<V : NView<*>> : NAttributeProcessor<
 
     companion object {
         fun staticCompile(value: Value?, context: Context): Value? = when (value) {
-            null, !is PrimitiveV -> null
+            null -> DimensionV.ZERO
             is DimensionV -> value
             else -> staticPreCompile(value, context, null) ?: DimensionV.valueOf(value.string())
         }

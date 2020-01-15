@@ -34,6 +34,5 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'com.anggrayudi:android-hidden-api:28.1'
     api project(':basic-ktx')
 }
