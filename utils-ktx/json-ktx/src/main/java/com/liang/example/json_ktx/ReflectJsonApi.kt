@@ -318,41 +318,41 @@ open class ReflectJsonApi(
         // basicArray
 
         override fun handleBooleanArray(obj: Any?, f: Field?, v: Array<Boolean?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonBoolean(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonBoolean(it) else null }.toMutableList()) else null
 
         override fun handleByteArray(obj: Any?, f: Field?, v: Array<Byte?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleShortArray(obj: Any?, f: Field?, v: Array<Short?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleIntArray(obj: Any?, f: Field?, v: Array<Int?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleLongArray(obj: Any?, f: Field?, v: Array<Long?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleFloatArray(obj: Any?, f: Field?, v: Array<Float?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleDoubleArray(obj: Any?, f: Field?, v: Array<Double?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleCharArray(obj: Any?, f: Field?, v: Array<Char?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
 
         override fun handleStringArray(obj: Any?, f: Field?, v: Array<String?>?): SimpleJsonArray? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonString(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonString(it) else null }.toMutableList()) else null
 
         override fun handleBigIntegerArray(obj: Any?, f: Field?, v: Array<BigInteger?>?): SimpleJsonValue<*>? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         override fun handleBigDecimalArray(obj: Any?, f: Field?, v: Array<BigDecimal?>?): SimpleJsonValue<*>? =
-                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }) else null
+                if (v?.isNotEmpty() == true) SimpleJsonArray(v.map { if (it != null) SimpleJsonNumber(it) else null }.toMutableList()) else null
 
         // array: char[][]
-        override fun handleArray(obj: Any?, f: Field?, v: Array<*>?): SimpleJsonValue<*>? = handleArrayInner(v) { SimpleJsonArray(it) }
+        override fun handleArray(obj: Any?, f: Field?, v: Array<*>?): SimpleJsonValue<*>? = handleArrayInner(v) { SimpleJsonArray(it.toMutableList()) }
 
         // object
         override fun handleObject(obj: Any?, f: Field?, v: Any?): SimpleJsonValue<*>? {
@@ -363,7 +363,7 @@ open class ReflectJsonApi(
             if (fields.isEmpty()) {
                 return null
             }
-            val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
+            val itemMap = mutableMapOf<String, SimpleJsonValue<*>?>()
             fields.forEach { itemMap[it.name] = handleByField(it, v) ?: JSON_NULL }
             return SimpleJsonObject(itemMap)
         }

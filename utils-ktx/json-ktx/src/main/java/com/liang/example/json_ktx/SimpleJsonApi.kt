@@ -70,7 +70,7 @@ abstract class SimpleJsonValueAdapter<T : Any>(var mValue: T?, protected val mTy
     }
 }
 
-open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<Map<String, SimpleJsonValue<*>?>>(m, JsonType.OBJECT) {
+open class SimpleJsonObject(m: MutableMap<String, SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<MutableMap<String, SimpleJsonValue<*>?>>(m, JsonType.OBJECT) {
     open var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
     open var mDepth: Int = 0
 
@@ -78,7 +78,7 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonVa
         if (mValue == null) {
             return "null"
         }
-        var tempValue = mValue!!
+        var tempValue: Map<String, SimpleJsonValue<*>?> = mValue!!
         if (tempValue.isEmpty()) {
             return "{}"
         }
@@ -100,13 +100,8 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonVa
     }
 
     override fun clone(): SimpleJsonObject {
-        val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
-        mValue?.forEach {
-            val value = it.value
-            if (value != null) {
-                itemMap[it.key] = value.clone()
-            }
-        }
+        val itemMap = mutableMapOf<String, SimpleJsonValue<*>?>()
+        mValue?.forEach { itemMap[it.key] = it.value?.clone() }
         val result = SimpleJsonObject(itemMap)
         result.mDepth = mDepth
         result.mStrategy = mStrategy
@@ -140,11 +135,14 @@ open class SimpleJsonObject(m: Map<String, SimpleJsonValue<*>?>?) : SimpleJsonVa
         }
     }
 
-    operator fun get(key: String) = if (mValue.isNullOrEmpty()) mValue!![key] else null
-    operator fun iterator() = mValue?.iterator() ?: EMPTY_OBJECT.iterator()
+    open operator fun get(key: String) = if (mValue.isNullOrEmpty()) mValue!![key] else null
+    open operator fun set(key: String, value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.put(key, value) else null
+    open operator fun contains(key: String) = if (mValue != null) mValue!!.containsKey(key) else false
+    open operator fun contains(value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.containsValue(value) else false
+    open operator fun iterator() = mValue?.iterator() ?: EMPTY_OBJECT.iterator()
 }
 
-open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<List<SimpleJsonValue<*>?>>(l, JsonType.ARRAY) {
+open class SimpleJsonArray(l: MutableList<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapter<MutableList<SimpleJsonValue<*>?>>(l, JsonType.ARRAY) {
     open var mStrategy: JsonStrategy = JsonStrategy.SIMPLEST
     open var mDepth: Int = 0
 
@@ -176,7 +174,7 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapt
     }
 
     override fun clone(): SimpleJsonArray {
-        val itemList = mutableListOf<SimpleJsonValue<*>>()
+        val itemList = mutableListOf<SimpleJsonValue<*>?>()
         mValue?.forEach {
             if (it != null) {
                 itemList.add(it.clone())
@@ -213,8 +211,15 @@ open class SimpleJsonArray(l: List<SimpleJsonValue<*>?>?) : SimpleJsonValueAdapt
         }
     }
 
-    operator fun get(index: Int) = if (mValue.isNullOrEmpty()) mValue!![index] else null
-    operator fun iterator() = mValue?.iterator() ?: EMPTY_ARRAY.iterator()
+    open fun add(index: Int, value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.add(index, value) else Unit
+    open operator fun plus(value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.add(value) else false
+    open operator fun minus(value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.remove(value) else false
+    open operator fun minus(index: Int) = if (mValue != null) mValue!!.removeAt(index) else null
+    open operator fun get(index: Int) = if (!mValue.isNullOrEmpty()) mValue!![index] else null
+    open operator fun get(value: SimpleJsonValue<*>?) = if (!mValue.isNullOrEmpty()) mValue!!.indexOf(value) else -1
+    open operator fun set(index: Int, value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.set(index, value) else null
+    open operator fun contains(value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.contains(value) else false
+    open operator fun iterator() = mValue?.iterator() ?: EMPTY_ARRAY.iterator()
 }
 
 open class SimpleJsonNumber(n: Number? = null) : SimpleJsonValueAdapter<Number>(n, JsonType.NUMBER) {
@@ -341,8 +346,8 @@ open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, JsonType.NUL) {
 //     override fun clone(): SimpleJsonValue<String> = SimpleJsonComment(mValue)
 // }
 
-val EMPTY_ARRAY = listOf<SimpleJsonValue<*>>()
-val EMPTY_OBJECT = mapOf<String, SimpleJsonValue<*>>()
+val EMPTY_ARRAY = mutableListOf<SimpleJsonValue<*>?>()
+val EMPTY_OBJECT = mutableMapOf<String, SimpleJsonValue<*>?>()
 val JSON_EMPTY_STRING = SimpleJsonString("")
 val JSON_EMPTY_ARRAY = SimpleJsonArray(EMPTY_ARRAY)
 val JSON_EMPTY_OBJECT = SimpleJsonObject(EMPTY_OBJECT)
@@ -533,7 +538,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
             }
             index++
             var ch = getNextToken() ?: return makeFail<SimpleJsonArray>("invalid array's present, lack of \"]\"", null)
-            val itemList = mutableListOf<SimpleJsonValue<*>>()
+            val itemList = mutableListOf<SimpleJsonValue<*>?>()
             if (ch != ']') {
                 index--
                 while (true) {
@@ -564,7 +569,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
             index++
             var ch = getNextToken()
                     ?: return makeFail<SimpleJsonObject>("invalid object's present, lack of \"}\"", null)
-            val itemMap = mutableMapOf<String, SimpleJsonValue<*>>()
+            val itemMap = mutableMapOf<String, SimpleJsonValue<*>?>()
             if (ch != '}') {
                 index--
                 while (true) {
@@ -744,8 +749,8 @@ open class SimpleJsonApi {
     constructor(obj: BigDecimal) : this(SimpleJsonNumber(obj))
     constructor(obj: Char) : this(SimpleJsonNumber(obj))
     constructor(obj: String) : this(if (obj.isEmpty()) JSON_EMPTY_STRING else SimpleJsonString(obj))
-    constructor(obj: List<SimpleJsonValue<*>>) : this(if (obj.isEmpty()) JSON_EMPTY_ARRAY else SimpleJsonArray(obj))
-    constructor(obj: Map<String, SimpleJsonValue<*>>) : this(if (obj.isEmpty()) JSON_EMPTY_OBJECT else SimpleJsonObject(obj))
+    constructor(obj: MutableList<SimpleJsonValue<*>?>) : this(if (obj.isEmpty()) JSON_EMPTY_ARRAY else SimpleJsonArray(obj))
+    constructor(obj: MutableMap<String, SimpleJsonValue<*>?>) : this(if (obj.isEmpty()) JSON_EMPTY_OBJECT else SimpleJsonObject(obj))
 
     constructor(obj: SimpleJsonValue<*>) {
         jsonValue = obj

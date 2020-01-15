@@ -2,7 +2,6 @@
 
 package com.liang.example.xml_ktx
 
-import android.annotation.SuppressLint
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -10,7 +9,7 @@ import java.math.BigInteger
 // https://github.com/leethomason/tinyxml2.git
 // org.kxml2
 // TODO: CDATA区 特殊字符 处理指令 文档声明
-// TODO: xpath
+// TODO: xPath
 
 enum class XmlStyle {
     STANDARD,
@@ -48,62 +47,156 @@ enum class XmlNumberType {
 
 enum class XmlStrategy {
     SIMPLEST,
-    USE_NULL,
-    USE_BLANK,
-    USE_NULL_AND_BLANK;
+    USE_BLANK;
 
-    fun useNull(): Boolean = this == USE_NULL_AND_BLANK || this == USE_NULL
-    fun useBlank(): Boolean = this == USE_NULL_AND_BLANK || this == USE_BLANK
+    fun useBlank(): Boolean = this == USE_BLANK
 }
 
-interface SimpleXmlValue<T : Any> : Cloneable {
+interface EasyXmlValue<T : Any> : Cloneable {
     fun valueType(): XmlValueType
     fun value(): T?
     fun string(): String
-    public override fun clone(): SimpleXmlValue<T>
+    public override fun clone(): EasyXmlValue<T>
 }
 
-interface SimpleXmlNode : Cloneable {
+interface EasyXmlNode : Cloneable {
     fun tag(): String? = null
     fun elementType(): XmlNodeType
     fun string(): String
-    public override fun clone(): SimpleXmlNode = this
+    public override fun clone(): EasyXmlNode = this
 }
 
-interface SimpleXmlNode2 : SimpleXmlNode {
-    val children: MutableList<SimpleXmlNode>?
-    val siblings: List<SimpleXmlNode>?
-    val offSpring: List<SimpleXmlNode>?
-    val attributes: MutableList<SimpleXmlAttribute>?
-    val parent: SimpleXmlNode2?
-    val root: SimpleXmlNode2?
+interface EasyXmlNode2 : EasyXmlNode {
+    val children: MutableList<EasyXmlNode>?
+    val siblings: List<EasyXmlNode>?
+    val offSpring: List<EasyXmlNode>?
+    val attributes: MutableList<EasyXmlAttribute>?
+    var parent: EasyXmlNode2?
+    var root: EasyXmlNode2?
+    var strategy: XmlStrategy
+    var depth: Int
 
-    fun add(node: SimpleXmlNode, index: Int = -1) = if (index == -1) {
-        children?.add(node)
-        Unit
-    } else children?.add(index, node) ?: Unit
+    fun setRightDepth(depth: Int) {
+        this.depth = depth
+        val nextDepth = depth + 1
+        children?.forEach {
+            if (it is EasyXmlNode2) {
+                it.depth = nextDepth
+            }
+        }
+    }
 
-    fun remove(node: SimpleXmlNode) = children?.remove(node) ?: false
-    fun remove(index: Int) = children?.removeAt(index)
-    fun clear() = children?.clear() ?: Unit
-    fun set(node: SimpleXmlNode, index: Int) = children?.set(index, node)
-    fun get(index: Int): SimpleXmlNode? = children?.get(index)
-    fun indexOf(node: SimpleXmlNode): Int = children?.indexOf(node) ?: -1
+    fun setRightStrategy(strategy: XmlStrategy) {
+        this.strategy = strategy
+        children?.forEach {
+            if (it is EasyXmlNode2) {
+                it.strategy = strategy
+            }
+            if (it is EasyXmlComment) {
+                it.mStrategy = strategy
+            }
+        }
+    }
+
+    fun setRightRoot(root: EasyXmlNode2?) {
+        val right = root ?: this
+        this.root = right
+        this.children?.forEach {
+            if (it is EasyXmlNode2) {
+                it.root = right
+            }
+        }
+    }
+
+    fun add(node: EasyXmlNode, index: Int = -1) {
+        if (children != null) {
+            if (index == -1) {
+                children?.add(node)
+            } else {
+                children?.add(index, node)
+            }
+            if (node is EasyXmlNode2) {
+                node.parent = this
+                node.setRightRoot(this.root)
+                node.setRightDepth(this.depth + 1)
+            }
+        }
+    }
+
+    fun remove(node: EasyXmlNode): Boolean {
+        if (children != null) {
+            val result = children!!.remove(node)
+            if (result) {
+                if (node is EasyXmlNode2) {
+                    node.parent = null
+                    node.setRightRoot(null)
+                    node.setRightDepth(0)
+                }
+                return true
+            }
+        }
+        return false
+    }
+
+    fun remove(index: Int): EasyXmlNode? {
+        if (children != null) {
+            val node = children!!.removeAt(index)
+            if (node is EasyXmlNode2) {
+                node.parent = null
+                node.setRightRoot(null)
+                node.setRightDepth(0)
+            }
+            return node
+        }
+        return null
+    }
+
+    fun clear() {
+        children?.forEach {
+            if (it is EasyXmlNode2) {
+                it.parent = null
+                it.setRightRoot(null)
+                it.setRightDepth(0)
+            }
+        }
+        children?.clear()
+    }
+
+    operator fun set(node: EasyXmlNode, index: Int) {
+        if (children != null) {
+            val old = children!!.set(index, node)
+            if (old is EasyXmlNode2) {
+                old.setRightRoot(null)
+                old.parent = null
+                old.setRightDepth(0)
+            }
+            if (node is EasyXmlNode2) {
+                node.parent = this
+                node.setRightRoot(this.root)
+                node.setRightDepth(this.depth + 1)
+            }
+        }
+    }
+
+    operator fun get(index: Int): EasyXmlNode? = children?.get(index)
+    fun indexOf(node: EasyXmlNode): Int = children?.indexOf(node) ?: -1
+    operator fun contains(node: EasyXmlNode) = children?.contains(node) ?: false
     val size: Int
 
-    fun addAttr(attr: SimpleXmlAttribute, index: Int = -1) = if (index == -1) {
+    fun addAttr(attr: EasyXmlAttribute, index: Int = -1) = if (index == -1) {
         attributes?.add(attr)
         Unit
     } else attributes?.add(index, attr)
 
-    fun removeAttr(attr: SimpleXmlAttribute) = attributes?.remove(attr) ?: false
+    fun removeAttr(attr: EasyXmlAttribute) = attributes?.remove(attr) ?: false
     fun removeAttr(index: Int) = attributes?.removeAt(index)
     fun clearAttr() = attributes?.clear() ?: Unit
-    fun setAttr(attr: SimpleXmlAttribute, index: Int) = attributes?.set(index, attr)
-    fun getAttr(index: Int): SimpleXmlAttribute? = attributes?.get(index)
-    fun indexOfAttr(attr: SimpleXmlAttribute): Int = attributes?.indexOf(attr) ?: -1
+    operator fun set(attr: EasyXmlAttribute, index: Int) = attributes?.set(index, attr)
+    fun getAttr(index: Int): EasyXmlAttribute? = attributes?.get(index)
+    fun indexOfAttr(attr: EasyXmlAttribute): Int = attributes?.indexOf(attr) ?: -1
+    operator fun contains(attr: EasyXmlAttribute) = attributes?.contains(attr) ?: false
     val attrSize: Int
-    val xmlns: List<SimpleXmlAttribute>?
+    val xmlns: List<EasyXmlAttribute>?
 
     fun first() = get(0)
     fun firstAttr() = getAttr(0)
@@ -113,24 +206,24 @@ interface SimpleXmlNode2 : SimpleXmlNode {
     operator fun iterator() = children?.iterator() ?: XML_EMPTY_CHILDREN.iterator()
     fun iteratorAttr() = attributes?.iterator() ?: XML_EMPTY_ATTRIBUTES.iterator()
 
-    fun insertBefore(node: SimpleXmlNode, before: SimpleXmlNode) = add(node, indexOf(before))
-    fun insertAfter(node: SimpleXmlNode, after: SimpleXmlNode) = add(node, indexOf(after) + 1)
+    fun insertBefore(node: EasyXmlNode, before: EasyXmlNode) = add(node, indexOf(before))
+    fun insertAfter(node: EasyXmlNode, after: EasyXmlNode) = add(node, indexOf(after) + 1)
     fun previousSibling() = parent?.get(parent!!.indexOf(this) - 1)
     fun nextSibling() = parent?.get(parent!!.indexOf(this) + 1)
 
     fun previousSibling(tag: String) = parent?.get(parent!!.indexOf(this) - 1)
     fun nextSibling(tag: String) = parent?.get(parent!!.indexOf(this) + 1)
 
-    fun findElementsByAction(action: (SimpleXmlNode) -> Boolean): List<SimpleXmlNode>? {
+    fun findElementsByAction(action: (EasyXmlNode) -> Boolean): List<EasyXmlNode>? {
         if (children.isNullOrEmpty()) {
             return null
         }
-        val result = mutableListOf<SimpleXmlNode>()
+        val result = mutableListOf<EasyXmlNode>()
         children!!.forEach {
             if (action(it)) {
                 result.add(it)
             }
-            if (it is SimpleXmlNode2) {
+            if (it is EasyXmlNode2) {
                 val temp = it.findElementsByAction(action)
                 if (!temp.isNullOrEmpty()) {
                     result.addAll(temp)
@@ -140,12 +233,12 @@ interface SimpleXmlNode2 : SimpleXmlNode {
         return result
     }
 
-    fun findElementByAction(action: (SimpleXmlNode) -> Boolean): SimpleXmlNode? {
+    fun findElementByAction(action: (EasyXmlNode) -> Boolean): EasyXmlNode? {
         children?.forEach {
             if (action(it)) {
                 return it
             }
-            if (it is SimpleXmlNode2) {
+            if (it is EasyXmlNode2) {
                 val temp = it.findElementByAction(action)
                 if (temp != null) {
                     return it
@@ -156,30 +249,28 @@ interface SimpleXmlNode2 : SimpleXmlNode {
     }
 
     fun findElementByTagName(tag: String) = findElementByAction { it.tag() == tag }
-    @SuppressLint("CI_ByteDanceKotlinRules_List_Contains_Not_Allow")
-    fun findElementByAttribute(attr: SimpleXmlAttribute) = findElementByAction { it is SimpleXmlNode2 && it.attributes?.contains(attr) ?: false }
+    fun findElementByAttribute(attr: EasyXmlAttribute) = findElementByAction { it is EasyXmlNode2 && it.attributes?.contains(attr) ?: false }
 
     fun findElementsByTagName(tag: String) = findElementsByAction { it.tag() == tag }
-    @SuppressLint("CI_ByteDanceKotlinRules_List_Contains_Not_Allow")
-    fun findElementsByAttribute(attr: SimpleXmlAttribute) = findElementsByAction { it is SimpleXmlNode2 && it.attributes?.contains(attr) ?: false }
+    fun findElementsByAttribute(attr: EasyXmlAttribute) = findElementsByAction { it is EasyXmlNode2 && it.attributes?.contains(attr) ?: false }
 }
 
-abstract class SimpleXmlValueAdapter<T : Any>(var mValue: T?, protected val mType: XmlValueType) : SimpleXmlValue<T> {
+abstract class EasyXmlValueAdapter<T : Any>(var mValue: T?, protected val mType: XmlValueType) : EasyXmlValue<T> {
     override fun valueType(): XmlValueType = mType
     override fun value(): T? = mValue
-    override fun string(): String = mValue?.toString() ?: "null"
-    override fun clone(): SimpleXmlValue<T> = this
+    override fun string(): String = "\"${mValue?.toString() ?: "null"}\""
+    override fun clone(): EasyXmlValue<T> = this
 }
 
-open class SimpleXmlNull : SimpleXmlValueAdapter<Unit>(null, XmlValueType.NUL) {
-    override fun clone(): SimpleXmlValue<Unit> = SimpleXmlNull()
+open class EasyXmlNull : EasyXmlValueAdapter<Unit>(null, XmlValueType.NUL) {
+    override fun clone(): EasyXmlValue<Unit> = EasyXmlNull()
 }
 
-open class SimpleXmlBool(b: Boolean?) : SimpleXmlValueAdapter<Boolean>(b, XmlValueType.BOOL) {
-    override fun clone(): SimpleXmlValue<Boolean> = SimpleXmlBool(mValue)
+open class EasyXmlBool(b: Boolean?) : EasyXmlValueAdapter<Boolean>(b, XmlValueType.BOOL) {
+    override fun clone(): EasyXmlValue<Boolean> = EasyXmlBool(mValue)
 }
 
-open class SimpleXmlNumber(n: Number?) : SimpleXmlValueAdapter<Number>(n, XmlValueType.NUMBER) {
+open class EasyXmlNumber(n: Number?) : EasyXmlValueAdapter<Number>(n, XmlValueType.NUMBER) {
     protected var mNumberType: XmlNumberType = XmlNumberType.UNKNOWN
 
     constructor(n: Byte?) : this(n as? Number) {
@@ -222,7 +313,7 @@ open class SimpleXmlNumber(n: Number?) : SimpleXmlValueAdapter<Number>(n, XmlVal
         mNumberType = nt
     }
 
-    override fun clone(): SimpleXmlValue<Number> = SimpleXmlNumber(mValue, mNumberType)
+    override fun clone(): EasyXmlValue<Number> = EasyXmlNumber(mValue, mNumberType)
 
     override fun value(): Number? = when {
         mValue == null -> null
@@ -240,15 +331,15 @@ open class SimpleXmlNumber(n: Number?) : SimpleXmlValueAdapter<Number>(n, XmlVal
     }
 
     override fun string(): String = when {
-        mNumberType != XmlNumberType.UNKNOWN -> mValue?.toString() ?: "null"
-        else -> "null"
+        mNumberType != XmlNumberType.UNKNOWN -> "\"${mValue?.toString() ?: "null"}\""
+        else -> "\"null\""
     }
 
     open fun numberType(): XmlNumberType = mNumberType
     open fun charValue(): Char = (mValue as? Long)?.toChar() ?: '\u0000'
 }
 
-open class SimpleXmlString(s: String?) : SimpleXmlValueAdapter<String>(s, XmlValueType.STRING) {
+open class EasyXmlString(s: String?) : EasyXmlValueAdapter<String>(s, XmlValueType.STRING) {
     override fun string(): String {
         val tempValue = mValue ?: return "null"
         val resultBuilder = StringBuilder("\"")
@@ -274,39 +365,28 @@ open class SimpleXmlString(s: String?) : SimpleXmlValueAdapter<String>(s, XmlVal
         return resultBuilder.append("\"").toString()
     }
 
-    override fun clone(): SimpleXmlValue<String> = SimpleXmlString(mValue)
+    override fun clone(): EasyXmlValue<String> = EasyXmlString(mValue)
 }
 
-open class SimpleXmlElement(open var mTag: String) : SimpleXmlNode2 {
-    open var mStrategy: XmlStrategy = XmlStrategy.SIMPLEST
-    open var mDepth: Int = 0
-    open var mParent: SimpleXmlNode2? = null
-    open var mRoot: SimpleXmlNode2? = null
-    open var mChildren: MutableList<SimpleXmlNode>? = null
-    open var mAttributes: MutableList<SimpleXmlAttribute>? = null
+open class EasyXmlElement(open var mTag: String) : EasyXmlNode2 {
+    override var strategy: XmlStrategy = XmlStrategy.SIMPLEST
+    override var depth: Int = 0
+    open var mChildren: MutableList<EasyXmlNode>? = mutableListOf()
+    open var mAttributes: MutableList<EasyXmlAttribute>? = mutableListOf()
 
-    open fun setRightDepth(depth: Int) {
-        mDepth = depth
-        val nextDepth = depth + 1
-    }
-
-    open fun setRightStrategy(strategy: XmlStrategy) {
-        mStrategy = strategy
-    }
-
-    override val children: MutableList<SimpleXmlNode>?
+    override val children: MutableList<EasyXmlNode>?
         get() = mChildren
-    override val siblings: List<SimpleXmlNode>?
+    override val siblings: List<EasyXmlNode>?
         get() = parent?.children
-    override val offSpring: List<SimpleXmlNode>?
+    override val offSpring: List<EasyXmlNode>?
         get() {
             if (mChildren.isNullOrEmpty()) {
                 return null
             }
-            val result = mutableListOf<SimpleXmlNode>()
+            val result = mutableListOf<EasyXmlNode>()
             mChildren!!.forEach {
                 result.add(it)
-                if (it is SimpleXmlNode2) {
+                if (it is EasyXmlNode2) {
                     val temp = it.offSpring
                     if (!temp.isNullOrEmpty()) {
                         result.addAll(temp)
@@ -315,18 +395,16 @@ open class SimpleXmlElement(open var mTag: String) : SimpleXmlNode2 {
             }
             return result
         }
-    override val attributes: MutableList<SimpleXmlAttribute>?
+    override val attributes: MutableList<EasyXmlAttribute>?
         get() = mAttributes
-    override val parent: SimpleXmlNode2?
-        get() = mParent
-    override val root: SimpleXmlNode2?
-        get() = mRoot
+    override var parent: EasyXmlNode2? = null
+    override var root: EasyXmlNode2? = null
 
     override val size: Int
         get() = children?.size ?: 0
     override val attrSize: Int
         get() = attributes?.size ?: 0
-    override val xmlns: List<SimpleXmlAttribute>?
+    override val xmlns: List<EasyXmlAttribute>?
         get() = attributes?.filter { it.isXmlns }
 
     override fun tag(): String = mTag
@@ -335,8 +413,8 @@ open class SimpleXmlElement(open var mTag: String) : SimpleXmlNode2 {
     override fun string(): String {
         val noChild = mChildren.isNullOrEmpty()
         val noAttr = mAttributes.isNullOrEmpty()
-        val useBlank = mStrategy.useBlank()
-        val depth1 = "\t".repeat(mDepth)
+        val useBlank = strategy.useBlank()
+        val depth1 = "\t".repeat(depth)
         val depth2 = "$depth1\t"
         return when {
             noChild && noAttr && useBlank -> "<$mTag />"
@@ -347,38 +425,40 @@ open class SimpleXmlElement(open var mTag: String) : SimpleXmlNode2 {
             noChild && !noAttr && !useBlank -> "<$mTag " + mAttributes!!.joinToString(" ") { it.string() } + "/>"
             !noChild && !noAttr && useBlank -> "<$mTag\n" + mAttributes!!.joinToString("\n") {
                 depth2 + it.string()
-            } + " />\n" + mChildren!!.joinToString("\n") { depth2 + it.string() } + "\n${depth1}</$mTag>"
-            else -> "<$mTag " + mAttributes!!.joinToString(" ") { it.string() } + ">" + "</$mTag>"
+            } + " >\n" + mChildren!!.joinToString("\n") { depth2 + it.string() } + "\n${depth1}</$mTag>"
+            else -> "<$mTag " + mAttributes!!.joinToString(" ") { it.string() } + ">" + mChildren!!.joinToString("") { it.string() } + "</$mTag>"
         }
     }
 }
 
-open class SimpleXmlAttribute(open var mName: String, open var mValue: SimpleXmlValue<*>, open var mNameSpace: String? = null) : SimpleXmlNode {
+open class EasyXmlAttribute(open var mName: String, open var mValue: EasyXmlValue<*>, open var mNameSpace: String? = null) : EasyXmlNode {
     override fun elementType(): XmlNodeType = XmlNodeType.ATTRIBUTE
-    override fun string(): String = """${mNameSpace ?: ""}$mName="$mValue""""
+    override fun string(): String = """${if (mNameSpace != null) "$mNameSpace:" else ""}$mName=${mValue.string()}"""
     open val isXmlns: Boolean
         get() = mNameSpace == "xmlns"
 
-    override fun hashCode(): Int = (if (mNameSpace != null) arrayOf(mName, mValue, mNameSpace) else arrayOf(mName, mValue)).contentHashCode()
-    override fun equals(other: Any?): Boolean = this === other || other is SimpleXmlAttribute
-            && other.mName == mName && other.mValue == other.mValue && other.mNameSpace == mNameSpace
+    override fun hashCode(): Int =
+            (if (mNameSpace != null) arrayOf(mName, mValue.string(), mNameSpace) else arrayOf(mName, mValue.string())).contentHashCode()
+
+    override fun equals(other: Any?): Boolean = this === other || other is EasyXmlAttribute
+            && other.mName == mName && other.mValue.string() == other.mValue.string() && other.mNameSpace == mNameSpace
 }
 
-open class SimpleXmlText(open var mText: String? = null) : SimpleXmlNode {
+open class EasyXmlText(open var mText: String? = null) : EasyXmlNode {
     override fun elementType(): XmlNodeType = XmlNodeType.TEXT
     override fun string(): String = mText ?: ""
     override fun hashCode(): Int = mText?.hashCode() ?: EMPTY_STRING.hashCode()
-    override fun equals(other: Any?): Boolean = this === other || other is SimpleXmlText && other.mText == mText
+    override fun equals(other: Any?): Boolean = this === other || other is EasyXmlText && other.mText == mText
 }
 
-open class SimpleXmlDocument(mTag: String, open val declaration: SimpleXmlDeclaration) : SimpleXmlElement(mTag) {
-    override var parent: SimpleXmlNode2?
+open class EasyXmlDocument(mTag: String, open val declaration: EasyXmlDeclaration = EasyXmlDeclaration()) : EasyXmlElement(mTag) {
+    override var parent: EasyXmlNode2?
         get() = null
         set(value) {}
-    override var root: SimpleXmlNode2?
+    override var root: EasyXmlNode2?
         get() = this
         set(value) {}
-    override var mDepth: Int
+    override var depth: Int
         get() = 0
         set(value) {}
 
@@ -388,33 +468,58 @@ open class SimpleXmlDocument(mTag: String, open val declaration: SimpleXmlDeclar
     }
 
     override fun elementType(): XmlNodeType = XmlNodeType.DOCUMENT
-    override fun string(): String = declaration.string() + if (mStrategy.useBlank()) "\n" else "" + super.string()
+    override fun string(): String = declaration.string() + (if (strategy.useBlank()) "\n" else "") + super.string()
 }
 
-open class SimpleXmlDeclaration(
-        open var version: String, open var encoding: String = "UTF-8",
-        open var attributes: MutableList<SimpleXmlAttribute>? = null
-) : SimpleXmlNode {
+open class EasyXmlDeclaration(
+        open var version: String = DEFAULT_VERSION, open var encoding: String = DEFAULT_ENCODING,
+        open var attributes: MutableList<EasyXmlAttribute>? = null
+) : EasyXmlNode {
     open var mStrategy: XmlStrategy = XmlStrategy.SIMPLEST
     override fun elementType(): XmlNodeType = XmlNodeType.DECLARATION
     override fun string(): String = when (mStrategy) {
-        XmlStrategy.SIMPLEST -> """<?xml version="$version" encoding="$encoding" ${attributes?.joinToString(" ") { it.string() } ?: ""} ?>"""
-        else -> "<?xml version=\"$version\" encoding=\"$encoding\"\n${attributes?.joinToString("\n") { "\t" + it.string() } ?: ""} ?>"
+        XmlStrategy.SIMPLEST -> """<?xml version="$version" encoding="$encoding"${attributes?.joinToString("") { " " + it.string() } ?: ""}?>"""
+        else -> "<?xml version=\"$version\" encoding=\"$encoding\"${attributes?.joinToString("") { "\n\t" + it.string() } ?: ""}?>"
     }
 }
 
-open class SimpleXmlComment(open var mContent: String, open var mStrategy: XmlStrategy = XmlStrategy.SIMPLEST) : SimpleXmlNode {
+open class EasyXmlComment(open var mContent: String, open var mStrategy: XmlStrategy = XmlStrategy.SIMPLEST) : EasyXmlNode {
     override fun elementType(): XmlNodeType = XmlNodeType.COMMENT
     override fun string(): String = if (mStrategy == XmlStrategy.SIMPLEST) "<!--$mContent-->" else "<!-- $mContent -->"
     override fun hashCode(): Int = mContent.hashCode()
-    override fun equals(other: Any?): Boolean = other === this || other is SimpleXmlComment && other.mContent == mContent
+    override fun equals(other: Any?): Boolean = other === this || other is EasyXmlComment && other.mContent == mContent
 }
 
 const val EMPTY_STRING = ""
-val XML_VALUE_NULL = SimpleXmlNull()
-val XML_VALUE_FALSE = SimpleXmlBool(false)
-val XML_VALUE_TRUE = SimpleXmlBool(true)
-val XML_VALUE_EMPTY_STRING = SimpleXmlString(EMPTY_STRING)
+val XML_VALUE_NULL = EasyXmlNull()
+val XML_VALUE_FALSE = EasyXmlBool(false)
+val XML_VALUE_TRUE = EasyXmlBool(true)
+val XML_VALUE_EMPTY_STRING = EasyXmlString(EMPTY_STRING)
 
-val XML_EMPTY_CHILDREN: MutableList<SimpleXmlNode> = mutableListOf()
-val XML_EMPTY_ATTRIBUTES: MutableList<SimpleXmlAttribute> = mutableListOf()
+val XML_EMPTY_CHILDREN: MutableList<EasyXmlNode> = mutableListOf()
+val XML_EMPTY_ATTRIBUTES: MutableList<EasyXmlAttribute> = mutableListOf()
+
+var DEFAULT_VERSION = "1.0"
+var DEFAULT_ENCODING = "UTF-8"
+
+open class EasyXmlParser(var strategy: XmlStyle) {
+    open fun parseXml(xmlStr: String): EasyXmlDocument = TODO()
+    open fun parseXmlOrThrow(xmlStr: String): EasyXmlDocument = TODO()
+    open fun parseXmlOrNull(xmlStr: String): EasyXmlDocument? = TODO()
+
+    companion object {
+        var START_DOCUMENT = 0
+        var END_DOCUMENT = 1
+        var START_TAG = 2
+        var END_TAG = 3
+        var TEXT = 4
+        var COMMENT = 9
+
+        // TODO:
+        var CDSECT = 5
+        var ENTITY_REF = 6
+        var IGNORABLE_WHITESPACE = 7
+        var PROCESSING_INSTRUCTION = 8
+        var DOCDECL = 10
+    }
+}
