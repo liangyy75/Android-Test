@@ -4,6 +4,8 @@ package com.liang.example.xml_ktx
 
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.util.*
+import kotlin.collections.HashMap
 
 // https://github.com/zeux/pugixml.git
 // https://github.com/leethomason/tinyxml2.git
@@ -180,7 +182,8 @@ interface EasyXmlNode2 : EasyXmlNode {
 
     operator fun get(index: Int): EasyXmlNode? = children?.get(index)
     fun indexOf(node: EasyXmlNode): Int = children?.indexOf(node) ?: -1
-    operator fun contains(node: EasyXmlNode) = children?.contains(node) ?: false
+    operator fun contains(node: EasyXmlNode) = if (children != null) node in children!! else false
+
     val size: Int
 
     fun addAttr(attr: EasyXmlAttribute, index: Int = -1) = if (index == -1) {
@@ -194,7 +197,8 @@ interface EasyXmlNode2 : EasyXmlNode {
     operator fun set(attr: EasyXmlAttribute, index: Int) = attributes?.set(index, attr)
     fun getAttr(index: Int): EasyXmlAttribute? = attributes?.get(index)
     fun indexOfAttr(attr: EasyXmlAttribute): Int = attributes?.indexOf(attr) ?: -1
-    operator fun contains(attr: EasyXmlAttribute) = attributes?.contains(attr) ?: false
+    operator fun contains(attr: EasyXmlAttribute) = if (attributes != null) attr in attributes!! else false
+
     val attrSize: Int
     val xmlns: List<EasyXmlAttribute>?
 
@@ -249,10 +253,9 @@ interface EasyXmlNode2 : EasyXmlNode {
     }
 
     fun findElementByTagName(tag: String) = findElementByAction { it.tag() == tag }
-    fun findElementByAttribute(attr: EasyXmlAttribute) = findElementByAction { it is EasyXmlNode2 && it.attributes?.contains(attr) ?: false }
-
+    fun findElementByAttribute(attr: EasyXmlAttribute) = findElementByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
     fun findElementsByTagName(tag: String) = findElementsByAction { it.tag() == tag }
-    fun findElementsByAttribute(attr: EasyXmlAttribute) = findElementsByAction { it is EasyXmlNode2 && it.attributes?.contains(attr) ?: false }
+    fun findElementsByAttribute(attr: EasyXmlAttribute) = findElementsByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
 }
 
 abstract class EasyXmlValueAdapter<T : Any>(var mValue: T?, protected val mType: XmlValueType) : EasyXmlValue<T> {
@@ -507,19 +510,295 @@ open class EasyXmlParser(var strategy: XmlStyle) {
     open fun parseXmlOrThrow(xmlStr: String): EasyXmlDocument = TODO()
     open fun parseXmlOrNull(xmlStr: String): EasyXmlDocument? = TODO()
 
+    open class EasyXmlPullParseTask(val xmlStr: String, val strategy: XmlStyle, val throwEx: Boolean = false) {
+        protected val mLength = xmlStr.length
+        protected var mIndex: Int = 0
+        protected var mFailReason: String? = null
+        protected var mType: Int? = START_DOCUMENT
+        protected var mText: StringBuilder = StringBuilder()
+        protected val mEntityMap = HashMap<String, String>()
+        protected val mEscapeMap = HashMap<String, String>()
+        protected val mTagPath = Stack<String>()
+        protected val mAttributes = HashMap<String, String>()
+
+        init {
+            mEntityMap["amp"] = "&"
+            mEntityMap["gt"] = ">"
+            mEntityMap["lt"] = "<"
+            mEntityMap["apos"] = "'"
+            mEntityMap["quot"] = "\""
+
+            mEscapeMap["\\b"] = "\b"
+            mEscapeMap["\\f"] = "\u000C"
+            mEscapeMap["\\n"] = "\n"
+            mEscapeMap["\\r"] = "\r"
+            mEscapeMap["\\b"] = "\b"
+            mEscapeMap["\\\\"] = "\\"
+        }
+
+        // < 后面的内容
+        protected fun parseStartTag(): Int? {
+            val begin = mIndex
+            var ch = getNextChar() ?: return null
+            while (!Character.isLetterOrDigit(ch)) {  // TODO: 待确认
+                ch = getNextChar() ?: return null
+            }
+            if (mIndex == begin) {
+                return makeFail<Int>("start tag should not be empty!")
+            }
+            mTagPath.push(xmlStr.substring(begin, mIndex - 1))
+            parseAttributes() ?: return null
+            mType = START_TAG
+            return mType
+        }
+
+        protected fun parseAttributes(): Int? {
+            consumeWhiteSpaces()
+            var ch = getNextChar() ?: return null
+            mAttributes.clear()
+            while (ch != '>') {
+                if (ch == '"') {
+                    ch = getNextChar() ?: return null
+                    mText.clear()
+                    while (ch != '"') {
+                        mText.append(ch)
+                        ch = getNextChar() ?: return null
+                    }
+                    val key = mText.toString()
+                    ch = getNextChar() ?: return null
+                    mText.clear()
+                    while (ch != '"') {
+                        mText.append(ch)
+                        ch = getNextChar() ?: return null
+                    }
+                    mAttributes[key] = mText.toString()
+                    mText.clear()
+                } else {
+                    return makeFail("attribute should be around by \"")
+                }
+                consumeWhiteSpaces()
+                ch = getNextChar() ?: return null
+            }
+            return mType
+        }
+
+        // </ 后面的内容
+        protected fun parseEndTag(): Int? {
+            val begin = mIndex
+            var ch = getNextChar() ?: return null
+            while (ch != '>') {
+                ch = getNextChar() ?: return null
+            }
+            if (mIndex == begin) {
+                return makeFail<Int>("end tag should not be empty!")
+            }
+            val tag = xmlStr.substring(begin, mIndex - 1)
+            if (mTagPath.empty()) {
+                return makeFail<Int>("there must be corresponding start tag to the end tag: $tag")
+            }
+            if (tag != mTagPath.peek()) {
+                return makeFail<Int>("end tag is wrong, now start tag is ${mTagPath.peek()}, but end tag is $tag")
+            }
+            mTagPath.pop()
+            mType = END_TAG
+            return mType
+        }
+
+        protected fun parseText(): Int? {
+            if (mType != START_TAG || mType != END_TAG || mType != ENTITY_REF) {
+                return makeFail<Int>("text only can be placed as element's child")
+            }
+            var ch = getNextChar() ?: return null
+            mText.clear()
+            while (ch != '>') {
+                when (ch) {
+                    '&' -> {
+                        mType = ENTITY_REF
+                        for ((fake, real) in mEntityMap) {
+                            if (compareExpected(fake, true)) {
+                                mText.append(real)
+                                mIndex += fake.length
+                                break
+                            }
+                        }
+                    }
+                    '\\' -> {
+                        mType = TEXT
+                        for ((fake, real) in mEscapeMap) {
+                            if (compareExpected(fake, true)) {
+                                mText.append(real)
+                                mIndex += fake.length
+                                break
+                            }
+                        }
+                    }
+                    else -> {
+                        mType = TEXT
+                        mText.append(ch)
+                    }
+                }
+                ch = getNextChar() ?: return null
+            }
+            mType = TEXT
+            return mType
+        }
+
+        // <?xml 后面的内容 ，注意，这里不管 <?xml 有多少个 attribute 了，也就是不限定与 version encoding standalone
+        protected fun parseXmlDeclaration(): Int? {
+            parseAttributes() ?: return null
+            mType = XML_DECL
+            return mType
+        }
+
+        protected fun parseEndDocument(): Int? {
+            if (mType == START_DOCUMENT) {
+                return makeFail<Int>("empty document!!!")
+            }
+            if (mType != END_TAG) {
+                return makeFail<Int>("xml format error!!!")
+            }
+            mType = END_DOCUMENT
+            return mType
+        }
+
+        protected fun getEventType(): Int? {
+            consumeWhiteSpaces()
+            if (mIndex >= mLength) {
+                return parseEndDocument()
+            }
+            var ch = xmlStr[mIndex++]
+            if (ch != '<') {
+                return parseText()
+            }
+
+            ch = getNextChar() ?: return null
+            val start: String
+            val end: String
+            when (ch) {
+                '!' -> {
+                    ch = getNextChar() ?: return null
+                    when (ch) {
+                        '[' -> {
+                            mType = CDSECT
+                            start = "CDATA["
+                            end = "]]"
+                        }
+                        '-' -> {
+                            mType = COMMENT
+                            start = "-"
+                            end = "--"
+                        }
+                        else -> {
+                            mType = DOCDECL
+                            start = "OCTYPE"
+                            end = ""
+                        }
+                    }
+                }
+                '?' -> {
+                    if (compareExpected("xml", true, consume = true)) {
+                        return parseXmlDeclaration()
+                    }
+                    mType = PROCESSING_INSTRUCTION
+                    start = ""
+                    end = "?"
+                }
+                '/' -> return parseEndTag()
+                else -> return parseStartTag()
+            }
+
+            if (start.isNotEmpty() && !compareExpected(start, false, consume = true)) {
+                return makeFail<Int>("xml format is wrong, now type is $mType, and expect $start")
+            }
+            ch = getNextChar() ?: return null
+            mText.clear()
+            while (ch != '>') {
+                mText.append(ch)
+                ch = getNextChar() ?: return null
+            }
+            if (end.isNotEmpty()) {
+                mIndex = mIndex - end.length - 1
+                if (mIndex < 2) {
+                    return makeFail<Int>("xml format is wrong, now type is $mType, and expect $end")
+                }
+                if (!compareExpected(end, false, consume = true)) {
+                    return makeFail<Int>("xml format is wrong, now type is $mType, and expect $end")
+                }
+                mIndex++
+            }
+            return mType
+        }
+
+        protected fun compareExpected(expect: String, ignoreCase: Boolean, consume: Boolean = false): Boolean {
+            val expectLen = expect.length
+            if (mLength - mIndex < expectLen) {
+                return false
+            }
+            val result = xmlStr.substring(mIndex, expectLen).equals(expect, ignoreCase)
+            if (result && consume) {
+                mIndex += expectLen
+            }
+            return result
+        }
+
+        protected fun getNextChar(): Char? {
+            if (mIndex >= mLength) {
+                return makeFail<Char>("read error! xml format is wrong!")
+            }
+            return xmlStr[mIndex++]
+        }
+
+        protected fun consumeWhiteSpaces() {
+            while (mIndex < mLength && (xmlStr[mIndex] == ' ' || xmlStr[mIndex] == '\r' || xmlStr[mIndex] == '\n' || xmlStr[mIndex] == '\t')) {
+                mIndex++
+            }
+        }
+
+        protected fun <T> makeFail(reason: String, result: T? = null): T? {
+            mFailReason = reason
+            if (throwEx) {
+                throw RuntimeException(this.toString())
+            }
+            return result
+        }
+
+        override fun toString(): String {
+            val tagPath = StringBuilder()
+            if (!mTagPath.empty()) {
+                tagPath.append(mTagPath.pop())
+            }
+            while (!mTagPath.empty()) {
+                tagPath.append(".").append(mTagPath.pop())
+            }
+            return "failReason: $mFailReason, index: $mIndex, length: $mLength, less: ${if (mIndex < mLength) xmlStr.substring(mIndex) else "none"}, " +
+                    "type: $mType, text: $mText, tagPath: $tagPath"
+        }
+    }
+
+    open class EasyXmlSaxParseTask {}
+
+    open class EasyXmlDomParseTask {}
+
     companion object {
-        var START_DOCUMENT = 0
-        var END_DOCUMENT = 1
-        var START_TAG = 2
-        var END_TAG = 3
-        var TEXT = 4
-        var COMMENT = 9
+        /** pull */
+        const val START_DOCUMENT = 0
+        const val END_DOCUMENT = 1
+        const val START_TAG = 2
+        const val END_TAG = 3
+        const val TEXT = 4
+        const val COMMENT = 9  // <!-- xxx -->
 
         // TODO:
-        var CDSECT = 5
-        var ENTITY_REF = 6
-        var IGNORABLE_WHITESPACE = 7
-        var PROCESSING_INSTRUCTION = 8
-        var DOCDECL = 10
+        const val CDSECT = 5  // <![CDATA[ xxx ]]>
+        const val ENTITY_REF = 6  // &xxx，如 &gt;(>) &lt;(<) &amp;(&) &apos;(') &quot;(")
+        const val IGNORABLE_WHITESPACE = 7  // 完全空白的 text / comment
+        const val PROCESSING_INSTRUCTION = 8  // <?Yyy xxx ?>
+        const val DOCDECL = 10  // <!DOCTYPE xxx>
+
+        const val XML_DECL = 998  // <?xml version="1.0" encoding="UTF-8" standalone="true" ?>
+
+        /** dom */
+
+        /** sax */
     }
 }

@@ -126,8 +126,8 @@ dependencies {
 
     api project(':utils-ktx')
     api project(":remote")
-    api project(":lib")
-    annotationProcessor project(":lib")
+    api project(':router')
+    annotationProcessor project(':router')
     api project(":spi_impl2")
     api project(":spi_impl1")
     api project(":spi_interface")

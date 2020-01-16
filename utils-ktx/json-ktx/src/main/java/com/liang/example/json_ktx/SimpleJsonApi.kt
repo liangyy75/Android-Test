@@ -218,8 +218,8 @@ open class SimpleJsonArray(l: MutableList<SimpleJsonValue<*>?>?) : SimpleJsonVal
     open operator fun get(index: Int) = if (!mValue.isNullOrEmpty()) mValue!![index] else null
     open operator fun get(value: SimpleJsonValue<*>?) = if (!mValue.isNullOrEmpty()) mValue!!.indexOf(value) else -1
     open operator fun set(index: Int, value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.set(index, value) else null
-    open operator fun contains(value: SimpleJsonValue<*>?) = if (mValue != null) mValue!!.contains(value) else false
     open operator fun iterator() = mValue?.iterator() ?: EMPTY_ARRAY.iterator()
+    open operator fun contains(value: SimpleJsonValue<*>?) = if (mValue != null) value in mValue!! else false
 }
 
 open class SimpleJsonNumber(n: Number? = null) : SimpleJsonValueAdapter<Number>(n, JsonType.NUMBER) {
@@ -521,7 +521,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
                         'r' -> resultBuilder.append('\r')
                         't' -> resultBuilder.append('\t')
                         '"', '\\', '/' -> resultBuilder.append(ch)
-                        else -> return makeFail<String>("invalid escape character $ch", null)
+                        else -> resultBuilder.append('\\') // else -> return makeFail<String>("invalid escape character $ch", null)
                     }
                 } else {
                     resultBuilder.append(ch)
@@ -597,11 +597,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         }
 
         protected fun parseJson(depth: Int): SimpleJsonValue<*>? {
-            val ch = getNextToken()
-                    ?: makeFail<SimpleJsonValue<*>>(
-                            "json format is incorrect, the json string become empty before end parsing",
-                            null
-                    )
+            val ch = getNextToken() ?: makeFail<SimpleJsonValue<*>>("json format is incorrect, the json string become empty before end parsing", null)
             index--
             return when (ch) {
                 '-', in allDigitCharRange -> parseNumber()
@@ -698,10 +694,7 @@ open class SimpleJsonParser(var strategy: JsonStyle) {
         protected fun <T> makeFail(reason: String, result: T?): T? {
             failReason = reason
             if (throwEx) {
-                throw RuntimeException(
-                        "failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index)
-                        else "none"}"
-                )
+                throw RuntimeException("failReason: $failReason, index: $index, length: $length, less: ${if (index < length) jsonStr.substring(index) else "none"}")
             }
             return result
         }
@@ -773,3 +766,5 @@ open class SimpleJsonApi {
         }
     }
 }
+
+// TODO: SimpleJsonParseTask2(val stream: InputStream)

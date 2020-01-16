@@ -1,4 +1,4 @@
-include ':app', ':lib', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority' ,
+include ':app', ':router', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':out-service' ,
         ':popup', ':basic-block', ':xml-inflater', ':json-inflater', ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
@@ -7,11 +7,11 @@ project(":spi_impl2").projectDir = new File("spi/spi_impl2")
 
 project(":plugin").projectDir = new File("plugins/plugin")
 
-project(":block").projectDir = new File("ui/block")
-project(":basic-block").projectDir = new File("ui/basic-block")
-project(":popup").projectDir = new File("ui/popup")
-project(":xml-inflater").projectDir = new File("ui/xml-inflater")
-project(":json-inflater").projectDir = new File("ui/json-inflater")
+project(":block").projectDir = new File("ui-ktx/block")
+project(":basic-block").projectDir = new File("ui-ktx/basic-block")
+project(":popup").projectDir = new File("ui-ktx/popup")
+project(":xml-inflater").projectDir = new File("ui-ktx/xml-inflater")
+project(":json-inflater").projectDir = new File("ui-ktx/json-inflater")
 
 project(":utils-ktx").projectDir = new File("utils-ktx/utils-ktx")
 project(":view-ktx").projectDir = new File("utils-ktx/view-ktx")
@@ -24,3 +24,6 @@ project(":xml-ktx").projectDir = new File("utils-ktx/xml-ktx")
 project(":priority").projectDir = new File("custom/priority")
 project(":network").projectDir = new File("custom/network")
 project(":lua").projectDir = new File("custom/lua")
+
+project(":router").projectDir = new File("lib/router")
+project(":out-service").projectDir = new File("lib/out-service")
