@@ -2,9 +2,9 @@
 
 package com.liang.example.xml_ktx
 
+import android.annotation.SuppressLint
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.util.*
 import kotlin.collections.HashMap
 
 // https://github.com/zeux/pugixml.git
@@ -12,11 +12,6 @@ import kotlin.collections.HashMap
 // org.kxml2
 // TODO: CDATA区 特殊字符 处理指令 文档声明
 // TODO: xPath
-
-enum class XmlStyle {
-    STANDARD,
-    COMMENTS,
-}
 
 enum class XmlValueType {
     NUL,
@@ -253,9 +248,12 @@ interface EasyXmlNode2 : EasyXmlNode {
     }
 
     fun findElementByTagName(tag: String) = findElementByAction { it.tag() == tag }
-    fun findElementByAttribute(attr: EasyXmlAttribute) = findElementByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
+    fun findElementByAttribute(attr: EasyXmlAttribute) =
+            findElementByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
+
     fun findElementsByTagName(tag: String) = findElementsByAction { it.tag() == tag }
-    fun findElementsByAttribute(attr: EasyXmlAttribute) = findElementsByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
+    fun findElementsByAttribute(attr: EasyXmlAttribute) =
+            findElementsByAction { it is EasyXmlNode2 && (if (attributes != null) attr in attributes!! else false) }
 }
 
 abstract class EasyXmlValueAdapter<T : Any>(var mValue: T?, protected val mType: XmlValueType) : EasyXmlValue<T> {
@@ -505,21 +503,25 @@ val XML_EMPTY_ATTRIBUTES: MutableList<EasyXmlAttribute> = mutableListOf()
 var DEFAULT_VERSION = "1.0"
 var DEFAULT_ENCODING = "UTF-8"
 
-open class EasyXmlParser(var strategy: XmlStyle) {
-    open fun parseXml(xmlStr: String): EasyXmlDocument = TODO()
-    open fun parseXmlOrThrow(xmlStr: String): EasyXmlDocument = TODO()
-    open fun parseXmlOrNull(xmlStr: String): EasyXmlDocument? = TODO()
+open class EasyXmlParser {
+    open fun parseXml(xmlStr: String): EasyXmlDocument = EasyXmlDomParseTask().parseXml(xmlStr)
+    open fun parseXmlOrThrow(xmlStr: String): EasyXmlDocument = EasyXmlDomParseTask().parseXmlOrThrow(xmlStr)
+    open fun parseXmlOrNull(xmlStr: String): EasyXmlDocument? = EasyXmlDomParseTask().parseXmlOrNull(xmlStr)
 
-    open class EasyXmlPullParseTask(val xmlStr: String, val strategy: XmlStyle, val throwEx: Boolean = false) {
+    open class EasyXmlPullParseTask(val xmlStr: String, val throwEx: Boolean = false) {
         protected val mLength = xmlStr.length
-        protected var mIndex: Int = 0
+        protected var mIndex = 0
         protected var mFailReason: String? = null
         protected var mType: Int? = START_DOCUMENT
-        protected var mText: StringBuilder = StringBuilder()
+        protected var mText = StringBuilder()
+        protected var mTag: String? = null
+
+        protected val mTagPath = mutableListOf<String>()
+        protected val mAttributes = HashMap<String, String>()
         protected val mEntityMap = HashMap<String, String>()
         protected val mEscapeMap = HashMap<String, String>()
-        protected val mTagPath = Stack<String>()
-        protected val mAttributes = HashMap<String, String>()
+        protected val mEffectiveTagChars = mutableListOf<Char>()
+        protected val mEffectiveAttrChars = mutableListOf<Char>()
 
         init {
             mEntityMap["amp"] = "&"
@@ -534,21 +536,28 @@ open class EasyXmlParser(var strategy: XmlStyle) {
             mEscapeMap["\\r"] = "\r"
             mEscapeMap["\\b"] = "\b"
             mEscapeMap["\\\\"] = "\\"
+
+            mEffectiveTagChars.add('-')
+            mEffectiveTagChars.add('_')
+            mEffectiveTagChars.add('.')
+
+            mEffectiveTagChars.addAll(mEffectiveTagChars)
         }
 
         // < 后面的内容
         protected fun parseStartTag(): Int? {
-            val begin = mIndex
-            var ch = getNextChar() ?: return null
-            while (!Character.isLetterOrDigit(ch)) {  // TODO: 待确认
+            val begin = mIndex - 1
+            var ch = xmlStr[begin]
+            while (Character.isLetterOrDigit(ch) || ch in mEffectiveTagChars) {  // TODO: 待确认
                 ch = getNextChar() ?: return null
             }
-            if (mIndex == begin) {
-                return makeFail<Int>("start tag should not be empty!")
+            if (mIndex - 1 == begin) {
+                return makeFail<Int>("start tag should not be empty! ch: $ch")
             }
-            mTagPath.push(xmlStr.substring(begin, mIndex - 1))
-            parseAttributes() ?: return null
+            mTagPath.add(xmlStr.substring(begin, mIndex - 1))
+            mTag = mTagPath.last()
             mType = START_TAG
+            parseAttributes() ?: return null
             return mType
         }
 
@@ -557,14 +566,14 @@ open class EasyXmlParser(var strategy: XmlStyle) {
             var ch = getNextChar() ?: return null
             mAttributes.clear()
             while (ch != '>') {
-                if (ch == '"') {
-                    ch = getNextChar() ?: return null
+                if (Character.isLetterOrDigit(ch) || ch in mEffectiveAttrChars) {
                     mText.clear()
-                    while (ch != '"') {
+                    while (ch != '=') {
                         mText.append(ch)
                         ch = getNextChar() ?: return null
                     }
                     val key = mText.toString()
+                    getNextChar() ?: return null
                     ch = getNextChar() ?: return null
                     mText.clear()
                     while (ch != '"') {
@@ -574,10 +583,22 @@ open class EasyXmlParser(var strategy: XmlStyle) {
                     mAttributes[key] = mText.toString()
                     mText.clear()
                 } else {
-                    return makeFail("attribute should be around by \"")
+                    return makeFail("attribute's name should be letter or digit: $ch")
                 }
                 consumeWhiteSpaces()
                 ch = getNextChar() ?: return null
+                if (ch == '?' || ch == '/') {
+                    if (mIndex >= mLength) {
+                        return makeFail<Int>("read error! xml format is wrong!")
+                    }
+                    if (xmlStr[mIndex] == '>') {
+                        if (ch == '/') {
+                            mTagPath.removeAt(mTagPath.size - 1)
+                        }
+                        mIndex++
+                        break
+                    }
+                }
             }
             return mType
         }
@@ -593,20 +614,20 @@ open class EasyXmlParser(var strategy: XmlStyle) {
                 return makeFail<Int>("end tag should not be empty!")
             }
             val tag = xmlStr.substring(begin, mIndex - 1)
-            if (mTagPath.empty()) {
+            if (mTagPath.isEmpty()) {
                 return makeFail<Int>("there must be corresponding start tag to the end tag: $tag")
             }
-            if (tag != mTagPath.peek()) {
-                return makeFail<Int>("end tag is wrong, now start tag is ${mTagPath.peek()}, but end tag is $tag")
+            if (tag != mTagPath.last()) {
+                return makeFail<Int>("end tag is wrong, now start tag is ${mTagPath.last()}, but end tag is $tag")
             }
-            mTagPath.pop()
+            mTag = mTagPath.removeAt(mTagPath.size - 1)
             mType = END_TAG
             return mType
         }
 
         protected fun parseText(): Int? {
             if (mType != START_TAG || mType != END_TAG || mType != ENTITY_REF) {
-                return makeFail<Int>("text only can be placed as element's child")
+                return makeFail<Int>("text only can be placed as element's child: $mType")
             }
             var ch = getNextChar() ?: return null
             mText.clear()
@@ -646,6 +667,7 @@ open class EasyXmlParser(var strategy: XmlStyle) {
         // <?xml 后面的内容 ，注意，这里不管 <?xml 有多少个 attribute 了，也就是不限定与 version encoding standalone
         protected fun parseXmlDeclaration(): Int? {
             parseAttributes() ?: return null
+            consumeWhiteSpaces()
             mType = XML_DECL
             return mType
         }
@@ -661,8 +683,9 @@ open class EasyXmlParser(var strategy: XmlStyle) {
             return mType
         }
 
-        protected fun getEventType(): Int? {
+        open fun getNext(): Int? {
             consumeWhiteSpaces()
+            mTag = null
             if (mIndex >= mLength) {
                 return parseEndDocument()
             }
@@ -734,7 +757,7 @@ open class EasyXmlParser(var strategy: XmlStyle) {
             if (mLength - mIndex < expectLen) {
                 return false
             }
-            val result = xmlStr.substring(mIndex, expectLen).equals(expect, ignoreCase)
+            val result = xmlStr.substring(mIndex, expectLen + mIndex).equals(expect, ignoreCase)
             if (result && consume) {
                 mIndex += expectLen
             }
@@ -763,23 +786,40 @@ open class EasyXmlParser(var strategy: XmlStyle) {
         }
 
         override fun toString(): String {
-            val tagPath = StringBuilder()
-            if (!mTagPath.empty()) {
-                tagPath.append(mTagPath.pop())
-            }
-            while (!mTagPath.empty()) {
-                tagPath.append(".").append(mTagPath.pop())
-            }
             return "failReason: $mFailReason, index: $mIndex, length: $mLength, less: ${if (mIndex < mLength) xmlStr.substring(mIndex) else "none"}, " +
-                    "type: $mType, text: $mText, tagPath: $tagPath"
+                    "type: ($mType: ${EVENT_NAMES[mType]}), text: $mText, tag: $mTag, tagPath: ${mTagPath.joinToString(" --> ")}, " +
+                    "attributes: ${mAttributes.toList().joinToString { "(${it.first} : ${it.second})" }}"
+        }
+
+        open fun getEventType() = mType
+        open fun getFailReason() = mFailReason
+        open fun getText() = mText.toString()
+        open fun getTagPath() = mTagPath
+        open fun getTag() = mTag
+        open fun getAttribute(key: String) = mAttributes[key]
+        open fun getAttributes() = mAttributes
+        open fun attrsIterator() = mAttributes.iterator()
+    }
+
+    open class EasyXmlSaxParseTask {
+        // TODO
+    }
+
+    open class EasyXmlDomParseTask {
+        protected var mResult: EasyXmlDocument? = null
+        protected var mFailReason: String? = null
+
+        open fun parseXml(xmlStr: String): EasyXmlDocument = parseXmlOrNull(xmlStr)!!
+        open fun parseXmlOrThrow(xmlStr: String): EasyXmlDocument = parseXmlOrNull(xmlStr) ?: throw RuntimeException(mFailReason ?: "unknown reason")
+        open fun parseXmlOrNull(xmlStr: String): EasyXmlDocument? {
+            TODO()
         }
     }
 
-    open class EasyXmlSaxParseTask {}
-
-    open class EasyXmlDomParseTask {}
-
     companion object {
+        @SuppressLint("UseSparseArrays")
+        val EVENT_NAMES = HashMap<Int, String>()
+
         /** pull */
         const val START_DOCUMENT = 0
         const val END_DOCUMENT = 1
@@ -800,5 +840,24 @@ open class EasyXmlParser(var strategy: XmlStyle) {
         /** dom */
 
         /** sax */
+
+        /** init */
+
+        init {
+            EVENT_NAMES[START_DOCUMENT] = "START_DOCUMENT"
+            EVENT_NAMES[END_DOCUMENT] = "END_DOCUMENT"
+            EVENT_NAMES[START_TAG] = "START_TAG"
+            EVENT_NAMES[END_TAG] = "END_TAG"
+            EVENT_NAMES[TEXT] = "TEXT"
+            EVENT_NAMES[COMMENT] = "COMMENT"
+            EVENT_NAMES[CDSECT] = "CDSECT"
+            EVENT_NAMES[ENTITY_REF] = "ENTITY_REF"
+            EVENT_NAMES[IGNORABLE_WHITESPACE] = "IGNORABLE_WHITESPACE"
+            EVENT_NAMES[PROCESSING_INSTRUCTION] = "PROCESSING_INSTRUCTION"
+            EVENT_NAMES[DOCDECL] = "DOCDECL"
+            EVENT_NAMES[XML_DECL] = "XML_DECL"
+        }
     }
 }
+
+// TODO: EasyXmlParser -- inputStream 之类的
