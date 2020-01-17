@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-rotate xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@android:color/transparent"
+    android:pivotX="@android:integer/config_shortAnimTime"
+    android:pivotY="@android:integer/config_shortAnimTime"
+    android:visible="true">
+</animated-rotate>

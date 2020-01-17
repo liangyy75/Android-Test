@@ -37,4 +37,8 @@ dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     api 'androidx.appcompat:appcompat:1.1.0'
     api 'androidx.core:core-ktx:1.1.0'
+
+    api project(":xml-ktx")
+    api project(":view-ktx")
+    implementation 'androidx.mediarouter:mediarouter:1.1.0'
 }

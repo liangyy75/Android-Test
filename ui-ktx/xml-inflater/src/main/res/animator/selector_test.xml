@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:animation="@anim/layout_animation_test"
+        android:state_accelerated="true"
+        android:state_activated="true"
+        android:state_active="true"
+        android:state_checkable="true"
+        android:state_checked="false"
+        android:state_drag_can_accept="true"
+        android:state_drag_hovered="true"
+        android:state_enabled="true"
+        android:state_first="true"
+        android:state_focused="true"
+        android:state_hovered="true"
+        android:state_last="true"
+        android:state_middle="true"
+        android:state_pressed="true"
+        android:state_selected="true"
+        android:state_single="true"
+        android:state_window_focused="true" />
+</selector>

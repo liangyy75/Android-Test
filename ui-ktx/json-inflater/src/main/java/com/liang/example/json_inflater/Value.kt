@@ -680,6 +680,9 @@ abstract class ColorV : Value() {
     data class Result(val color: Int?, val colors: ColorStateList?)
 }
 
+/**
+ * android:minWidth="?android:textSize" 这种
+ */
 @Suppress("LeakingThis")
 open class AttributeResourceV : Value {
     companion object {

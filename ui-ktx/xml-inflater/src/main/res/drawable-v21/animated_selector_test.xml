@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:autoMirrored="true"
+    android:constantSize="true"
+    android:dither="true"
+    android:enterFadeDuration="@android:integer/config_shortAnimTime"
+    android:exitFadeDuration="@android:integer/config_shortAnimTime"
+    android:variablePadding="true"
+    android:visible="true">
+    <item />
+    <transition
+        android:drawable="@android:color/transparent"
+        android:fromId="@android:id/addToDictionary"
+        android:reversible="true"
+        android:toId="@android:id/addToDictionary">
+        <animation-list />
+    </transition>
+</animated-selector>

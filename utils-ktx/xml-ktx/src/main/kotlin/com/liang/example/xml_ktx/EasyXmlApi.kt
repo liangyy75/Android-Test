@@ -637,7 +637,7 @@ open class EasyXmlParser {
         }
 
         protected fun parseText(): Int? {
-            if (mType != START_TAG || mType != END_TAG || mType != ENTITY_REF || mType != COMMENT || mTagPath.isEmpty()) {
+            if (mType != START_TAG && mType != END_TAG && mType != ENTITY_REF && mType != COMMENT || mTagPath.isEmpty()) {
                 return makeFail<Int>("text only can be placed as element's child: $mType")
             }
             var ch = getNextChar() ?: return null
@@ -687,7 +687,7 @@ open class EasyXmlParser {
             if (mType == START_DOCUMENT) {
                 return makeFail<Int>("empty document!!!")
             }
-            if (mType != END_TAG || mType != COMMENT || mType == END_DOCUMENT || mType == TEXT) {
+            if (mType != END_TAG && mType != COMMENT && mType == END_DOCUMENT && mType == TEXT) {
                 return makeFail<Int>("xml format error!!!")
             }
             mType = END_DOCUMENT

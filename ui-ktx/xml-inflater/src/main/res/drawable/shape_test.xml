@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:dither="true"
+    android:innerRadius="@android:dimen/app_icon_size"
+    android:innerRadiusRatio="@android:integer/config_shortAnimTime"
+    android:opticalInsetLeft="@android:dimen/app_icon_size"
+    android:opticalInsetTop="@android:dimen/app_icon_size"
+    android:opticalInsetRight="@android:dimen/app_icon_size"
+    android:opticalInsetBottom="@android:dimen/app_icon_size"
+    android:shape="ring"
+    android:thickness="@android:dimen/app_icon_size"
+    android:thicknessRatio="@android:integer/config_shortAnimTime"
+    android:tint="@android:color/transparent"
+    android:tintMode="src_over"
+    android:useLevel="true"
+    android:visible="true">
+    <size
+        android:width="@android:dimen/app_icon_size"
+        android:height="@android:dimen/app_icon_size" />
+    <stroke
+        android:width="@android:dimen/app_icon_size"
+        android:color="@android:color/transparent"
+        android:dashWidth="@android:dimen/app_icon_size"
+        android:dashGap="@android:dimen/app_icon_size" />
+    <solid android:color="@android:color/transparent" />
+    <corners
+        android:bottomLeftRadius="@android:dimen/app_icon_size"
+        android:bottomRightRadius="@android:dimen/app_icon_size"
+        android:radius="@android:dimen/app_icon_size"
+        android:topLeftRadius="@android:dimen/app_icon_size"
+        android:topRightRadius="@android:dimen/app_icon_size" />
+    <gradient
+        android:angle="@android:integer/config_shortAnimTime"
+        android:centerColor="@android:color/transparent"
+        android:centerX="@android:integer/config_shortAnimTime"
+        android:centerY="@android:integer/config_shortAnimTime"
+        android:endColor="@android:color/transparent"
+        android:gradientRadius="@android:integer/config_shortAnimTime"
+        android:startColor="@android:color/transparent"
+        android:type="sweep"
+        android:useLevel="true" />
+    <padding
+        android:bottom="@android:dimen/app_icon_size"
+        android:left="@android:dimen/app_icon_size"
+        android:right="@android:dimen/app_icon_size"
+        android:top="@android:dimen/app_icon_size" />
+</shape>
