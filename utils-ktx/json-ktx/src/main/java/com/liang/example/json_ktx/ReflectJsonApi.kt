@@ -124,12 +124,7 @@ interface ReflectHandleInter<T> {
             }
 
             in 1..8 -> when (itemType) {
-                1 -> transformArray2<BooleanArray>(
-                        array,
-                        depth,
-                        { handleBooleanArray(null, null, it?.toTypedArray() as? Array<Boolean?>) },
-                        transform2
-                )
+                1 -> transformArray2<BooleanArray>(array, depth, { handleBooleanArray(null, null, it?.toTypedArray() as? Array<Boolean?>) }, transform2)
                 2 -> transformArray2<ByteArray>(array, depth, { handleByteArray(null, null, it?.toTypedArray() as? Array<Byte?>) }, transform2)
                 3 -> transformArray2<ShortArray>(array, depth, { handleShortArray(null, null, it?.toTypedArray() as? Array<Short?>) }, transform2)
                 4 -> transformArray2<IntArray>(array, depth, { handleIntArray(null, null, it?.toTypedArray() as? Array<Int?>) }, transform2)
@@ -281,10 +276,10 @@ open class ReflectJsonApi(
     override fun <T : Any> toJson(obj: T): String {
         val result = ReflectToJsonTask(clsCache).handleByCls(obj::class.java, obj) ?: return ""
         if (result is SimpleJsonArray) {
-            result.mStrategy = strategy
+            result.setRightStrategy(strategy)
         }
         if (result is SimpleJsonObject) {
-            result.mStrategy = strategy
+            result.setRightStrategy(strategy)
         }
         return result.string()
     }
@@ -292,10 +287,10 @@ open class ReflectJsonApi(
     override fun <T : Any> toJsonOrNull(obj: T): String? {
         val result = ReflectToJsonTask(clsCache).handleByCls(obj::class.java, obj) ?: return null
         if (result is SimpleJsonArray) {
-            result.mStrategy = strategy
+            result.setRightStrategy(strategy)
         }
         if (result is SimpleJsonObject) {
-            result.mStrategy = strategy
+            result.setRightStrategy(strategy)
         }
         return result.string()
     }

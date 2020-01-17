@@ -269,6 +269,10 @@ abstract class EasyXmlValueAdapter<T : Any>(var mValue: T?, protected val mType:
 
 open class EasyXmlBool(b: Boolean?) : EasyXmlValueAdapter<Boolean>(b, XmlValueType.BOOL) {
     override fun clone(): EasyXmlValue<Boolean> = EasyXmlBool(mValue)
+
+    companion object {
+        fun valueOf(b: Boolean) = if (b) XML_VALUE_TRUE else XML_VALUE_FALSE
+    }
 }
 
 open class EasyXmlNumber(n: Number?) : EasyXmlValueAdapter<Number>(n, XmlValueType.NUMBER) {
@@ -1039,3 +1043,4 @@ open class EasyXmlParser {
 }
 
 // TODO: EasyXmlParser -- inputStream 之类的
+// TODO: EntityMap / Escape / EffectiveTagChars / EffectiveAttrChars -- add / remove / update / get
