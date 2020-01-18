@@ -377,9 +377,8 @@ open class DimensionV : Value {
             } else {
                 // find the units and value by splitting at the second-last character of the dimension
                 val u = sDimensionsUnitsMap[dimension.substring(length - 2)]
-                val stringValue: String = dimension.substring(0, length - 2)
                 if (u != null) {
-                    value = stringValue.toDoubleOrNull() ?: 0.0
+                    value = dimension.substring(0, length - 2).toDoubleOrNull() ?: 0.0
                     unit = u
                 } else {
                     value = 0.0
@@ -398,18 +397,15 @@ open class DimensionV : Value {
     override fun copy(): DimensionV = this
     override fun string(): String = dimension ?: TODO()
 
-    open fun apply(context: Context): Float {
-        var result = 0.0
-        when (unit) {
-            DIMENSION_UNIT_ENUM -> result = value
-            DIMENSION_UNIT_PX,
-            DIMENSION_UNIT_DP,
-            DIMENSION_UNIT_SP,
-            DIMENSION_UNIT_PT,
-            DIMENSION_UNIT_MM,
-            DIMENSION_UNIT_IN -> result = TypedValue.applyDimension(unit, value.toFloat(), context.resources.displayMetrics).toDouble()
-        }
-        return result.toFloat()
+    open fun apply(context: Context): Float = when (unit) {
+        DIMENSION_UNIT_ENUM -> value.toFloat()
+        DIMENSION_UNIT_PX,
+        DIMENSION_UNIT_DP,
+        DIMENSION_UNIT_SP,
+        DIMENSION_UNIT_PT,
+        DIMENSION_UNIT_MM,
+        DIMENSION_UNIT_IN -> TypedValue.applyDimension(unit, value.toFloat(), context.resources.displayMetrics)
+        else -> 0.0f
     }
 
     override fun toString(): String {

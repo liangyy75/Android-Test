@@ -36,9 +36,18 @@ open class KKMap<K, V> : MutableMap<K, V> {
         this.vkMap = vkMap
     }
 
+    constructor(vararg pairs: Pair<K, V>) {
+        this.kvMap = HashMap(pairs.size, 0.75f)
+        this.vkMap = HashMap(pairs.size, 0.75f)
+        pairs.forEach { (k, v) ->
+            this.kvMap[k] = v
+            this.vkMap[v] = k
+        }
+    }
+
     override fun containsKey(key: K): Boolean = kvMap.containsKey(key)
     override fun containsValue(value: V): Boolean = vkMap.containsKey(value)
-    override fun get(key: K): V? = kvMap[key]
+    override operator fun get(key: K): V? = kvMap[key]
     open fun getVK(key: V): K? = vkMap[key]
     override fun isEmpty(): Boolean = kvMap.isEmpty()
 
@@ -69,6 +78,8 @@ open class KKMap<K, V> : MutableMap<K, V> {
         vkMap[value] = key
         return kvMap.put(key, value)
     }
+
+    operator fun set(key: K, value: V) = put(key, value)
 
     override fun putAll(from: Map<out K, V>) = from.forEach { put(it.key, it.value) }
 

@@ -4,11 +4,21 @@ package com.liang.example.xml_inflater
 
 // format的可能的值：'dimension', 'fraction', 'reference', 'color', 'string', 'boolean', 'integer', 'float', 'enum', 'flags'，后面两个是重点
 /**
- * dimension:
- *
- *
+ * dimension: dp / in / pt / px / mm / sp
+ * fraction: 100%(percent of myself) / 100%p(percent of parent)
+ * reference: @[package_name:](animator/anim/drawable/color/layout/menu/  style/string/id/font/dimen/fraction/integer/bool/array)/(filename/name)
+ * color: #aarrggbb / #(ff)rrggbb / #argb / #rgb
+ * string
+ * boolean(/bool): true / false
+ * integer
+ * float
+ * enum: integer的变种
+ * flags: integer的变种
  */
-open class Attr(val name: String, val format: String? = null, val values: MutableMap<String, Int>? = null)
+open class Attr(val name: String, val format: String? = null, val values: MutableMap<String, Int>? = null) {
+    override fun toString(): String = "attr(name: $name, format: $format, values: [${values?.toList()?.joinToString { "(${it.first}: ${it.second})" }
+            ?: ""}])"
+}
 
 class Attributes {
     object Theme {
@@ -3443,10 +3453,57 @@ class Attributes {
  * </menu>
  */
 
-// https://developer.android.com/guide/topics/resources/string-resource?hl=zh-cn
-// https://developer.android.com/guide/topics/resources/style-resource?hl=zh-cn
-// https://developer.android.com/guide/topics/resources/font-resource?hl=zh-cn
-// https://developer.android.com/guide/topics/resources/more-resources?hl=zh-cn
+/**
+ * values 下面的
+ * resources
+ * item
+ * style
+ * declare-styleable
+ * drawable
+ * dimen
+ * color
+ * array
+ * attr
+ * bool
+ * eat-comment
+ * fraction
+ * integer
+ * integer-array
+ * string
+ * string-array
+ * plurals
+ */
+
+/**
+ * string @string/string_name
+ * <string name="sss" formatted="true" translatable="true">sss</string>
+ * <string-array name="hehehe">
+ *     <item>hehehe1</item>
+ * </string-array>
+ * <plurals name="p">
+ *     <item quantity=["zero" | "one" | "two" | "few" | "many" | "other"]>5</item>
+ * </plurals>
+ * https://developer.android.com/guide/topics/resources/string-resource?hl=zh-cn
+ */
+
+/**
+ * style @[package:]style/style_name
+ * <style
+ *     name="style_name"
+ *     parent="@[package:]style/style_to_inherit">
+ *     <item name="[package:]style_property_name">style_value</item>
+ * </style>
+ */
+
+/**
+ * font @[package:]font/font_name
+ * <font-family>
+ *     <font
+ *         android:font="@[package:]font/font_to_include"
+ *         android:fontStyle=["normal" | "italic"]
+ *         android:fontWeight="weight_value" />
+ * </font-family>
+ */
 
 /**
  * android.graphics.drawable.DrawableInflater
@@ -3496,8 +3553,4 @@ class Attributes {
  *             return null;
  *     }
  * }
- */
-
-/**
- * dp / in / pt / px / mm / sp
  */
