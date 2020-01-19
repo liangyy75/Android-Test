@@ -2,7 +2,8 @@
 
 package com.liang.example.xml_inflater
 
-// format的可能的值：'dimension', 'fraction', 'reference', 'color', 'string', 'boolean', 'integer', 'float', 'enum', 'flags'，后面两个是重点
+// format的可能的值：'dimension', 'fraction', 'reference', 'color', 'string', 'boolean', 'integer', 'float', 'enum', 'flag'，
+// [flag, enum, dimension, integer]是重点，都带有values
 /**
  * dimension: dp / in / pt / px / mm / sp
  * fraction: 100%(percent of myself) / 100%p(percent of parent)
@@ -15,12 +16,24 @@ package com.liang.example.xml_inflater
  * enum: integer的变种
  * flags: integer的变种
  */
-open class Attr(val name: String, val format: String? = null, val values: MutableMap<String, Int>? = null) {
+open class Attr(val name: String, val format: String? = null, val values: MutableList<Pair<String, Long>>? = null) {
+    constructor(name: String, format: String?, values: Array<Pair<String, Int>>) : this(name, format, values.map { it.first to it.second.toLong() }.toMutableList())
+
     override fun toString(): String = "attr(name: $name, format: $format, values: [${values?.toList()?.joinToString { "(${it.first}: ${it.second})" }
             ?: ""}])"
+
+    open operator fun contains(key: String): Boolean = values?.find { it.first == key } != null
+    open operator fun contains(value: Long): Boolean = values?.find { it.second == value } != null
+
+    open operator fun get(key: String): Long? = values?.find { it.first == key }?.second
+    open operator fun get(value: Long): String? = values?.find { it.second == value }?.first
+
+    companion object {
+        val ATTR_EMPTY = Attr("")
+    }
 }
 
-class Attributes {
+class Attrs {
     object Theme {
         val isLightTheme = Attr("isLightTheme", "boolean")
         val colorForeground = Attr("colorForeground", "color")
@@ -139,7 +152,7 @@ class Attributes {
         val windowActionBar = Attr("windowActionBar", "boolean")
         val windowActionBarOverlay = Attr("windowActionBarOverlay", "boolean")
         val windowActionModeOverlay = Attr("windowActionModeOverlay", "boolean")
-        val windowSoftInputMode = Attr("windowSoftInputMode", "flag", mutableMapOf("stateUnspecified" to 0, "stateUnchanged" to 1, "stateHidden" to 2, "stateAlwaysHidden" to 3, "stateVisible" to 4, "stateAlwaysVisible" to 5, "adjustUnspecified" to 0x00, "adjustResize" to 0x10, "adjustPan" to 0x20, "adjustNothing" to 0x30))
+        val windowSoftInputMode = Attr("windowSoftInputMode", "flag", mutableListOf("stateUnspecified" to 0.toLong(), "stateUnchanged" to 1.toLong(), "stateHidden" to 2.toLong(), "stateAlwaysHidden" to 3.toLong(), "stateVisible" to 4.toLong(), "stateAlwaysVisible" to 5.toLong(), "adjustUnspecified" to 0x00.toLong(), "adjustResize" to 0x10.toLong(), "adjustPan" to 0x20.toLong(), "adjustNothing" to 0x30.toLong()))
         val windowDisablePreview = Attr("windowDisablePreview", "boolean")
         val windowNoDisplay = Attr("windowNoDisplay", "boolean")
         val windowEnableSplitTouch = Attr("windowEnableSplitTouch", "boolean")
@@ -256,7 +269,7 @@ class Attributes {
         val fastScrollPreviewBackgroundRight = Attr("fastScrollPreviewBackgroundRight", "reference")
         val fastScrollPreviewBackgroundLeft = Attr("fastScrollPreviewBackgroundLeft", "reference")
         val fastScrollTrackDrawable = Attr("fastScrollTrackDrawable", "reference")
-        val fastScrollOverlayPosition = Attr("fastScrollOverlayPosition", "enum", mutableMapOf("floating" to 0, "atThumb" to 1, "aboveThumb" to 2))
+        val fastScrollOverlayPosition = Attr("fastScrollOverlayPosition", "enum", mutableListOf("floating" to 0.toLong(), "atThumb" to 1.toLong(), "aboveThumb" to 2.toLong()))
         val fastScrollTextColor = Attr("fastScrollTextColor", "color")
         val actionBarTabStyle = Attr("actionBarTabStyle", "reference")
         val actionBarTabBarStyle = Attr("actionBarTabBarStyle", "reference")
@@ -268,7 +281,7 @@ class Attributes {
         val actionBarSplitStyle = Attr("actionBarSplitStyle", "reference")
         val actionBarTheme = Attr("actionBarTheme", "reference")
         val actionBarWidgetTheme = Attr("actionBarWidgetTheme", "reference")
-        val actionBarSize = Attr("actionBarSize", "dimension", mutableMapOf("wrap_content" to 0))
+        val actionBarSize = Attr("actionBarSize", "dimension", mutableListOf("wrap_content" to 0.toLong()))
         val actionBarDivider = Attr("actionBarDivider", "reference")
         val actionBarItemBackground = Attr("actionBarItemBackground", "reference")
         val actionMenuTextAppearance = Attr("actionMenuTextAppearance", "reference")
@@ -430,7 +443,7 @@ class Attributes {
         val windowLightStatusBar = Attr("windowLightStatusBar", "boolean")
         val windowSplashscreenContent = Attr("windowSplashscreenContent", "reference")
         val windowLightNavigationBar = Attr("windowLightNavigationBar", "boolean")
-        val windowLayoutInDisplayCutoutMode = Attr("windowLayoutInDisplayCutoutMode", "enum", mutableMapOf("default" to 0, "shortEdges" to 1, "never" to 2))
+        val windowLayoutInDisplayCutoutMode = Attr("windowLayoutInDisplayCutoutMode", "enum", mutableListOf("default" to 0.toLong(), "shortEdges" to 1.toLong(), "never" to 2.toLong()))
     }
 
     object AlertDialog {
@@ -454,7 +467,7 @@ class Attributes {
         val horizontalProgressLayout = Attr("horizontalProgressLayout", "reference")
         val showTitle = Attr("showTitle", "boolean")
         val needsDefaultBackgrounds = Attr("needsDefaultBackgrounds", "boolean")
-        val controllerType = Attr("controllerType", "enum", mutableMapOf("normal" to 0, "micro" to 1))
+        val controllerType = Attr("controllerType", "enum", mutableListOf("normal" to 0.toLong(), "micro" to 1.toLong()))
         val selectionScrollOffset = Attr("selectionScrollOffset", "dimension")
     }
 
@@ -516,18 +529,18 @@ class Attributes {
         val paddingBottom = Attr("paddingBottom", "dimension")
         val paddingStart = Attr("paddingStart", "dimension")
         val paddingEnd = Attr("paddingEnd", "dimension")
-        val focusable = Attr("focusable", "boolean|enum", mutableMapOf("auto" to 0x00000010))
+        val focusable = Attr("focusable", "boolean|enum", mutableListOf("auto" to 0x00000010.toLong()))
         val __removed3 = Attr("__removed3")
         val __removed4 = Attr("__removed4")
         val __removed5 = Attr("__removed5")
         val autofillHints = Attr("autofillHints", "string|reference")
-        val importantForAutofill = Attr("importantForAutofill", "flag", mutableMapOf("auto" to 0, "yes" to 0x1, "no" to 0x2, "yesExcludeDescendants" to 0x4, "noExcludeDescendants" to 0x8))
+        val importantForAutofill = Attr("importantForAutofill", "flag", mutableListOf("auto" to 0.toLong(), "yes" to 0x1.toLong(), "no" to 0x2.toLong(), "yesExcludeDescendants" to 0x4.toLong(), "noExcludeDescendants" to 0x8.toLong()))
         val __removed6 = Attr("__removed6")
         val focusableInTouchMode = Attr("focusableInTouchMode", "boolean")
-        val visibility = Attr("visibility", "enum", mutableMapOf("visible" to 0, "invisible" to 1, "gone" to 2))
+        val visibility = Attr("visibility", "enum", mutableListOf("visible" to 0.toLong(), "invisible" to 1.toLong(), "gone" to 2.toLong()))
         val fitsSystemWindows = Attr("fitsSystemWindows", "boolean")
-        val scrollbars = Attr("scrollbars", "flag", mutableMapOf("none" to 0x00000000, "horizontal" to 0x00000100, "vertical" to 0x00000200))
-        val scrollbarStyle = Attr("scrollbarStyle", "enum", mutableMapOf("insideOverlay" to 0x0, "insideInset" to 0x01000000, "outsideOverlay" to 0x02000000, "outsideInset" to 0x03000000))
+        val scrollbars = Attr("scrollbars", "flag", mutableListOf("none" to 0x00000000.toLong(), "horizontal" to 0x00000100.toLong(), "vertical" to 0x00000200.toLong()))
+        val scrollbarStyle = Attr("scrollbarStyle", "enum", mutableListOf("insideOverlay" to 0x0.toLong(), "insideInset" to 0x01000000.toLong(), "outsideOverlay" to 0x02000000.toLong(), "outsideInset" to 0x03000000.toLong()))
         val isScrollContainer = Attr("isScrollContainer", "boolean")
         val fadeScrollbars = Attr("fadeScrollbars", "boolean")
         val scrollbarFadeDuration = Attr("scrollbarFadeDuration", "integer")
@@ -539,8 +552,8 @@ class Attributes {
         val scrollbarTrackVertical = Attr("scrollbarTrackVertical", "reference")
         val scrollbarAlwaysDrawHorizontalTrack = Attr("scrollbarAlwaysDrawHorizontalTrack", "boolean")
         val scrollbarAlwaysDrawVerticalTrack = Attr("scrollbarAlwaysDrawVerticalTrack", "boolean")
-        val fadingEdge = Attr("fadingEdge", "flag", mutableMapOf("none" to 0x00000000, "horizontal" to 0x00001000, "vertical" to 0x00002000))
-        val requiresFadingEdge = Attr("requiresFadingEdge", "flag", mutableMapOf("none" to 0x00000000, "horizontal" to 0x00001000, "vertical" to 0x00002000))
+        val fadingEdge = Attr("fadingEdge", "flag", mutableListOf("none" to 0x00000000.toLong(), "horizontal" to 0x00001000.toLong(), "vertical" to 0x00002000.toLong()))
+        val requiresFadingEdge = Attr("requiresFadingEdge", "flag", mutableListOf("none" to 0x00000000.toLong(), "horizontal" to 0x00001000.toLong(), "vertical" to 0x00002000.toLong()))
         val fadingEdgeLength = Attr("fadingEdgeLength", "dimension")
         val nextFocusLeft = Attr("nextFocusLeft", "reference")
         val nextFocusRight = Attr("nextFocusRight", "reference")
@@ -552,7 +565,7 @@ class Attributes {
         val contextClickable = Attr("contextClickable", "boolean")
         val saveEnabled = Attr("saveEnabled", "boolean")
         val filterTouchesWhenObscured = Attr("filterTouchesWhenObscured", "boolean")
-        val drawingCacheQuality = Attr("drawingCacheQuality", "enum", mutableMapOf("auto" to 0, "low" to 1, "high" to 2))
+        val drawingCacheQuality = Attr("drawingCacheQuality", "enum", mutableListOf("auto" to 0.toLong(), "low" to 1.toLong(), "high" to 2.toLong()))
         val keepScreenOn = Attr("keepScreenOn", "boolean")
         val duplicateParentState = Attr("duplicateParentState", "boolean")
         val minHeight = Attr("minHeight")
@@ -563,7 +576,7 @@ class Attributes {
         val accessibilityTraversalBefore = Attr("accessibilityTraversalBefore", "integer")
         val accessibilityTraversalAfter = Attr("accessibilityTraversalAfter", "integer")
         val onClick = Attr("onClick", "string")
-        val overScrollMode = Attr("overScrollMode", "enum", mutableMapOf("always" to 0, "ifContentScrolls" to 1, "never" to 2))
+        val overScrollMode = Attr("overScrollMode", "enum", mutableListOf("always" to 0.toLong(), "ifContentScrolls" to 1.toLong(), "never" to 2.toLong()))
         val alpha = Attr("alpha", "float")
         val elevation = Attr("elevation", "dimension")
         val translationX = Attr("translationX", "dimension")
@@ -576,28 +589,28 @@ class Attributes {
         val rotationY = Attr("rotationY", "float")
         val scaleX = Attr("scaleX", "float")
         val scaleY = Attr("scaleY", "float")
-        val verticalScrollbarPosition = Attr("verticalScrollbarPosition", "enum", mutableMapOf("defaultPosition" to 0, "left" to 1, "right" to 2))
-        val layerType = Attr("layerType", "enum", mutableMapOf("none" to 0, "software" to 1, "hardware" to 2))
-        val layoutDirection = Attr("layoutDirection", "enum", mutableMapOf("ltr" to 0, "rtl" to 1, "inherit" to 2, "locale" to 3))
-        val textDirection = Attr("textDirection", "integer", mutableMapOf("inherit" to 0, "firstStrong" to 1, "anyRtl" to 2, "ltr" to 3, "rtl" to 4, "locale" to 5, "firstStrongLtr" to 6, "firstStrongRtl" to 7))
-        val textAlignment = Attr("textAlignment", "integer", mutableMapOf("inherit" to 0, "gravity" to 1, "textStart" to 2, "textEnd" to 3, "center" to 4, "viewStart" to 5, "viewEnd" to 6))
-        val importantForAccessibility = Attr("importantForAccessibility", "integer", mutableMapOf("auto" to 0, "yes" to 1, "no" to 2, "noHideDescendants" to 4))
-        val accessibilityLiveRegion = Attr("accessibilityLiveRegion", "integer", mutableMapOf("none" to 0, "polite" to 1, "assertive" to 2))
+        val verticalScrollbarPosition = Attr("verticalScrollbarPosition", "enum", mutableListOf("defaultPosition" to 0.toLong(), "left" to 1.toLong(), "right" to 2.toLong()))
+        val layerType = Attr("layerType", "enum", mutableListOf("none" to 0.toLong(), "software" to 1.toLong(), "hardware" to 2.toLong()))
+        val layoutDirection = Attr("layoutDirection", "enum", mutableListOf("ltr" to 0.toLong(), "rtl" to 1.toLong(), "inherit" to 2.toLong(), "locale" to 3.toLong()))
+        val textDirection = Attr("textDirection", "integer", mutableListOf("inherit" to 0.toLong(), "firstStrong" to 1.toLong(), "anyRtl" to 2.toLong(), "ltr" to 3.toLong(), "rtl" to 4.toLong(), "locale" to 5.toLong(), "firstStrongLtr" to 6.toLong(), "firstStrongRtl" to 7.toLong()))
+        val textAlignment = Attr("textAlignment", "integer", mutableListOf("inherit" to 0.toLong(), "gravity" to 1.toLong(), "textStart" to 2.toLong(), "textEnd" to 3.toLong(), "center" to 4.toLong(), "viewStart" to 5.toLong(), "viewEnd" to 6.toLong()))
+        val importantForAccessibility = Attr("importantForAccessibility", "integer", mutableListOf("auto" to 0.toLong(), "yes" to 1.toLong(), "no" to 2.toLong(), "noHideDescendants" to 4.toLong()))
+        val accessibilityLiveRegion = Attr("accessibilityLiveRegion", "integer", mutableListOf("none" to 0.toLong(), "polite" to 1.toLong(), "assertive" to 2.toLong()))
         val labelFor = Attr("labelFor", "reference")
         val theme = Attr("theme")
         val transitionName = Attr("transitionName", "string")
         val nestedScrollingEnabled = Attr("nestedScrollingEnabled", "boolean")
         val stateListAnimator = Attr("stateListAnimator", "reference")
         val backgroundTint = Attr("backgroundTint", "color")
-        val backgroundTintMode = Attr("backgroundTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
-        val outlineProvider = Attr("outlineProvider", "enum", mutableMapOf("background" to 0, "none" to 1, "bounds" to 2, "paddedBounds" to 3))
+        val backgroundTintMode = Attr("backgroundTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
+        val outlineProvider = Attr("outlineProvider", "enum", mutableListOf("background" to 0.toLong(), "none" to 1.toLong(), "bounds" to 2.toLong(), "paddedBounds" to 3.toLong()))
         val foreground = Attr("foreground", "reference|color")
-        val foregroundGravity = Attr("foregroundGravity", "flag", mutableMapOf("top" to 0x30, "bottom" to 0x50, "left" to 0x03, "right" to 0x05, "center_vertical" to 0x10, "fill_vertical" to 0x70, "center_horizontal" to 0x01, "fill_horizontal" to 0x07, "center" to 0x11, "fill" to 0x77, "clip_vertical" to 0x80, "clip_horizontal" to 0x08))
+        val foregroundGravity = Attr("foregroundGravity", "flag", mutableListOf("top" to 0x30.toLong(), "bottom" to 0x50.toLong(), "left" to 0x03.toLong(), "right" to 0x05.toLong(), "center_vertical" to 0x10.toLong(), "fill_vertical" to 0x70.toLong(), "center_horizontal" to 0x01.toLong(), "fill_horizontal" to 0x07.toLong(), "center" to 0x11.toLong(), "fill" to 0x77.toLong(), "clip_vertical" to 0x80.toLong(), "clip_horizontal" to 0x08.toLong()))
         val foregroundInsidePadding = Attr("foregroundInsidePadding", "boolean")
         val foregroundTint = Attr("foregroundTint", "color")
-        val foregroundTintMode = Attr("foregroundTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
-        val scrollIndicators = Attr("scrollIndicators", "flag", mutableMapOf("none" to 0x00, "top" to 0x01, "bottom" to 0x02, "left" to 0x04, "right" to 0x08, "start" to 0x10, "end" to 0x20))
-        val pointerIcon = Attr("pointerIcon", "enum", mutableMapOf("none" to 0, "arrow" to 1000, "context_menu" to 1001, "hand" to 1002, "help" to 1003, "wait" to 1004, "cell" to 1006, "crosshair" to 1007, "text" to 1008, "vertical_text" to 1009, "alias" to 1010, "copy" to 1011, "no_drop" to 1012, "all_scroll" to 1013, "horizontal_double_arrow" to 1014, "vertical_double_arrow" to 1015, "top_right_diagonal_double_arrow" to 1016, "top_left_diagonal_double_arrow" to 1017, "zoom_in" to 1018, "zoom_out" to 1019, "grab" to 1020, "grabbing" to 1021))
+        val foregroundTintMode = Attr("foregroundTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
+        val scrollIndicators = Attr("scrollIndicators", "flag", mutableListOf("none" to 0x00.toLong(), "top" to 0x01.toLong(), "bottom" to 0x02.toLong(), "left" to 0x04.toLong(), "right" to 0x08.toLong(), "start" to 0x10.toLong(), "end" to 0x20.toLong()))
+        val pointerIcon = Attr("pointerIcon", "enum", mutableListOf("none" to 0.toLong(), "arrow" to 1000.toLong(), "context_menu" to 1001.toLong(), "hand" to 1002.toLong(), "help" to 1003.toLong(), "wait" to 1004.toLong(), "cell" to 1006.toLong(), "crosshair" to 1007.toLong(), "text" to 1008.toLong(), "vertical_text" to 1009.toLong(), "alias" to 1010.toLong(), "copy" to 1011.toLong(), "no_drop" to 1012.toLong(), "all_scroll" to 1013.toLong(), "horizontal_double_arrow" to 1014.toLong(), "vertical_double_arrow" to 1015.toLong(), "top_right_diagonal_double_arrow" to 1016.toLong(), "top_left_diagonal_double_arrow" to 1017.toLong(), "zoom_in" to 1018.toLong(), "zoom_out" to 1019.toLong(), "grab" to 1020.toLong(), "grabbing" to 1021.toLong()))
         val forceHasOverlappingRendering = Attr("forceHasOverlappingRendering", "boolean")
         val tooltipText = Attr("tooltipText", "string")
         val keyboardNavigationCluster = Attr("keyboardNavigationCluster", "boolean")
@@ -630,13 +643,13 @@ class Attributes {
         val clipToPadding = Attr("clipToPadding", "boolean")
         val layoutAnimation = Attr("layoutAnimation", "reference")
         val animationCache = Attr("animationCache", "boolean")
-        val persistentDrawingCache = Attr("persistentDrawingCache", "flag", mutableMapOf("none" to 0x0, "" to 0x1, "scrolling" to 0x2, "all" to 0x3))
+        val persistentDrawingCache = Attr("persistentDrawingCache", "flag", mutableListOf("none" to 0x0.toLong(), "" to 0x1.toLong(), "scrolling" to 0x2.toLong(), "all" to 0x3.toLong()))
         val alwaysDrawnWithCache = Attr("alwaysDrawnWithCache", "boolean")
         val addStatesFromChildren = Attr("addStatesFromChildren", "boolean")
-        val descendantFocusability = Attr("descendantFocusability", "enum", mutableMapOf("beforeDescendants" to 0, "afterDescendants" to 1, "blocksDescendants" to 2))
+        val descendantFocusability = Attr("descendantFocusability", "enum", mutableListOf("beforeDescendants" to 0.toLong(), "afterDescendants" to 1.toLong(), "blocksDescendants" to 2.toLong()))
         val touchscreenBlocksFocus = Attr("touchscreenBlocksFocus", "boolean")
         val splitMotionEvents = Attr("splitMotionEvents", "boolean")
-        val layoutMode = Attr("layoutMode", "enum", mutableMapOf("clipBounds" to 0, "opticalBounds" to 1))
+        val layoutMode = Attr("layoutMode", "enum", mutableListOf("clipBounds" to 0.toLong(), "opticalBounds" to 1.toLong()))
         val transitionGroup = Attr("transitionGroup", "boolean")
     }
 
@@ -647,8 +660,8 @@ class Attributes {
     }
 
     object ViewGroup_Layout {
-        val layout_width = Attr("layout_width", "dimension", mutableMapOf("fill_parent" to -1, "match_parent" to -1, "wrap_content" to -2))
-        val layout_height = Attr("layout_height", "dimension", mutableMapOf("fill_parent" to -1, "match_parent" to -1, "wrap_content" to -2))
+        val layout_width = Attr("layout_width", "dimension", mutableListOf("fill_parent" to (-1).toLong(), "match_parent" to (-1).toLong(), "wrap_content" to (-2).toLong()))
+        val layout_height = Attr("layout_height", "dimension", mutableListOf("fill_parent" to (-1).toLong(), "match_parent" to (-1).toLong(), "wrap_content" to (-2).toLong()))
     }
 
     object ViewGroup_MarginLayout {
@@ -700,13 +713,13 @@ class Attributes {
     }
 
     object AccessibilityService {
-        val accessibilityEventTypes = Attr("accessibilityEventTypes", "flag", mutableMapOf("typeViewClicked" to 0x00000001, "typeViewLongClicked" to 0x00000002, "typeViewSelected" to 0x00000004, "typeViewFocused" to 0x00000008, "typeViewTextChanged" to 0x00000010, "typeWindowStateChanged" to 0x00000020, "typeNotificationStateChanged" to 0x00000040, "typeViewHoverEnter" to 0x00000080, "typeViewHoverExit" to 0x00000100, "typeTouchExplorationGestureStart" to 0x00000200, "typeTouchExplorationGestureEnd" to 0x00000400, "typeWindowContentChanged" to 0x00000800, "typeViewScrolled" to 0x000001000, "typeViewTextSelectionChanged" to 0x000002000, "typeAnnouncement" to 0x00004000, "typeViewAccessibilityFocused" to 0x00008000, "typeViewAccessibilityFocusCleared" to 0x00010000, "typeViewTextTraversedAtMovementGranularity" to 0x00020000, "typeGestureDetectionStart" to 0x00040000, "typeGestureDetectionEnd" to 0x00080000, "typeTouchInteractionStart" to 0x00100000, "typeTouchInteractionEnd" to 0x00200000, "typeWindowsChanged" to 0x00400000, "typeContextClicked" to 0x00800000, "typeAssistReadingContext" to 0x01000000, "typeAllMask" to 0xffffffff.toInt()))
+        val accessibilityEventTypes = Attr("accessibilityEventTypes", "flag", mutableListOf("typeViewClicked" to 0x00000001.toLong(), "typeViewLongClicked" to 0x00000002.toLong(), "typeViewSelected" to 0x00000004.toLong(), "typeViewFocused" to 0x00000008.toLong(), "typeViewTextChanged" to 0x00000010.toLong(), "typeWindowStateChanged" to 0x00000020.toLong(), "typeNotificationStateChanged" to 0x00000040.toLong(), "typeViewHoverEnter" to 0x00000080.toLong(), "typeViewHoverExit" to 0x00000100.toLong(), "typeTouchExplorationGestureStart" to 0x00000200.toLong(), "typeTouchExplorationGestureEnd" to 0x00000400.toLong(), "typeWindowContentChanged" to 0x00000800.toLong(), "typeViewScrolled" to 0x000001000.toLong(), "typeViewTextSelectionChanged" to 0x000002000.toLong(), "typeAnnouncement" to 0x00004000.toLong(), "typeViewAccessibilityFocused" to 0x00008000.toLong(), "typeViewAccessibilityFocusCleared" to 0x00010000.toLong(), "typeViewTextTraversedAtMovementGranularity" to 0x00020000.toLong(), "typeGestureDetectionStart" to 0x00040000.toLong(), "typeGestureDetectionEnd" to 0x00080000.toLong(), "typeTouchInteractionStart" to 0x00100000.toLong(), "typeTouchInteractionEnd" to 0x00200000.toLong(), "typeWindowsChanged" to 0x00400000.toLong(), "typeContextClicked" to 0x00800000.toLong(), "typeAssistReadingContext" to 0x01000000.toLong(), "typeAllMask" to 0xffffffff.toLong()))
         val packageNames = Attr("packageNames", "string")
-        val accessibilityFeedbackType = Attr("accessibilityFeedbackType", "flag", mutableMapOf("feedbackSpoken" to 0x00000001, "feedbackHaptic" to 0x00000002, "feedbackAudible" to 0x00000004, "feedbackVisual" to 0x00000008, "feedbackGeneric" to 0x00000010, "feedbackAllMask" to 0xffffffff.toInt()))
+        val accessibilityFeedbackType = Attr("accessibilityFeedbackType", "flag", mutableListOf("feedbackSpoken" to 0x00000001.toLong(), "feedbackHaptic" to 0x00000002.toLong(), "feedbackAudible" to 0x00000004.toLong(), "feedbackVisual" to 0x00000008.toLong(), "feedbackGeneric" to 0x00000010.toLong(), "feedbackAllMask" to 0xffffffff.toLong()))
         val notificationTimeout = Attr("notificationTimeout", "integer")
         val nonInteractiveUiTimeout = Attr("nonInteractiveUiTimeout", "integer")
         val interactiveUiTimeout = Attr("interactiveUiTimeout", "integer")
-        val accessibilityFlags = Attr("accessibilityFlags", "flag", mutableMapOf("flagDefault" to 0x00000001, "flagIncludeNotImportantViews" to 0x00000002, "flagRequestTouchExplorationMode" to 0x00000004, "flagRequestEnhancedWebAccessibility" to 0x00000008, "flagReportViewIds" to 0x00000010, "flagRequestFilterKeyEvents" to 0x00000020, "flagRetrieveInteractiveWindows" to 0x00000040, "flagEnableAccessibilityVolume" to 0x00000080, "flagRequestAccessibilityButton" to 0x00000100, "flagRequestFingerprintGestures" to 0x00000200, "flagRequestShortcutWarningDialogSpokenFeedback" to 0x00000400))
+        val accessibilityFlags = Attr("accessibilityFlags", "flag", mutableListOf("flagDefault" to 0x00000001.toLong(), "flagIncludeNotImportantViews" to 0x00000002.toLong(), "flagRequestTouchExplorationMode" to 0x00000004.toLong(), "flagRequestEnhancedWebAccessibility" to 0x00000008.toLong(), "flagReportViewIds" to 0x00000010.toLong(), "flagRequestFilterKeyEvents" to 0x00000020.toLong(), "flagRetrieveInteractiveWindows" to 0x00000040.toLong(), "flagEnableAccessibilityVolume" to 0x00000080.toLong(), "flagRequestAccessibilityButton" to 0x00000100.toLong(), "flagRequestFingerprintGestures" to 0x00000200.toLong(), "flagRequestShortcutWarningDialogSpokenFeedback" to 0x00000400.toLong()))
         val settingsActivity = Attr("settingsActivity")
         val canRetrieveWindowContent = Attr("canRetrieveWindowContent", "boolean")
         val canRequestTouchExplorationMode = Attr("canRequestTouchExplorationMode", "boolean")
@@ -779,12 +792,12 @@ class Attributes {
         val stackFromBottom = Attr("stackFromBottom", "boolean")
         val scrollingCache = Attr("scrollingCache", "boolean")
         val textFilterEnabled = Attr("textFilterEnabled", "boolean")
-        val transcriptMode = Attr("transcriptMode", "enum", mutableMapOf("disabled" to 0, "normal" to 1, "alwaysScroll" to 2))
+        val transcriptMode = Attr("transcriptMode", "enum", mutableListOf("disabled" to 0.toLong(), "normal" to 1.toLong(), "alwaysScroll" to 2.toLong()))
         val cacheColorHint = Attr("cacheColorHint", "color")
         val fastScrollEnabled = Attr("fastScrollEnabled", "boolean")
         val fastScrollStyle = Attr("fastScrollStyle", "reference")
         val smoothScrollbar = Attr("smoothScrollbar", "boolean")
-        val choiceMode = Attr("choiceMode", "enum", mutableMapOf("none" to 0, "singleChoice" to 1, "multipleChoice" to 2, "multipleChoiceModal" to 3))
+        val choiceMode = Attr("choiceMode", "enum", mutableListOf("none" to 0.toLong(), "singleChoice" to 1.toLong(), "multipleChoice" to 2.toLong(), "multipleChoiceModal" to 3.toLong()))
         val fastScrollAlwaysVisible = Attr("fastScrollAlwaysVisible", "boolean")
     }
 
@@ -814,15 +827,15 @@ class Attributes {
         val checked = Attr("checked", "boolean")
         val button = Attr("button", "reference")
         val buttonTint = Attr("buttonTint", "color")
-        val buttonTintMode = Attr("buttonTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val buttonTintMode = Attr("buttonTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
     }
 
     object CheckedTextView {
         val checked = Attr("checked")
         val checkMark = Attr("checkMark", "reference")
         val checkMarkTint = Attr("checkMarkTint", "color")
-        val checkMarkTintMode = Attr("checkMarkTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
-        val checkMarkGravity = Attr("checkMarkGravity", "flag", mutableMapOf("left" to 0x03, "right" to 0x05, "start" to 0x00800003, "end" to 0x00800005))
+        val checkMarkTintMode = Attr("checkMarkTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
+        val checkMarkGravity = Attr("checkMarkGravity", "flag", mutableListOf("left" to 0x03.toLong(), "right" to 0x05.toLong(), "start" to 0x00800003.toLong(), "end" to 0x00800005.toLong()))
     }
 
     object EditText
@@ -834,14 +847,14 @@ class Attributes {
         val trackDrawable = Attr("trackDrawable", "reference")
         val backgroundRight = Attr("backgroundRight", "reference")
         val backgroundLeft = Attr("backgroundLeft", "reference")
-        val position = Attr("position", "enum", mutableMapOf("floating" to 0, "atThumb" to 1, "aboveThumb" to 2))
+        val position = Attr("position", "enum", mutableListOf("floating" to 0.toLong(), "atThumb" to 1.toLong(), "aboveThumb" to 2.toLong()))
         val textAppearance = Attr("textAppearance")
         val textColor = Attr("textColor")
         val textSize = Attr("textSize")
         val minWidth = Attr("minWidth")
         val minHeight = Attr("minHeight")
         val padding = Attr("padding")
-        val thumbPosition = Attr("thumbPosition", "enum", mutableMapOf("midpoint" to 0, "inside" to 1))
+        val thumbPosition = Attr("thumbPosition", "enum", mutableListOf("midpoint" to 0.toLong(), "inside" to 1.toLong()))
     }
 
     object FrameLayout {
@@ -872,9 +885,9 @@ class Attributes {
     object GridView {
         val horizontalSpacing = Attr("horizontalSpacing", "dimension")
         val verticalSpacing = Attr("verticalSpacing", "dimension")
-        val stretchMode = Attr("stretchMode", "enum", mutableMapOf("none" to 0, "spacingWidth" to 1, "columnWidth" to 2, "spacingWidthUniform" to 3))
+        val stretchMode = Attr("stretchMode", "enum", mutableListOf("none" to 0.toLong(), "spacingWidth" to 1.toLong(), "columnWidth" to 2.toLong(), "spacingWidthUniform" to 3.toLong()))
         val columnWidth = Attr("columnWidth", "dimension")
-        val numColumns = Attr("numColumns", "integer", mutableMapOf("auto_fit" to -1))
+        val numColumns = Attr("numColumns", "integer", mutableListOf("auto_fit" to (-1).toLong()))
         val gravity = Attr("gravity")
     }
 
@@ -882,7 +895,7 @@ class Attributes {
 
     object ImageView {
         val src = Attr("src", "reference|color")
-        val scaleType = Attr("scaleType", "enum", mutableMapOf("matrix" to 0, "fitXY" to 1, "fitStart" to 2, "fitCenter" to 3, "fitEnd" to 4, "center" to 5, "centerCrop" to 6, "centerInside" to 7))
+        val scaleType = Attr("scaleType", "enum", mutableListOf("matrix" to 0.toLong(), "fitXY" to 1.toLong(), "fitStart" to 2.toLong(), "fitCenter" to 3.toLong(), "fitEnd" to 4.toLong(), "center" to 5.toLong(), "centerCrop" to 6.toLong(), "centerInside" to 7.toLong()))
         val adjustViewBounds = Attr("adjustViewBounds", "boolean")
         val maxWidth = Attr("maxWidth", "dimension")
         val maxHeight = Attr("maxHeight", "dimension")
@@ -913,7 +926,7 @@ class Attributes {
         val weightSum = Attr("weightSum", "float")
         val measureWithLargestChild = Attr("measureWithLargestChild", "boolean")
         val divider = Attr("divider")
-        val showDividers = Attr("showDividers", "flag", mutableMapOf("none" to 0, "beginning" to 1, "middle" to 2, "end" to 4))
+        val showDividers = Attr("showDividers", "flag", mutableListOf("none" to 0.toLong(), "beginning" to 1.toLong(), "middle" to 2.toLong(), "end" to 4.toLong()))
         val dividerPadding = Attr("dividerPadding", "dimension")
     }
 
@@ -978,7 +991,7 @@ class Attributes {
         val indeterminateDrawable = Attr("indeterminateDrawable", "reference")
         val progressDrawable = Attr("progressDrawable", "reference")
         val indeterminateDuration = Attr("indeterminateDuration", "integer")
-        val indeterminateBehavior = Attr("indeterminateBehavior", "enum", mutableMapOf("repeat" to 1, "cycle" to 2))
+        val indeterminateBehavior = Attr("indeterminateBehavior", "enum", mutableListOf("repeat" to 1.toLong(), "cycle" to 2.toLong()))
         val minWidth = Attr("minWidth", "dimension")
         val maxWidth = Attr("maxWidth")
         val minHeight = Attr("minHeight", "dimension")
@@ -987,13 +1000,13 @@ class Attributes {
         val animationResolution = Attr("animationResolution", "integer")
         val mirrorForRtl = Attr("mirrorForRtl", "boolean")
         val progressTint = Attr("progressTint", "color")
-        val progressTintMode = Attr("progressTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val progressTintMode = Attr("progressTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val progressBackgroundTint = Attr("progressBackgroundTint", "color")
-        val progressBackgroundTintMode = Attr("progressBackgroundTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val progressBackgroundTintMode = Attr("progressBackgroundTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val secondaryProgressTint = Attr("secondaryProgressTint", "color")
-        val secondaryProgressTintMode = Attr("secondaryProgressTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val secondaryProgressTintMode = Attr("secondaryProgressTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val indeterminateTint = Attr("indeterminateTint", "color")
-        val indeterminateTintMode = Attr("indeterminateTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val indeterminateTintMode = Attr("indeterminateTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val backgroundTint = Attr("backgroundTint")
         val backgroundTintMode = Attr("backgroundTintMode")
     }
@@ -1004,10 +1017,10 @@ class Attributes {
         val splitTrack = Attr("splitTrack", "boolean")
         val useDisabledAlpha = Attr("useDisabledAlpha", "boolean")
         val thumbTint = Attr("thumbTint", "color")
-        val thumbTintMode = Attr("thumbTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val thumbTintMode = Attr("thumbTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val tickMark = Attr("tickMark", "reference")
         val tickMarkTint = Attr("tickMarkTint", "color")
-        val tickMarkTintMode = Attr("tickMarkTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val tickMarkTintMode = Attr("tickMarkTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
     }
 
     object StackView {
@@ -1080,7 +1093,7 @@ class Attributes {
     object TextSwitcher
 
     object TextView {
-        val bufferType = Attr("bufferType", "enum", mutableMapOf("normal" to 0, "spannable" to 1, "editable" to 2))
+        val bufferType = Attr("bufferType", "enum", mutableListOf("normal" to 0.toLong(), "spannable" to 1.toLong(), "editable" to 2.toLong()))
         val text = Attr("text", "string")
         val hint = Attr("hint", "string")
         val textColor = Attr("textColor")
@@ -1122,11 +1135,11 @@ class Attributes {
         val shadowRadius = Attr("shadowRadius")
         val autoLink = Attr("autoLink")
         val linksClickable = Attr("linksClickable", "boolean")
-        val numeric = Attr("numeric", "flag", mutableMapOf("integer" to 0x01, "signed" to 0x03, "decimal" to 0x05))
+        val numeric = Attr("numeric", "flag", mutableListOf("integer" to 0x01.toLong(), "signed" to 0x03.toLong(), "decimal" to 0x05.toLong()))
         val digits = Attr("digits", "string")
         val phoneNumber = Attr("phoneNumber", "boolean")
         val inputMethod = Attr("inputMethod", "string")
-        val capitalize = Attr("capitalize", "enum", mutableMapOf("none" to 0, "sentences" to 1, "words" to 2, "characters" to 3))
+        val capitalize = Attr("capitalize", "enum", mutableListOf("none" to 0.toLong(), "sentences" to 1.toLong(), "words" to 2.toLong(), "characters" to 3.toLong()))
         val autoText = Attr("autoText", "boolean")
         val editable = Attr("editable", "boolean")
         val freezesText = Attr("freezesText", "boolean")
@@ -1139,13 +1152,13 @@ class Attributes {
         val drawableEnd = Attr("drawableEnd", "reference|color")
         val drawablePadding = Attr("drawablePadding", "dimension")
         val drawableTint = Attr("drawableTint", "color")
-        val drawableTintMode = Attr("drawableTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val drawableTintMode = Attr("drawableTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val lineSpacingExtra = Attr("lineSpacingExtra", "dimension")
         val lineSpacingMultiplier = Attr("lineSpacingMultiplier", "float")
         val lineHeight = Attr("lineHeight", "dimension")
         val firstBaselineToTopHeight = Attr("firstBaselineToTopHeight", "dimension")
         val lastBaselineToBottomHeight = Attr("lastBaselineToBottomHeight", "dimension")
-        val marqueeRepeatLimit = Attr("marqueeRepeatLimit", "integer", mutableMapOf("marquee_forever" to -1))
+        val marqueeRepeatLimit = Attr("marqueeRepeatLimit", "integer", mutableListOf("marquee_forever" to (-1).toLong()))
         val inputType = Attr("inputType")
         val allowUndo = Attr("allowUndo", "boolean")
         val imeOptions = Attr("imeOptions")
@@ -1171,14 +1184,14 @@ class Attributes {
         val letterSpacing = Attr("letterSpacing")
         val fontFeatureSettings = Attr("fontFeatureSettings")
         val fontVariationSettings = Attr("fontVariationSettings")
-        val breakStrategy = Attr("breakStrategy", "enum", mutableMapOf("simple" to 0, "high_quality" to 1, "balanced" to 2))
-        val hyphenationFrequency = Attr("hyphenationFrequency", "enum", mutableMapOf("none" to 0, "normal" to 1, "full" to 2))
-        val autoSizeTextType = Attr("autoSizeTextType", "enum", mutableMapOf("none" to 0, "uniform" to 1))
+        val breakStrategy = Attr("breakStrategy", "enum", mutableListOf("simple" to 0.toLong(), "high_quality" to 1.toLong(), "balanced" to 2.toLong()))
+        val hyphenationFrequency = Attr("hyphenationFrequency", "enum", mutableListOf("none" to 0.toLong(), "normal" to 1.toLong(), "full" to 2.toLong()))
+        val autoSizeTextType = Attr("autoSizeTextType", "enum", mutableListOf("none" to 0.toLong(), "uniform" to 1.toLong()))
         val autoSizeStepGranularity = Attr("autoSizeStepGranularity", "dimension")
         val autoSizePresetSizes = Attr("autoSizePresetSizes")
         val autoSizeMinTextSize = Attr("autoSizeMinTextSize", "dimension")
         val autoSizeMaxTextSize = Attr("autoSizeMaxTextSize", "dimension")
-        val justificationMode = Attr("justificationMode", "enum", mutableMapOf("none" to 0, "inter_word" to 1))
+        val justificationMode = Attr("justificationMode", "enum", mutableListOf("none" to 0.toLong(), "inter_word" to 1.toLong()))
     }
 
     object TextViewAppearance {
@@ -1205,8 +1218,8 @@ class Attributes {
         val completionThreshold = Attr("completionThreshold", "integer")
         val dropDownSelector = Attr("dropDownSelector", "reference|color")
         val dropDownAnchor = Attr("dropDownAnchor", "reference")
-        val dropDownWidth = Attr("dropDownWidth", "dimension", mutableMapOf("fill_parent" to -1, "match_parent" to -1, "wrap_content" to -2))
-        val dropDownHeight = Attr("dropDownHeight", "dimension", mutableMapOf("fill_parent" to -1, "match_parent" to -1, "wrap_content" to -2))
+        val dropDownWidth = Attr("dropDownWidth", "dimension", mutableListOf("fill_parent" to (-1).toLong(), "match_parent" to (-1).toLong(), "wrap_content" to (-2).toLong()))
+        val dropDownHeight = Attr("dropDownHeight", "dimension", mutableListOf("fill_parent" to (-1).toLong(), "match_parent" to (-1).toLong(), "wrap_content" to (-2).toLong()))
         val inputType = Attr("inputType")
         val popupTheme = Attr("popupTheme")
     }
@@ -1260,7 +1273,7 @@ class Attributes {
 
     object Spinner {
         val prompt = Attr("prompt", "reference")
-        val spinnerMode = Attr("spinnerMode", "enum", mutableMapOf("dialog" to 0, "dropdown" to 1))
+        val spinnerMode = Attr("spinnerMode", "enum", mutableListOf("dialog" to 0.toLong(), "dropdown" to 1.toLong()))
         val dropDownSelector = Attr("dropDownSelector")
         val popupTheme = Attr("popupTheme")
         val popupBackground = Attr("popupBackground")
@@ -1284,7 +1297,7 @@ class Attributes {
         val yearListItemTextAppearance = Attr("yearListItemTextAppearance", "reference")
         val yearListItemActivatedTextAppearance = Attr("yearListItemActivatedTextAppearance", "reference")
         val calendarTextColor = Attr("calendarTextColor", "color")
-        val datePickerMode = Attr("datePickerMode", "enum", mutableMapOf("spinner" to 1, "calendar" to 2))
+        val datePickerMode = Attr("datePickerMode", "enum", mutableListOf("spinner" to 1.toLong(), "calendar" to 2.toLong()))
         val startYear = Attr("startYear", "integer")
         val endYear = Attr("endYear", "integer")
         val headerMonthTextAppearance = Attr("headerMonthTextAppearance", "reference")
@@ -1297,7 +1310,7 @@ class Attributes {
     }
 
     object TwoLineListItem {
-        val mode = Attr("mode", "enum", mutableMapOf("oneLine" to 1, "collapsing" to 2, "twoLine" to 3))
+        val mode = Attr("mode", "enum", mutableListOf("oneLine" to 1.toLong(), "collapsing" to 2.toLong(), "twoLine" to 3.toLong()))
     }
 
     object SlidingDrawer {
@@ -1316,7 +1329,7 @@ class Attributes {
         val uncertainGestureColor = Attr("uncertainGestureColor", "color")
         val fadeOffset = Attr("fadeOffset", "integer")
         val fadeDuration = Attr("fadeDuration", "integer")
-        val gestureStrokeType = Attr("gestureStrokeType", "enum", mutableMapOf("single" to 0, "multiple" to 1))
+        val gestureStrokeType = Attr("gestureStrokeType", "enum", mutableListOf("single" to 0.toLong(), "multiple" to 1.toLong()))
         val gestureStrokeLengthThreshold = Attr("gestureStrokeLengthThreshold", "float")
         val gestureStrokeSquarenessThreshold = Attr("gestureStrokeSquarenessThreshold", "float")
         val gestureStrokeAngleThreshold = Attr("gestureStrokeAngleThreshold", "float")
@@ -1326,7 +1339,7 @@ class Attributes {
     }
 
     object QuickContactBadge {
-        val quickContactWindowSize = Attr("quickContactWindowSize", "enum", mutableMapOf("modeSmall" to 1, "modeMedium" to 2, "modeLarge" to 3))
+        val quickContactWindowSize = Attr("quickContactWindowSize", "enum", mutableListOf("modeSmall" to 1.toLong(), "modeMedium" to 2.toLong(), "modeLarge" to 3.toLong()))
     }
 
     object AbsoluteLayout_Layout {
@@ -1401,7 +1414,7 @@ class Attributes {
         val dateTextAppearance = Attr("dateTextAppearance", "reference")
         val daySelectorColor = Attr("daySelectorColor", "color")
         val dayHighlightColor = Attr("dayHighlightColor", "color")
-        val calendarViewMode = Attr("calendarViewMode", "enum", mutableMapOf("holo" to 0, "material" to 1))
+        val calendarViewMode = Attr("calendarViewMode", "enum", mutableListOf("holo" to 0.toLong(), "material" to 1.toLong()))
         val showWeekNumber = Attr("showWeekNumber", "boolean")
         val shownWeekCount = Attr("shownWeekCount", "integer")
         val selectedWeekBackgroundColor = Attr("selectedWeekBackgroundColor", "color|reference")
@@ -1435,7 +1448,7 @@ class Attributes {
         val numbersInnerTextColor = Attr("numbersInnerTextColor", "color")
         val numbersBackgroundColor = Attr("numbersBackgroundColor", "color")
         val numbersSelectorColor = Attr("numbersSelectorColor", "color")
-        val timePickerMode = Attr("timePickerMode", "enum", mutableMapOf("spinner" to 1, "clock" to 2))
+        val timePickerMode = Attr("timePickerMode", "enum", mutableListOf("spinner" to 1.toLong(), "clock" to 2.toLong()))
         val headerAmPmTextAppearance = Attr("headerAmPmTextAppearance", "reference")
         val headerTimeTextAppearance = Attr("headerTimeTextAppearance", "reference")
         val amPmTextColor = Attr("amPmTextColor", "color")
@@ -1517,7 +1530,7 @@ class Attributes {
     object GradientDrawable {
         val visible = Attr("visible")
         val dither = Attr("dither")
-        val shape = Attr("shape", "enum", mutableMapOf("rectangle" to 0, "oval" to 1, "line" to 2, "ring" to 3))
+        val shape = Attr("shape", "enum", mutableListOf("rectangle" to 0.toLong(), "oval" to 1.toLong(), "line" to 2.toLong(), "ring" to 3.toLong()))
         val innerRadiusRatio = Attr("innerRadiusRatio", "float")
         val thicknessRatio = Attr("thicknessRatio", "float")
         val innerRadius = Attr("innerRadius", "dimension")
@@ -1542,7 +1555,7 @@ class Attributes {
         val endColor = Attr("endColor", "color")
         val useLevel = Attr("useLevel", "boolean")
         val angle = Attr("angle", "float")
-        val type = Attr("type", "enum", mutableMapOf("linear" to 0, "radial" to 1, "sweep" to 2))
+        val type = Attr("type", "enum", mutableListOf("linear" to 0.toLong(), "radial" to 1.toLong(), "sweep" to 2.toLong()))
         val centerX = Attr("centerX", "float|fraction")
         val centerY = Attr("centerY", "float|fraction")
         val gradientRadius = Attr("gradientRadius", "float|fraction|dimension")
@@ -1575,9 +1588,9 @@ class Attributes {
     }
 
     object LayerDrawable {
-        val opacity = Attr("opacity", "enum", mutableMapOf("opaque" to -1, "transparent" to -2, "translucent" to -3))
+        val opacity = Attr("opacity", "enum", mutableListOf("opaque" to (-1).toLong(), "transparent" to (-2).toLong(), "translucent" to (-3).toLong()))
         val autoMirrored = Attr("autoMirrored")
-        val paddingMode = Attr("paddingMode", "enum", mutableMapOf("nest" to 0, "stack" to 1))
+        val paddingMode = Attr("paddingMode", "enum", mutableListOf("nest" to 0.toLong(), "stack" to 1.toLong()))
         val paddingTop = Attr("paddingTop")
         val paddingBottom = Attr("paddingBottom")
         val paddingLeft = Attr("paddingLeft")
@@ -1656,13 +1669,13 @@ class Attributes {
         val filter = Attr("filter", "boolean")
         val dither = Attr("dither")
         val gravity = Attr("gravity")
-        val tileMode = Attr("tileMode", "enum", mutableMapOf("disabled" to -1, "clamp" to 0, "repeat" to 1, "mirror" to 2))
-        val tileModeX = Attr("tileModeX", "enum", mutableMapOf("disabled" to -1, "clamp" to 0, "repeat" to 1, "mirror" to 2))
-        val tileModeY = Attr("tileModeY", "enum", mutableMapOf("disabled" to -1, "clamp" to 0, "repeat" to 1, "mirror" to 2))
+        val tileMode = Attr("tileMode", "enum", mutableListOf("disabled" to (-1).toLong(), "clamp" to 0.toLong(), "repeat" to 1.toLong(), "mirror" to 2.toLong()))
+        val tileModeX = Attr("tileModeX", "enum", mutableListOf("disabled" to (-1).toLong(), "clamp" to 0.toLong(), "repeat" to 1.toLong(), "mirror" to 2.toLong()))
+        val tileModeY = Attr("tileModeY", "enum", mutableListOf("disabled" to (-1).toLong(), "clamp" to 0.toLong(), "repeat" to 1.toLong(), "mirror" to 2.toLong()))
         val mipMap = Attr("mipMap", "boolean")
         val autoMirrored = Attr("autoMirrored")
         val tint = Attr("tint")
-        val tintMode = Attr("tintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val tintMode = Attr("tintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val alpha = Attr("alpha")
     }
 
@@ -1691,14 +1704,14 @@ class Attributes {
     object ScaleDrawable {
         val scaleWidth = Attr("scaleWidth", "string")
         val scaleHeight = Attr("scaleHeight", "string")
-        val scaleGravity = Attr("scaleGravity", "flag", mutableMapOf("top" to 0x30, "bottom" to 0x50, "left" to 0x03, "right" to 0x05, "center_vertical" to 0x10, "fill_vertical" to 0x70, "center_horizontal" to 0x01, "fill_horizontal" to 0x07, "center" to 0x11, "fill" to 0x77, "clip_vertical" to 0x80, "clip_horizontal" to 0x08, "start" to 0x00800003, "end" to 0x00800005))
+        val scaleGravity = Attr("scaleGravity", "flag", mutableListOf("top" to 0x30.toLong(), "bottom" to 0x50.toLong(), "left" to 0x03.toLong(), "right" to 0x05.toLong(), "center_vertical" to 0x10.toLong(), "fill_vertical" to 0x70.toLong(), "center_horizontal" to 0x01.toLong(), "fill_horizontal" to 0x07.toLong(), "center" to 0x11.toLong(), "fill" to 0x77.toLong(), "clip_vertical" to 0x80.toLong(), "clip_horizontal" to 0x08.toLong(), "start" to 0x00800003.toLong(), "end" to 0x00800005.toLong()))
         val level = Attr("level", "integer")
         val drawable = Attr("drawable")
         val useIntrinsicSizeAsMinimum = Attr("useIntrinsicSizeAsMinimum", "boolean")
     }
 
     object ClipDrawable {
-        val clipOrientation = Attr("clipOrientation", "flag", mutableMapOf("horizontal" to 1, "vertical" to 2))
+        val clipOrientation = Attr("clipOrientation", "flag", mutableListOf("horizontal" to 1.toLong(), "vertical" to 2.toLong()))
         val gravity = Attr("gravity")
         val drawable = Attr("drawable")
     }
@@ -1757,10 +1770,10 @@ class Attributes {
         val trimPathStart = Attr("trimPathStart", "float")
         val trimPathEnd = Attr("trimPathEnd", "float")
         val trimPathOffset = Attr("trimPathOffset", "float")
-        val strokeLineCap = Attr("strokeLineCap", "enum", mutableMapOf("butt" to 0, "round" to 1, "square" to 2))
-        val strokeLineJoin = Attr("strokeLineJoin", "enum", mutableMapOf("miter" to 0, "round" to 1, "bevel" to 2))
+        val strokeLineCap = Attr("strokeLineCap", "enum", mutableListOf("butt" to 0.toLong(), "round" to 1.toLong(), "square" to 2.toLong()))
+        val strokeLineJoin = Attr("strokeLineJoin", "enum", mutableListOf("miter" to 0.toLong(), "round" to 1.toLong(), "bevel" to 2.toLong()))
         val strokeMiterLimit = Attr("strokeMiterLimit", "float")
-        val fillType = Attr("fillType", "enum", mutableMapOf("nonZero" to 0, "evenOdd" to 1))
+        val fillType = Attr("fillType", "enum", mutableListOf("nonZero" to 0.toLong(), "evenOdd" to 1.toLong()))
     }
 
     object VectorDrawableClipPath {
@@ -1784,9 +1797,9 @@ class Attributes {
         val fillAfter = Attr("fillAfter", "boolean")
         val duration = Attr("duration")
         val startOffset = Attr("startOffset", "integer")
-        val repeatCount = Attr("repeatCount", "integer", mutableMapOf("infinite" to -1))
-        val repeatMode = Attr("repeatMode", "enum", mutableMapOf("restart" to 1, "reverse" to 2))
-        val zAdjustment = Attr("zAdjustment", "enum", mutableMapOf("normal" to 0, "top" to 1, "bottom" to -1))
+        val repeatCount = Attr("repeatCount", "integer", mutableListOf("infinite" to (-1).toLong()))
+        val repeatMode = Attr("repeatMode", "enum", mutableListOf("restart" to 1.toLong(), "reverse" to 2.toLong()))
+        val zAdjustment = Attr("zAdjustment", "enum", mutableListOf("normal" to 0.toLong(), "top" to 1.toLong(), "bottom" to (-1).toLong()))
         val background = Attr("background")
         val detachWallpaper = Attr("detachWallpaper", "boolean")
         val showWallpaper = Attr("showWallpaper", "boolean")
@@ -1844,15 +1857,15 @@ class Attributes {
     object LayoutAnimation {
         val delay = Attr("delay", "float|fraction")
         val animation = Attr("", "reference")
-        val animationOrder = Attr("animationOrder", "enum", mutableMapOf("normal" to 0, "reverse" to 1, "random" to 2))
+        val animationOrder = Attr("animationOrder", "enum", mutableListOf("normal" to 0.toLong(), "reverse" to 1.toLong(), "random" to 2.toLong()))
         val interpolator = Attr("interpolator")
     }
 
     object GridLayoutAnimation {
         val columnDelay = Attr("columnDelay", "float|fraction")
         val rowDelay = Attr("rowDelay", "float|fraction")
-        val direction = Attr("direction", "flag", mutableMapOf("left_to_right" to 0x0, "right_to_left" to 0x1, "top_to_bottom" to 0x0, "bottom_to_top" to 0x2))
-        val directionPriority = Attr("directionPriority", "enum", mutableMapOf("none" to 0, "column" to 1, "row" to 2))
+        val direction = Attr("direction", "flag", mutableListOf("left_to_right" to 0x0.toLong(), "right_to_left" to 0x1.toLong(), "top_to_bottom" to 0x0.toLong(), "bottom_to_top" to 0x2.toLong()))
+        val directionPriority = Attr("directionPriority", "enum", mutableListOf("none" to 0.toLong(), "column" to 1.toLong(), "row" to 2.toLong()))
     }
 
     object AccelerateInterpolator {
@@ -1902,15 +1915,15 @@ class Attributes {
     }
 
     object Fade {
-        val fadingMode = Attr("fadingMode", "enum", mutableMapOf("fade_in" to 1, "fade_out" to 2, "fade_in_out" to 3))
+        val fadingMode = Attr("fadingMode", "enum", mutableListOf("fade_in" to 1.toLong(), "fade_out" to 2.toLong(), "fade_in_out" to 3.toLong()))
     }
 
     object Slide {
-        val slideEdge = Attr("slideEdge", "enum", mutableMapOf("left" to 0x03, "top" to 0x30, "right" to 0x05, "bottom" to 0x50, "start" to 0x00800003, "end" to 0x00800005))
+        val slideEdge = Attr("slideEdge", "enum", mutableListOf("left" to 0x03.toLong(), "top" to 0x30.toLong(), "right" to 0x05.toLong(), "bottom" to 0x50.toLong(), "start" to 0x00800003.toLong(), "end" to 0x00800005.toLong()))
     }
 
     object VisibilityTransition {
-        val transitionVisibilityMode = Attr("transitionVisibilityMode", "flag", mutableMapOf("mode_in" to 1, "mode_out" to 2))
+        val transitionVisibilityMode = Attr("transitionVisibilityMode", "flag", mutableListOf("mode_in" to 1.toLong(), "mode_out" to 2.toLong()))
     }
 
     object TransitionTarget {
@@ -1923,7 +1936,7 @@ class Attributes {
     }
 
     object TransitionSet {
-        val transitionOrdering = Attr("transitionOrdering", "enum", mutableMapOf("together" to 0, "sequential" to 1))
+        val transitionOrdering = Attr("transitionOrdering", "enum", mutableListOf("together" to 0.toLong(), "sequential" to 1.toLong()))
     }
 
     object ChangeTransform {
@@ -1959,7 +1972,7 @@ class Attributes {
         val repeatMode = Attr("repeatMode")
         val valueFrom = Attr("valueFrom", "float|integer|color|dimension|string")
         val valueTo = Attr("valueTo", "float|integer|color|dimension|string")
-        val valueType = Attr("valueType", "enum", mutableMapOf("floatType" to 0, "intType" to 1, "pathType" to 2, "colorType" to 3))
+        val valueType = Attr("valueType", "enum", mutableListOf("floatType" to 0.toLong(), "intType" to 1.toLong(), "pathType" to 2.toLong(), "colorType" to 3.toLong()))
         val removeBeforeMRelease = Attr("removeBeforeMRelease", "integer")
     }
 
@@ -1985,7 +1998,7 @@ class Attributes {
     }
 
     object AnimatorSet {
-        val ordering = Attr("ordering", "enum", mutableMapOf("together" to 0, "sequentially" to 1))
+        val ordering = Attr("ordering", "enum", mutableListOf("together" to 0.toLong(), "sequentially" to 1.toLong()))
     }
 
     object DrawableStates {
@@ -2066,8 +2079,8 @@ class Attributes {
         val searchButtonText = Attr("searchButtonText", "string")
         val inputType = Attr("inputType")
         val imeOptions = Attr("imeOptions")
-        val searchMode = Attr("searchMode", "flag", mutableMapOf("showSearchLabelAsBadge" to 0x04, "showSearchIconAsBadge" to 0x08, "queryRewriteFromData" to 0x10, "queryRewriteFromText" to 0x20))
-        val voiceSearchMode = Attr("voiceSearchMode", "flag", mutableMapOf("showVoiceSearchButton" to 0x01, "launchWebSearch" to 0x02, "launchRecognizer" to 0x04))
+        val searchMode = Attr("searchMode", "flag", mutableListOf("showSearchLabelAsBadge" to 0x04.toLong(), "showSearchIconAsBadge" to 0x08.toLong(), "queryRewriteFromData" to 0x10.toLong(), "queryRewriteFromText" to 0x20.toLong()))
+        val voiceSearchMode = Attr("voiceSearchMode", "flag", mutableListOf("showVoiceSearchButton" to 0x01.toLong(), "launchWebSearch" to 0x02.toLong(), "launchRecognizer" to 0x04.toLong()))
         val voiceLanguageModel = Attr("voiceLanguageModel", "string")
         val voicePromptText = Attr("voicePromptText", "string")
         val voiceLanguage = Attr("voiceLanguage", "string")
@@ -2099,9 +2112,9 @@ class Attributes {
 
     object MenuGroup {
         val id = Attr("id")
-        val menuCategory = Attr("menuCategory", "enum", mutableMapOf("container" to 0x00010000, "system" to 0x00020000, "secondary" to 0x00030000, "alternative" to 0x00040000))
+        val menuCategory = Attr("menuCategory", "enum", mutableListOf("container" to 0x00010000.toLong(), "system" to 0x00020000.toLong(), "secondary" to 0x00030000.toLong(), "alternative" to 0x00040000.toLong()))
         val orderInCategory = Attr("orderInCategory", "integer")
-        val checkableBehavior = Attr("checkableBehavior", "enum", mutableMapOf("none" to 0, "all" to 1, "single" to 2))
+        val checkableBehavior = Attr("checkableBehavior", "enum", mutableListOf("none" to 0.toLong(), "all" to 1.toLong(), "single" to 2.toLong()))
         val visible = Attr("visible")
         val enabled = Attr("enabled")
     }
@@ -2114,17 +2127,17 @@ class Attributes {
         val titleCondensed = Attr("titleCondensed", "string")
         val icon = Attr("icon")
         val iconTint = Attr("iconTint", "color")
-        val iconTintMode = Attr("iconTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val iconTintMode = Attr("iconTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val alphabeticShortcut = Attr("alphabeticShortcut", "string")
-        val alphabeticModifiers = Attr("alphabeticModifiers", "flag", mutableMapOf("META" to 0x10000, "CTRL" to 0x1000, "ALT" to 0x02, "SHIFT" to 0x1, "SYM" to 0x4, "FUNCTION" to 0x8))
+        val alphabeticModifiers = Attr("alphabeticModifiers", "flag", mutableListOf("META" to 0x10000.toLong(), "CTRL" to 0x1000.toLong(), "ALT" to 0x02.toLong(), "SHIFT" to 0x1.toLong(), "SYM" to 0x4.toLong(), "FUNCTION" to 0x8.toLong()))
         val numericShortcut = Attr("numericShortcut", "string")
-        val numericModifiers = Attr("numericModifiers", "flag", mutableMapOf("META" to 0x10000, "CTRL" to 0x1000, "ALT" to 0x02, "SHIFT" to 0x1, "SYM" to 0x4, "FUNCTION" to 0x8))
+        val numericModifiers = Attr("numericModifiers", "flag", mutableListOf("META" to 0x10000.toLong(), "CTRL" to 0x1000.toLong(), "ALT" to 0x02.toLong(), "SHIFT" to 0x1.toLong(), "SYM" to 0x4.toLong(), "FUNCTION" to 0x8.toLong()))
         val checkable = Attr("checkable", "boolean")
         val checked = Attr("checked")
         val visible = Attr("visible")
         val enabled = Attr("enabled")
         val onClick = Attr("onClick")
-        val showAsAction = Attr("showAsAction", "flag", mutableMapOf("never" to 0, "ifRoom" to 1, "always" to 2, "withText" to 4, "collapseActionView" to 8))
+        val showAsAction = Attr("showAsAction", "flag", mutableListOf("never" to 0.toLong(), "ifRoom" to 1.toLong(), "always" to 2.toLong(), "withText" to 4.toLong(), "collapseActionView" to 8.toLong()))
         val actionLayout = Attr("actionLayout", "reference")
         val actionViewClass = Attr("actionViewClass", "string")
         val actionProviderClass = Attr("actionProviderClass", "string")
@@ -2197,13 +2210,13 @@ class Attributes {
     }
 
     object RingtonePreference {
-        val ringtoneType = Attr("ringtoneType", "flag", mutableMapOf("ringtone" to 1, "notification" to 2, "alarm" to 4, "all" to 7))
+        val ringtoneType = Attr("ringtoneType", "flag", mutableListOf("ringtone" to 1.toLong(), "notification" to 2.toLong(), "alarm" to 4.toLong(), "all" to 7.toLong()))
         val showDefault = Attr("showDefault", "boolean")
         val showSilent = Attr("showSilent", "boolean")
     }
 
     object VolumePreference {
-        val streamType = Attr("streamType", "enum", mutableMapOf("voice" to 0, "system" to 1, "ring" to 2, "music" to 3, "alarm" to 4))
+        val streamType = Attr("streamType", "enum", mutableListOf("voice" to 0.toLong(), "system" to 1.toLong(), "ring" to 2.toLong(), "music" to 3.toLong(), "alarm" to 4.toLong()))
     }
 
     object InputMethodService {
@@ -2241,7 +2254,7 @@ class Attributes {
     }
 
     object Keyboard_Row {
-        val rowEdgeFlags = Attr("rowEdgeFlags", "flag", mutableMapOf("top" to 4, "bottom" to 8))
+        val rowEdgeFlags = Attr("rowEdgeFlags", "flag", mutableListOf("top" to 4.toLong(), "bottom" to 8.toLong()))
         val keyboardMode = Attr("keyboardMode", "reference")
     }
 
@@ -2249,7 +2262,7 @@ class Attributes {
         val codes = Attr("codes", "integer|string")
         val popupKeyboard = Attr("popupKeyboard", "reference")
         val popupCharacters = Attr("popupCharacters", "string")
-        val keyEdgeFlags = Attr("keyEdgeFlags", "flag", mutableMapOf("left" to 1, "right" to 2))
+        val keyEdgeFlags = Attr("keyEdgeFlags", "flag", mutableListOf("left" to 1.toLong(), "right" to 2.toLong()))
         val isModifier = Attr("isModifier", "boolean")
         val isSticky = Attr("isSticky", "boolean")
         val isRepeatable = Attr("isRepeatable", "boolean")
@@ -2271,9 +2284,9 @@ class Attributes {
         val configure = Attr("configure", "string")
         val previewImage = Attr("previewImage", "reference")
         val autoAdvanceViewId = Attr("autoAdvanceViewId", "reference")
-        val resizeMode = Attr("resizeMode", "integer", mutableMapOf("none" to 0x0, "horizontal" to 0x1, "vertical" to 0x2))
-        val widgetCategory = Attr("widgetCategory", "integer", mutableMapOf("home_screen" to 0x1, "keyguard" to 0x2, "searchbox" to 0x4))
-        val widgetFeatures = Attr("widgetFeatures", "integer", mutableMapOf("reconfigurable" to 0x1, "hide_from_picker" to 0x2))
+        val resizeMode = Attr("resizeMode", "integer", mutableListOf("none" to 0x0.toLong(), "horizontal" to 0x1.toLong(), "vertical" to 0x2.toLong()))
+        val widgetCategory = Attr("widgetCategory", "integer", mutableListOf("home_screen" to 0x1.toLong(), "keyguard" to 0x2.toLong(), "searchbox" to 0x4.toLong()))
+        val widgetFeatures = Attr("widgetFeatures", "integer", mutableListOf("reconfigurable" to 0x1.toLong(), "hide_from_picker" to 0x2.toLong()))
     }
 
     object WallpaperPreviewInfo {
@@ -2413,12 +2426,12 @@ class Attributes {
         val searchKeyphraseId = Attr("searchKeyphraseId", "integer")
         val searchKeyphrase = Attr("searchKeyphrase", "string")
         val searchKeyphraseSupportedLocales = Attr("searchKeyphraseSupportedLocales", "string")
-        val searchKeyphraseRecognitionFlags = Attr("searchKeyphraseRecognitionFlags", "flag", mutableMapOf("none" to 0, "voiceTrigger" to 0x1, "userIdentification" to 0x2))
+        val searchKeyphraseRecognitionFlags = Attr("searchKeyphraseRecognitionFlags", "flag", mutableListOf("none" to 0.toLong(), "voiceTrigger" to 0x1.toLong(), "userIdentification" to 0x2.toLong()))
     }
 
     object ActionBar {
-        val navigationMode = Attr("navigationMode", "enum", mutableMapOf("normal" to 0, "listMode" to 1, "tabMode" to 2))
-        val displayOptions = Attr("displayOptions", "flag", mutableMapOf("none" to 0, "useLogo" to 0x1, "showHome" to 0x2, "homeAsUp" to 0x4, "showTitle" to 0x8, "showCustom" to 0x10, "disableHome" to 0x20))
+        val navigationMode = Attr("navigationMode", "enum", mutableListOf("normal" to 0.toLong(), "listMode" to 1.toLong(), "tabMode" to 2.toLong()))
+        val displayOptions = Attr("displayOptions", "flag", mutableListOf("none" to 0.toLong(), "useLogo" to 0x1.toLong(), "showHome" to 0x2.toLong(), "homeAsUp" to 0x4.toLong(), "showTitle" to 0x8.toLong(), "showCustom" to 0x10.toLong(), "disableHome" to 0x20.toLong()))
         val title = Attr("title")
         val subtitle = Attr("subtitle", "string")
         val titleTextStyle = Attr("titleTextStyle", "reference")
@@ -2482,7 +2495,7 @@ class Attributes {
         val thumbTintMode = Attr("thumbTintMode")
         val track = Attr("track", "reference")
         val trackTint = Attr("trackTint", "color")
-        val trackTintMode = Attr("trackTintMode", "enum", mutableMapOf("src_over" to 3, "src_in" to 5, "src_atop" to 9, "multiply" to 14, "screen" to 15, "add" to 16))
+        val trackTintMode = Attr("trackTintMode", "enum", mutableListOf("src_over" to 3.toLong(), "src_in" to 5.toLong(), "src_atop" to 9.toLong(), "multiply" to 14.toLong(), "screen" to 15.toLong(), "add" to 16.toLong()))
         val textOn = Attr("textOn")
         val textOff = Attr("textOff")
         val thumbTextPadding = Attr("thumbTextPadding", "dimension")
@@ -2582,7 +2595,7 @@ class Attributes {
 
     object MediaRouteButton {
         val externalRouteEnabledDrawable = Attr("externalRouteEnabledDrawable", "reference")
-        val mediaRouteTypes = Attr("mediaRouteTypes", "integer", mutableMapOf("liveAudio" to 0x1, "user" to 0x800000))
+        val mediaRouteTypes = Attr("mediaRouteTypes", "integer", mutableListOf("liveAudio" to 0x1.toLong(), "user" to 0x800000.toLong()))
         val minWidth = Attr("minWidth")
         val minHeight = Attr("minHeight")
     }
@@ -2625,7 +2638,7 @@ class Attributes {
         val contentInsetEndWithActions = Attr("contentInsetEndWithActions")
         val maxButtonHeight = Attr("maxButtonHeight", "dimension")
         val navigationButtonStyle = Attr("navigationButtonStyle", "reference")
-        val buttonGravity = Attr("buttonGravity", "flag", mutableMapOf("top" to 0x30, "bottom" to 0x50))
+        val buttonGravity = Attr("buttonGravity", "flag", mutableListOf("top" to 0x30.toLong(), "bottom" to 0x50.toLong()))
         val collapseIcon = Attr("collapseIcon", "reference")
         val collapseContentDescription = Attr("collapseContentDescription", "string")
         val popupTheme = Attr("popupTheme", "reference")
@@ -2703,7 +2716,7 @@ class Attributes {
 
     object RestrictionEntry {
         val key = Attr("key")
-        val restrictionType = Attr("restrictionType", "enum", mutableMapOf("hidden" to 0, "bool" to 1, "choice" to 2, "multi-select" to 4, "integer" to 5, "string" to 6, "bundle" to 7, "bundle_array" to 8))
+        val restrictionType = Attr("restrictionType", "enum", mutableListOf("hidden" to 0.toLong(), "bool" to 1.toLong(), "choice" to 2.toLong(), "multi-select" to 4.toLong(), "integer" to 5.toLong(), "string" to 6.toLong(), "bundle" to 7.toLong(), "bundle_array" to 8.toLong()))
         val title = Attr("title")
         val description = Attr("description")
         val defaultValue = Attr("defaultValue")
@@ -2754,7 +2767,7 @@ class Attributes {
     }
 
     object FontFamilyFont {
-        val fontStyle = Attr("fontStyle", "enum", mutableMapOf("normal" to 0, "italic" to 1))
+        val fontStyle = Attr("fontStyle", "enum", mutableListOf("normal" to 0.toLong(), "italic" to 1.toLong()))
         val font = Attr("font", "reference")
         val fontWeight = Attr("fontWeight", "integer")
         val ttcIndex = Attr("ttcIndex", "integer")
@@ -2771,7 +2784,7 @@ class Attributes {
     object VideoView2 {
         val enableControlView = Attr("enableControlView", "boolean")
         val enableSubtitle = Attr("enableSubtitle", "boolean")
-        val viewType = Attr("viewType", "enum", mutableMapOf("surfaceView" to 0, "textureView" to 1))
+        val viewType = Attr("viewType", "enum", mutableListOf("surfaceView" to 0.toLong(), "textureView" to 1.toLong()))
     }
 
     object RecyclerView {
@@ -2787,7 +2800,7 @@ class Attributes {
         val notificationHeaderStyle = Attr("notificationHeaderStyle", "reference")
         val notificationHeaderTextAppearance = Attr("notificationHeaderTextAppearance", "reference")
         val notificationHeaderIconSize = Attr("notificationHeaderIconSize", "dimension")
-        val notificationHeaderAppNameVisibility = Attr("notificationHeaderAppNameVisibility", "enum", mutableMapOf("visible" to 0, "invisible" to 1, "gone" to 2))
+        val notificationHeaderAppNameVisibility = Attr("notificationHeaderAppNameVisibility", "enum", mutableListOf("visible" to 0.toLong(), "invisible" to 1.toLong(), "gone" to 2.toLong()))
     }
 
     object Magnifier {
@@ -2803,33 +2816,46 @@ class Attributes {
     object Resources {
         val textSize = Attr("textSize", "dimension")
         val fontFamily = Attr("fontFamily", "string")
-        val typeface = Attr("typeface", "enum", mutableMapOf("normal" to 0, "sans" to 1, "serif" to 2, "monospace" to 3))
-        val textStyle = Attr("textStyle", "flag", mutableMapOf("normal" to 0, "bold" to 1, "italic" to 2))
+        val typeface = Attr("typeface", "enum", mutableListOf("normal" to 0.toLong(), "sans" to 1.toLong(), "serif" to 2.toLong(), "monospace" to 3.toLong()))
+        val textStyle = Attr("textStyle", "flag", mutableListOf("normal" to 0.toLong(), "bold" to 1.toLong(), "italic" to 2.toLong()))
         val textColor = Attr("textColor", "reference|color")
         val textColorHighlight = Attr("textColorHighlight", "reference|color")
         val textColorHint = Attr("textColorHint", "reference|color")
         val textColorLink = Attr("textColorLink", "reference|color")
         val textCursorDrawable = Attr("textCursorDrawable", "reference")
         val textIsSelectable = Attr("textIsSelectable", "boolean")
-        val ellipsize = Attr("ellipsize", "enum", mutableMapOf("none" to 0, "start" to 1, "middle" to 2, "end" to 3, "marquee" to 4))
-        val inputType = Attr("inputType", "flag", mutableMapOf("none" to 0x00000000, "text" to 0x00000001, "textCapCharacters" to 0x00001001, "textCapWords" to 0x00002001, "textCapSentences" to 0x00004001, "textAutoCorrect" to 0x00008001, "textAutoComplete" to 0x00010001, "textMultiLine" to 0x00020001, "textImeMultiLine" to 0x00040001, "textNoSuggestions" to 0x00080001, "textUri" to 0x00000011, "textEmailAddress" to 0x00000021, "textEmailSubject" to 0x00000031, "textShortMessage" to 0x00000041, "textLongMessage" to 0x00000051, "textPersonName" to 0x00000061, "textPostalAddress" to 0x00000071, "textPassword" to 0x00000081, "textVisiblePassword" to 0x00000091, "textWebEditText" to 0x000000a1, "textFilter" to 0x000000b1, "textPhonetic" to 0x000000c1, "textWebEmailAddress" to 0x000000d1, "textWebPassword" to 0x000000e1, "number" to 0x00000002, "numberSigned" to 0x00001002, "numberDecimal" to 0x00002002, "numberPassword" to 0x00000012, "phone" to 0x00000003, "datetime" to 0x00000004, "date" to 0x00000014, "time" to 0x00000024))
-        val imeOptions = Attr("imeOptions", "flag", mutableMapOf("normal" to 0x00000000, "actionUnspecified" to 0x00000000, "actionNone" to 0x00000001, "actionGo" to 0x00000002, "actionSearch" to 0x00000003, "actionSend" to 0x00000004, "actionNext" to 0x00000005, "actionDone" to 0x00000006, "actionPrevious" to 0x00000007, "flagNoPersonalizedLearning" to 0x1000000, "flagNoFullscreen" to 0x2000000, "flagNavigatePrevious" to 0x4000000, "flagNavigateNext" to 0x8000000, "flagNoExtractUi" to 0x10000000, "flagNoAccessoryAction" to 0x20000000, "flagNoEnterAction" to 0x40000000, "flagForceAscii" to 0x80000000.toInt()))
+        val ellipsize = Attr("ellipsize", "enum", mutableListOf("none" to 0.toLong(), "start" to 1.toLong(), "middle" to 2.toLong(), "end" to 3.toLong(), "marquee" to 4.toLong()))
+        val inputType = Attr("inputType", "flag", mutableListOf("none" to 0x00000000.toLong(), "text" to 0x00000001.toLong(), "textCapCharacters" to 0x00001001.toLong(), "textCapWords" to 0x00002001.toLong(), "textCapSentences" to 0x00004001.toLong(), "textAutoCorrect" to 0x00008001.toLong(), "textAutoComplete" to 0x00010001.toLong(), "textMultiLine" to 0x00020001.toLong(), "textImeMultiLine" to 0x00040001.toLong(), "textNoSuggestions" to 0x00080001.toLong(), "textUri" to 0x00000011.toLong(), "textEmailAddress" to 0x00000021.toLong(), "textEmailSubject" to 0x00000031.toLong(), "textShortMessage" to 0x00000041.toLong(), "textLongMessage" to 0x00000051.toLong(), "textPersonName" to 0x00000061.toLong(), "textPostalAddress" to 0x00000071.toLong(), "textPassword" to 0x00000081.toLong(), "textVisiblePassword" to 0x00000091.toLong(), "textWebEditText" to 0x000000a1.toLong(), "textFilter" to 0x000000b1.toLong(), "textPhonetic" to 0x000000c1.toLong(), "textWebEmailAddress" to 0x000000d1.toLong(), "textWebPassword" to 0x000000e1.toLong(), "number" to 0x00000002.toLong(), "numberSigned" to 0x00001002.toLong(), "numberDecimal" to 0x00002002.toLong(), "numberPassword" to 0x00000012.toLong(), "phone" to 0x00000003.toLong(), "datetime" to 0x00000004.toLong(), "date" to 0x00000014.toLong(), "time" to 0x00000024.toLong()))
+        val imeOptions = Attr("imeOptions", "flag", mutableListOf("normal" to 0x00000000.toLong(), "actionUnspecified" to 0x00000000.toLong(), "actionNone" to 0x00000001.toLong(), "actionGo" to 0x00000002.toLong(), "actionSearch" to 0x00000003.toLong(), "actionSend" to 0x00000004.toLong(), "actionNext" to 0x00000005.toLong(), "actionDone" to 0x00000006.toLong(), "actionPrevious" to 0x00000007.toLong(), "flagNoPersonalizedLearning" to 0x1000000.toLong(), "flagNoFullscreen" to 0x2000000.toLong(), "flagNavigatePrevious" to 0x4000000.toLong(), "flagNavigateNext" to 0x8000000.toLong(), "flagNoExtractUi" to 0x10000000.toLong(), "flagNoAccessoryAction" to 0x20000000.toLong(), "flagNoEnterAction" to 0x40000000.toLong(), "flagForceAscii" to 0x80000000.toLong()))
         val x = Attr("x", "dimension")
         val y = Attr("y", "dimension")
-        val gravity = Attr("gravity", "flag", mutableMapOf("top" to 0x30, "bottom" to 0x50, "left" to 0x03, "right" to 0x05, "center_vertical" to 0x10, "fill_vertical" to 0x70, "center_horizontal" to 0x01, "fill_horizontal" to 0x07, "center" to 0x11, "fill" to 0x77, "clip_vertical" to 0x80, "clip_horizontal" to 0x08, "start" to 0x00800003, "end" to 0x00800005))
-        val autoLink = Attr("autoLink", "flag", mutableMapOf("none" to 0x00, "web" to 0x01, "email" to 0x02, "phone" to 0x04, "map" to 0x08, "all" to 0x0f))
+        val gravity = Attr("gravity", "flag", mutableListOf("top" to 0x30.toLong(), "bottom" to 0x50.toLong(), "left" to 0x03.toLong(), "right" to 0x05.toLong(), "center_vertical" to 0x10.toLong(), "fill_vertical" to 0x70.toLong(), "center_horizontal" to 0x01.toLong(), "fill_horizontal" to 0x07.toLong(), "center" to 0x11.toLong(), "fill" to 0x77.toLong(), "clip_vertical" to 0x80.toLong(), "clip_horizontal" to 0x08.toLong(), "start" to 0x00800003.toLong(), "end" to 0x00800005.toLong()))
+        val autoLink = Attr("autoLink", "flag", mutableListOf("none" to 0x00.toLong(), "web" to 0x01.toLong(), "email" to 0x02.toLong(), "phone" to 0x04.toLong(), "map" to 0x08.toLong(), "all" to 0x0f.toLong()))
         val entries = Attr("entries", "reference")
-        val layout_gravity = Attr("layout_gravity", "flag", mutableMapOf("top" to 0x30, "bottom" to 0x50, "left" to 0x03, "right" to 0x05, "center_vertical" to 0x10, "fill_vertical" to 0x70, "center_horizontal" to 0x01, "fill_horizontal" to 0x07, "center" to 0x11, "fill" to 0x77, "clip_vertical" to 0x80, "clip_horizontal" to 0x08, "start" to 0x00800003, "end" to 0x00800005))
-        val orientation = Attr("orientation", "enum", mutableMapOf("horizontal" to 0, "vertical" to 1))
-        val alignmentMode = Attr("alignmentMode", "enum", mutableMapOf("alignBounds" to 0, "alignMargins" to 1))
-        val keycode = Attr("keycode", "enum", mutableMapOf("KEYCODE_UNKNOWN" to 0, "KEYCODE_SOFT_LEFT" to 1, "KEYCODE_SOFT_RIGHT" to 2, "KEYCODE_HOME" to 3, "KEYCODE_BACK" to 4, "KEYCODE_CALL" to 5, "KEYCODE_ENDCALL" to 6, "KEYCODE_0" to 7, "KEYCODE_1" to 8, "KEYCODE_2" to 9, "KEYCODE_3" to 10, "KEYCODE_4" to 11, "KEYCODE_5" to 12, "KEYCODE_6" to 13, "KEYCODE_7" to 14, "KEYCODE_8" to 15, "KEYCODE_9" to 16, "KEYCODE_STAR" to 17, "KEYCODE_POUND" to 18, "KEYCODE_DPAD_UP" to 19, "KEYCODE_DPAD_DOWN" to 20, "KEYCODE_DPAD_LEFT" to 21, "KEYCODE_DPAD_RIGHT" to 22, "KEYCODE_DPAD_CENTER" to 23, "KEYCODE_VOLUME_UP" to 24, "KEYCODE_VOLUME_DOWN" to 25, "KEYCODE_POWER" to 26, "KEYCODE_CAMERA" to 27, "KEYCODE_CLEAR" to 28, "KEYCODE_A" to 29, "KEYCODE_B" to 30, "KEYCODE_C" to 31, "KEYCODE_D" to 32, "KEYCODE_E" to 33, "KEYCODE_F" to 34, "KEYCODE_G" to 35, "KEYCODE_H" to 36, "KEYCODE_I" to 37, "KEYCODE_J" to 38, "KEYCODE_K" to 39, "KEYCODE_L" to 40, "KEYCODE_M" to 41, "KEYCODE_N" to 42, "KEYCODE_O" to 43, "KEYCODE_P" to 44, "KEYCODE_Q" to 45, "KEYCODE_R" to 46, "KEYCODE_S" to 47, "KEYCODE_T" to 48, "KEYCODE_U" to 49, "KEYCODE_V" to 50, "KEYCODE_W" to 51, "KEYCODE_X" to 52, "KEYCODE_Y" to 53, "KEYCODE_Z" to 54, "KEYCODE_COMMA" to 55, "KEYCODE_PERIOD" to 56, "KEYCODE_ALT_LEFT" to 57, "KEYCODE_ALT_RIGHT" to 58, "KEYCODE_SHIFT_LEFT" to 59, "KEYCODE_SHIFT_RIGHT" to 60, "KEYCODE_TAB" to 61, "KEYCODE_SPACE" to 62, "KEYCODE_SYM" to 63, "KEYCODE_EXPLORER" to 64, "KEYCODE_ENVELOPE" to 65, "KEYCODE_ENTER" to 66, "KEYCODE_DEL" to 67, "KEYCODE_GRAVE" to 68, "KEYCODE_MINUS" to 69, "KEYCODE_EQUALS" to 70, "KEYCODE_LEFT_BRACKET" to 71, "KEYCODE_RIGHT_BRACKET" to 72, "KEYCODE_BACKSLASH" to 73, "KEYCODE_SEMICOLON" to 74, "KEYCODE_APOSTROPHE" to 75, "KEYCODE_SLASH" to 76, "KEYCODE_AT" to 77, "KEYCODE_NUM" to 78, "KEYCODE_HEADSETHOOK" to 79, "KEYCODE_FOCUS" to 80, "KEYCODE_PLUS" to 81, "KEYCODE_MENU" to 82, "KEYCODE_NOTIFICATION" to 83, "KEYCODE_SEARCH" to 84, "KEYCODE_MEDIA_PLAY_PAUSE" to 85, "KEYCODE_MEDIA_STOP" to 86, "KEYCODE_MEDIA_NEXT" to 87, "KEYCODE_MEDIA_PREVIOUS" to 88, "KEYCODE_MEDIA_REWIND" to 89, "KEYCODE_MEDIA_FAST_FORWARD" to 90, "KEYCODE_MUTE" to 91, "KEYCODE_PAGE_UP" to 92, "KEYCODE_PAGE_DOWN" to 93, "KEYCODE_PICTSYMBOLS" to 94, "KEYCODE_SWITCH_CHARSET" to 95, "KEYCODE_BUTTON_A" to 96, "KEYCODE_BUTTON_B" to 97, "KEYCODE_BUTTON_C" to 98, "KEYCODE_BUTTON_X" to 99, "KEYCODE_BUTTON_Y" to 100, "KEYCODE_BUTTON_Z" to 101, "KEYCODE_BUTTON_L1" to 102, "KEYCODE_BUTTON_R1" to 103, "KEYCODE_BUTTON_L2" to 104, "KEYCODE_BUTTON_R2" to 105, "KEYCODE_BUTTON_THUMBL" to 106, "KEYCODE_BUTTON_THUMBR" to 107, "KEYCODE_BUTTON_START" to 108, "KEYCODE_BUTTON_SELECT" to 109, "KEYCODE_BUTTON_MODE" to 110, "KEYCODE_ESCAPE" to 111, "KEYCODE_FORWARD_DEL" to 112, "KEYCODE_CTRL_LEFT" to 113, "KEYCODE_CTRL_RIGHT" to 114, "KEYCODE_CAPS_LOCK" to 115, "KEYCODE_SCROLL_LOCK" to 116, "KEYCODE_META_LEFT" to 117, "KEYCODE_META_RIGHT" to 118, "KEYCODE_FUNCTION" to 119, "KEYCODE_SYSRQ" to 120, "KEYCODE_BREAK" to 121, "KEYCODE_MOVE_HOME" to 122, "KEYCODE_MOVE_END" to 123, "KEYCODE_INSERT" to 124, "KEYCODE_FORWARD" to 125, "KEYCODE_MEDIA_PLAY" to 126, "KEYCODE_MEDIA_PAUSE" to 127, "KEYCODE_MEDIA_CLOSE" to 128, "KEYCODE_MEDIA_EJECT" to 129, "KEYCODE_MEDIA_RECORD" to 130, "KEYCODE_F1" to 131, "KEYCODE_F2" to 132, "KEYCODE_F3" to 133, "KEYCODE_F4" to 134, "KEYCODE_F5" to 135, "KEYCODE_F6" to 136, "KEYCODE_F7" to 137, "KEYCODE_F8" to 138, "KEYCODE_F9" to 139, "KEYCODE_F10" to 140, "KEYCODE_F11" to 141, "KEYCODE_F12" to 142, "KEYCODE_NUM_LOCK" to 143, "KEYCODE_NUMPAD_0" to 144, "KEYCODE_NUMPAD_1" to 145, "KEYCODE_NUMPAD_2" to 146, "KEYCODE_NUMPAD_3" to 147, "KEYCODE_NUMPAD_4" to 148, "KEYCODE_NUMPAD_5" to 149, "KEYCODE_NUMPAD_6" to 150, "KEYCODE_NUMPAD_7" to 151, "KEYCODE_NUMPAD_8" to 152, "KEYCODE_NUMPAD_9" to 153, "KEYCODE_NUMPAD_DIVIDE" to 154, "KEYCODE_NUMPAD_MULTIPLY" to 155, "KEYCODE_NUMPAD_SUBTRACT" to 156, "KEYCODE_NUMPAD_ADD" to 157, "KEYCODE_NUMPAD_DOT" to 158, "KEYCODE_NUMPAD_COMMA" to 159, "KEYCODE_NUMPAD_ENTER" to 160, "KEYCODE_NUMPAD_EQUALS" to 161, "KEYCODE_NUMPAD_LEFT_PAREN" to 162, "KEYCODE_NUMPAD_RIGHT_PAREN" to 163, "KEYCODE_VOLUME_MUTE" to 164, "KEYCODE_INFO" to 165, "KEYCODE_CHANNEL_UP" to 166, "KEYCODE_CHANNEL_DOWN" to 167, "KEYCODE_ZOOM_IN" to 168, "KEYCODE_ZOOM_OUT" to 169, "KEYCODE_TV" to 170, "KEYCODE_WINDOW" to 171, "KEYCODE_GUIDE" to 172, "KEYCODE_DVR" to 173, "KEYCODE_BOOKMARK" to 174, "KEYCODE_CAPTIONS" to 175, "KEYCODE_SETTINGS" to 176, "KEYCODE_TV_POWER" to 177, "KEYCODE_TV_INPUT" to 178, "KEYCODE_STB_POWER" to 179, "KEYCODE_STB_INPUT" to 180, "KEYCODE_AVR_POWER" to 181, "KEYCODE_AVR_INPUT" to 182, "KEYCODE_PROG_GRED" to 183, "KEYCODE_PROG_GREEN" to 184, "KEYCODE_PROG_YELLOW" to 185, "KEYCODE_PROG_BLUE" to 186, "KEYCODE_APP_SWITCH" to 187, "KEYCODE_BUTTON_1" to 188, "KEYCODE_BUTTON_2" to 189, "KEYCODE_BUTTON_3" to 190, "KEYCODE_BUTTON_4" to 191, "KEYCODE_BUTTON_5" to 192, "KEYCODE_BUTTON_6" to 193, "KEYCODE_BUTTON_7" to 194, "KEYCODE_BUTTON_8" to 195, "KEYCODE_BUTTON_9" to 196, "KEYCODE_BUTTON_10" to 197, "KEYCODE_BUTTON_11" to 198, "KEYCODE_BUTTON_12" to 199, "KEYCODE_BUTTON_13" to 200, "KEYCODE_BUTTON_14" to 201, "KEYCODE_BUTTON_15" to 202, "KEYCODE_BUTTON_16" to 203, "KEYCODE_LANGUAGE_SWITCH" to 204, "KEYCODE_MANNER_MODE" to 205, "KEYCODE_3D_MODE" to 206, "KEYCODE_CONTACTS" to 207, "KEYCODE_CALENDAR" to 208, "KEYCODE_MUSIC" to 209, "KEYCODE_CALCULATOR" to 210, "KEYCODE_ZENKAKU_HANKAKU" to 211, "KEYCODE_EISU" to 212, "KEYCODE_MUHENKAN" to 213, "KEYCODE_HENKAN" to 214, "KEYCODE_KATAKANA_HIRAGANA" to 215, "KEYCODE_YEN" to 216, "KEYCODE_RO" to 217, "KEYCODE_KANA" to 218, "KEYCODE_ASSIST" to 219, "KEYCODE_BRIGHTNESS_DOWN" to 220, "KEYCODE_BRIGHTNESS_UP" to 221, "KEYCODE_MEDIA_AUDIO_TRACK" to 222, "KEYCODE_MEDIA_SLEEP" to 223, "KEYCODE_MEDIA_WAKEUP" to 224, "KEYCODE_PAIRING" to 225, "KEYCODE_MEDIA_TOP_MENU" to 226, "KEYCODE_11" to 227, "KEYCODE_12" to 228, "KEYCODE_LAST_CHANNEL" to 229, "KEYCODE_TV_DATA_SERVICE" to 230, "KEYCODE_VOICE_ASSIST" to 231, "KEYCODE_TV_RADIO_SERVICE" to 232, "KEYCODE_TV_TELETEXT" to 233, "KEYCODE_TV_NUMBER_ENTRY" to 234, "KEYCODE_TV_TERRESTRIAL_ANALOG" to 235, "KEYCODE_TV_TERRESTRIAL_DIGITAL" to 236, "KEYCODE_TV_SATELLITE" to 237, "KEYCODE_TV_SATELLITE_BS" to 238, "KEYCODE_TV_SATELLITE_CS" to 239, "KEYCODE_TV_SATELLITE_SERVICE" to 240, "KEYCODE_TV_NETWORK" to 241, "KEYCODE_TV_ANTENNA_CABLE" to 242, "KEYCODE_TV_INPUT_HDMI_1" to 243, "KEYCODE_TV_INPUT_HDMI_2" to 244, "KEYCODE_TV_INPUT_HDMI_3" to 245, "KEYCODE_TV_INPUT_HDMI_4" to 246, "KEYCODE_TV_INPUT_COMPOSITE_1" to 247, "KEYCODE_TV_INPUT_COMPOSITE_2" to 248, "KEYCODE_TV_INPUT_COMPONENT_1" to 249, "KEYCODE_TV_INPUT_COMPONENT_2" to 250, "KEYCODE_TV_INPUT_VGA_1" to 251, "KEYCODE_TV_AUDIO_DESCRIPTION" to 252, "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP" to 253, "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN" to 254, "KEYCODE_TV_ZOOM_MODE" to 255, "KEYCODE_TV_CONTENTS_MENU" to 256, "KEYCODE_TV_MEDIA_CONTEXT_MENU" to 257, "KEYCODE_TV_TIMER_PROGRAMMING" to 258, "KEYCODE_HELP" to 259, "KEYCODE_NAVIGATE_PREVIOUS" to 260, "KEYCODE_NAVIGATE_NEXT" to 261, "KEYCODE_NAVIGATE_IN" to 262, "KEYCODE_NAVIGATE_OUT" to 263, "KEYCODE_STEM_PRIMARY" to 264, "KEYCODE_STEM_1" to 265, "KEYCODE_STEM_2" to 266, "KEYCODE_STEM_3" to 267, "KEYCODE_DPAD_UP_LEFT" to 268, "KEYCODE_DPAD_DOWN_LEFT" to 269, "KEYCODE_DPAD_UP_RIGHT" to 270, "KEYCODE_DPAD_DOWN_RIGHT" to 271, "KEYCODE_MEDIA_SKIP_FORWARD" to 272, "KEYCODE_MEDIA_SKIP_BACKWARD" to 273, "KEYCODE_MEDIA_STEP_FORWARD" to 274, "KEYCODE_MEDIA_STEP_BACKWARD" to 275, "KEYCODE_SOFT_SLEEP" to 276, "KEYCODE_CUT" to 277, "KEYCODE_COPY" to 278, "KEYCODE_PASTE" to 279, "KEYCODE_SYSTEM_NAVIGATION_UP" to 280, "KEYCODE_SYSTEM_NAVIGATION_DOWN" to 281, "KEYCODE_SYSTEM_NAVIGATION_LEFT" to 282, "KEYCODE_SYSTEM_NAVIGATION_RIGHT" to 283, "KEYCODE_ALL_APPS" to 284, "KEYCODE_REFRESH" to 285, "KEYCODE_THUMBS_UP" to 286, "KEYCODE_THUMBS_DOWN" to 287, "KEYCODE_PROFILE_SWITCH" to 288))
+        val layout_gravity = Attr("layout_gravity", "flag", mutableListOf("top" to 0x30.toLong(), "bottom" to 0x50.toLong(), "left" to 0x03.toLong(), "right" to 0x05.toLong(), "center_vertical" to 0x10.toLong(), "fill_vertical" to 0x70.toLong(), "center_horizontal" to 0x01.toLong(), "fill_horizontal" to 0x07.toLong(), "center" to 0x11.toLong(), "fill" to 0x77.toLong(), "clip_vertical" to 0x80.toLong(), "clip_horizontal" to 0x08.toLong(), "start" to 0x00800003.toLong(), "end" to 0x00800005.toLong()))
+        val orientation = Attr("orientation", "enum", mutableListOf("horizontal" to 0.toLong(), "vertical" to 1.toLong()))
+        val alignmentMode = Attr("alignmentMode", "enum", mutableListOf("alignBounds" to 0.toLong(), "alignMargins" to 1.toLong()))
+        val keycode = Attr("keycode", "enum", mutableListOf("KEYCODE_UNKNOWN" to 0.toLong(), "KEYCODE_SOFT_LEFT" to 1.toLong(), "KEYCODE_SOFT_RIGHT" to 2.toLong(), "KEYCODE_HOME" to 3.toLong(), "KEYCODE_BACK" to 4.toLong(), "KEYCODE_CALL" to 5.toLong(), "KEYCODE_ENDCALL" to 6.toLong(), "KEYCODE_0" to 7.toLong(), "KEYCODE_1" to 8.toLong(), "KEYCODE_2" to 9.toLong(), "KEYCODE_3" to 10.toLong(), "KEYCODE_4" to 11.toLong(), "KEYCODE_5" to 12.toLong(), "KEYCODE_6" to 13.toLong(), "KEYCODE_7" to 14.toLong(), "KEYCODE_8" to 15.toLong(), "KEYCODE_9" to 16.toLong(), "KEYCODE_STAR" to 17.toLong(), "KEYCODE_POUND" to 18.toLong(), "KEYCODE_DPAD_UP" to 19.toLong(), "KEYCODE_DPAD_DOWN" to 20.toLong(), "KEYCODE_DPAD_LEFT" to 21.toLong(), "KEYCODE_DPAD_RIGHT" to 22.toLong(), "KEYCODE_DPAD_CENTER" to 23.toLong(), "KEYCODE_VOLUME_UP" to 24.toLong(), "KEYCODE_VOLUME_DOWN" to 25.toLong(), "KEYCODE_POWER" to 26.toLong(), "KEYCODE_CAMERA" to 27.toLong(), "KEYCODE_CLEAR" to 28.toLong(), "KEYCODE_A" to 29.toLong(), "KEYCODE_B" to 30.toLong(), "KEYCODE_C" to 31.toLong(), "KEYCODE_D" to 32.toLong(), "KEYCODE_E" to 33.toLong(), "KEYCODE_F" to 34.toLong(), "KEYCODE_G" to 35.toLong(), "KEYCODE_H" to 36.toLong(), "KEYCODE_I" to 37.toLong(), "KEYCODE_J" to 38.toLong(), "KEYCODE_K" to 39.toLong(), "KEYCODE_L" to 40.toLong(), "KEYCODE_M" to 41.toLong(), "KEYCODE_N" to 42.toLong(), "KEYCODE_O" to 43.toLong(), "KEYCODE_P" to 44.toLong(), "KEYCODE_Q" to 45.toLong(), "KEYCODE_R" to 46.toLong(), "KEYCODE_S" to 47.toLong(), "KEYCODE_T" to 48.toLong(), "KEYCODE_U" to 49.toLong(), "KEYCODE_V" to 50.toLong(), "KEYCODE_W" to 51.toLong(), "KEYCODE_X" to 52.toLong(), "KEYCODE_Y" to 53.toLong(), "KEYCODE_Z" to 54.toLong(), "KEYCODE_COMMA" to 55.toLong(), "KEYCODE_PERIOD" to 56.toLong(), "KEYCODE_ALT_LEFT" to 57.toLong(), "KEYCODE_ALT_RIGHT" to 58.toLong(), "KEYCODE_SHIFT_LEFT" to 59.toLong(), "KEYCODE_SHIFT_RIGHT" to 60.toLong(), "KEYCODE_TAB" to 61.toLong(), "KEYCODE_SPACE" to 62.toLong(), "KEYCODE_SYM" to 63.toLong(), "KEYCODE_EXPLORER" to 64.toLong(), "KEYCODE_ENVELOPE" to 65.toLong(), "KEYCODE_ENTER" to 66.toLong(), "KEYCODE_DEL" to 67.toLong(), "KEYCODE_GRAVE" to 68.toLong(), "KEYCODE_MINUS" to 69.toLong(), "KEYCODE_EQUALS" to 70.toLong(), "KEYCODE_LEFT_BRACKET" to 71.toLong(), "KEYCODE_RIGHT_BRACKET" to 72.toLong(), "KEYCODE_BACKSLASH" to 73.toLong(), "KEYCODE_SEMICOLON" to 74.toLong(), "KEYCODE_APOSTROPHE" to 75.toLong(), "KEYCODE_SLASH" to 76.toLong(), "KEYCODE_AT" to 77.toLong(), "KEYCODE_NUM" to 78.toLong(), "KEYCODE_HEADSETHOOK" to 79.toLong(), "KEYCODE_FOCUS" to 80.toLong(), "KEYCODE_PLUS" to 81.toLong(), "KEYCODE_MENU" to 82.toLong(), "KEYCODE_NOTIFICATION" to 83.toLong(), "KEYCODE_SEARCH" to 84.toLong(), "KEYCODE_MEDIA_PLAY_PAUSE" to 85.toLong(), "KEYCODE_MEDIA_STOP" to 86.toLong(), "KEYCODE_MEDIA_NEXT" to 87.toLong(), "KEYCODE_MEDIA_PREVIOUS" to 88.toLong(), "KEYCODE_MEDIA_REWIND" to 89.toLong(), "KEYCODE_MEDIA_FAST_FORWARD" to 90.toLong(), "KEYCODE_MUTE" to 91.toLong(), "KEYCODE_PAGE_UP" to 92.toLong(), "KEYCODE_PAGE_DOWN" to 93.toLong(), "KEYCODE_PICTSYMBOLS" to 94.toLong(), "KEYCODE_SWITCH_CHARSET" to 95.toLong(), "KEYCODE_BUTTON_A" to 96.toLong(), "KEYCODE_BUTTON_B" to 97.toLong(), "KEYCODE_BUTTON_C" to 98.toLong(), "KEYCODE_BUTTON_X" to 99.toLong(), "KEYCODE_BUTTON_Y" to 100.toLong(), "KEYCODE_BUTTON_Z" to 101.toLong(), "KEYCODE_BUTTON_L1" to 102.toLong(), "KEYCODE_BUTTON_R1" to 103.toLong(), "KEYCODE_BUTTON_L2" to 104.toLong(), "KEYCODE_BUTTON_R2" to 105.toLong(), "KEYCODE_BUTTON_THUMBL" to 106.toLong(), "KEYCODE_BUTTON_THUMBR" to 107.toLong(), "KEYCODE_BUTTON_START" to 108.toLong(), "KEYCODE_BUTTON_SELECT" to 109.toLong(), "KEYCODE_BUTTON_MODE" to 110.toLong(), "KEYCODE_ESCAPE" to 111.toLong(), "KEYCODE_FORWARD_DEL" to 112.toLong(), "KEYCODE_CTRL_LEFT" to 113.toLong(), "KEYCODE_CTRL_RIGHT" to 114.toLong(), "KEYCODE_CAPS_LOCK" to 115.toLong(), "KEYCODE_SCROLL_LOCK" to 116.toLong(), "KEYCODE_META_LEFT" to 117.toLong(), "KEYCODE_META_RIGHT" to 118.toLong(), "KEYCODE_FUNCTION" to 119.toLong(), "KEYCODE_SYSRQ" to 120.toLong(), "KEYCODE_BREAK" to 121.toLong(), "KEYCODE_MOVE_HOME" to 122.toLong(), "KEYCODE_MOVE_END" to 123.toLong(), "KEYCODE_INSERT" to 124.toLong(), "KEYCODE_FORWARD" to 125.toLong(), "KEYCODE_MEDIA_PLAY" to 126.toLong(), "KEYCODE_MEDIA_PAUSE" to 127.toLong(), "KEYCODE_MEDIA_CLOSE" to 128.toLong(), "KEYCODE_MEDIA_EJECT" to 129.toLong(), "KEYCODE_MEDIA_RECORD" to 130.toLong(), "KEYCODE_F1" to 131.toLong(), "KEYCODE_F2" to 132.toLong(), "KEYCODE_F3" to 133.toLong(), "KEYCODE_F4" to 134.toLong(), "KEYCODE_F5" to 135.toLong(), "KEYCODE_F6" to 136.toLong(), "KEYCODE_F7" to 137.toLong(), "KEYCODE_F8" to 138.toLong(), "KEYCODE_F9" to 139.toLong(), "KEYCODE_F10" to 140.toLong(), "KEYCODE_F11" to 141.toLong(), "KEYCODE_F12" to 142.toLong(), "KEYCODE_NUM_LOCK" to 143.toLong(), "KEYCODE_NUMPAD_0" to 144.toLong(), "KEYCODE_NUMPAD_1" to 145.toLong(), "KEYCODE_NUMPAD_2" to 146.toLong(), "KEYCODE_NUMPAD_3" to 147.toLong(), "KEYCODE_NUMPAD_4" to 148.toLong(), "KEYCODE_NUMPAD_5" to 149.toLong(), "KEYCODE_NUMPAD_6" to 150.toLong(), "KEYCODE_NUMPAD_7" to 151.toLong(), "KEYCODE_NUMPAD_8" to 152.toLong(), "KEYCODE_NUMPAD_9" to 153.toLong(), "KEYCODE_NUMPAD_DIVIDE" to 154.toLong(), "KEYCODE_NUMPAD_MULTIPLY" to 155.toLong(), "KEYCODE_NUMPAD_SUBTRACT" to 156.toLong(), "KEYCODE_NUMPAD_ADD" to 157.toLong(), "KEYCODE_NUMPAD_DOT" to 158.toLong(), "KEYCODE_NUMPAD_COMMA" to 159.toLong(), "KEYCODE_NUMPAD_ENTER" to 160.toLong(), "KEYCODE_NUMPAD_EQUALS" to 161.toLong(), "KEYCODE_NUMPAD_LEFT_PAREN" to 162.toLong(), "KEYCODE_NUMPAD_RIGHT_PAREN" to 163.toLong(), "KEYCODE_VOLUME_MUTE" to 164.toLong(), "KEYCODE_INFO" to 165.toLong(), "KEYCODE_CHANNEL_UP" to 166.toLong(), "KEYCODE_CHANNEL_DOWN" to 167.toLong(), "KEYCODE_ZOOM_IN" to 168.toLong(), "KEYCODE_ZOOM_OUT" to 169.toLong(), "KEYCODE_TV" to 170.toLong(), "KEYCODE_WINDOW" to 171.toLong(), "KEYCODE_GUIDE" to 172.toLong(), "KEYCODE_DVR" to 173.toLong(), "KEYCODE_BOOKMARK" to 174.toLong(), "KEYCODE_CAPTIONS" to 175.toLong(), "KEYCODE_SETTINGS" to 176.toLong(), "KEYCODE_TV_POWER" to 177.toLong(), "KEYCODE_TV_INPUT" to 178.toLong(), "KEYCODE_STB_POWER" to 179.toLong(), "KEYCODE_STB_INPUT" to 180.toLong(), "KEYCODE_AVR_POWER" to 181.toLong(), "KEYCODE_AVR_INPUT" to 182.toLong(), "KEYCODE_PROG_GRED" to 183.toLong(), "KEYCODE_PROG_GREEN" to 184.toLong(), "KEYCODE_PROG_YELLOW" to 185.toLong(), "KEYCODE_PROG_BLUE" to 186.toLong(), "KEYCODE_APP_SWITCH" to 187.toLong(), "KEYCODE_BUTTON_1" to 188.toLong(), "KEYCODE_BUTTON_2" to 189.toLong(), "KEYCODE_BUTTON_3" to 190.toLong(), "KEYCODE_BUTTON_4" to 191.toLong(), "KEYCODE_BUTTON_5" to 192.toLong(), "KEYCODE_BUTTON_6" to 193.toLong(), "KEYCODE_BUTTON_7" to 194.toLong(), "KEYCODE_BUTTON_8" to 195.toLong(), "KEYCODE_BUTTON_9" to 196.toLong(), "KEYCODE_BUTTON_10" to 197.toLong(), "KEYCODE_BUTTON_11" to 198.toLong(), "KEYCODE_BUTTON_12" to 199.toLong(), "KEYCODE_BUTTON_13" to 200.toLong(), "KEYCODE_BUTTON_14" to 201.toLong(), "KEYCODE_BUTTON_15" to 202.toLong(), "KEYCODE_BUTTON_16" to 203.toLong(), "KEYCODE_LANGUAGE_SWITCH" to 204.toLong(), "KEYCODE_MANNER_MODE" to 205.toLong(), "KEYCODE_3D_MODE" to 206.toLong(), "KEYCODE_CONTACTS" to 207.toLong(), "KEYCODE_CALENDAR" to 208.toLong(), "KEYCODE_MUSIC" to 209.toLong(), "KEYCODE_CALCULATOR" to 210.toLong(), "KEYCODE_ZENKAKU_HANKAKU" to 211.toLong(), "KEYCODE_EISU" to 212.toLong(), "KEYCODE_MUHENKAN" to 213.toLong(), "KEYCODE_HENKAN" to 214.toLong(), "KEYCODE_KATAKANA_HIRAGANA" to 215.toLong(), "KEYCODE_YEN" to 216.toLong(), "KEYCODE_RO" to 217.toLong(), "KEYCODE_KANA" to 218.toLong(), "KEYCODE_ASSIST" to 219.toLong(), "KEYCODE_BRIGHTNESS_DOWN" to 220.toLong(), "KEYCODE_BRIGHTNESS_UP" to 221.toLong(), "KEYCODE_MEDIA_AUDIO_TRACK" to 222.toLong(), "KEYCODE_MEDIA_SLEEP" to 223.toLong(), "KEYCODE_MEDIA_WAKEUP" to 224.toLong(), "KEYCODE_PAIRING" to 225.toLong(), "KEYCODE_MEDIA_TOP_MENU" to 226.toLong(), "KEYCODE_11" to 227.toLong(), "KEYCODE_12" to 228.toLong(), "KEYCODE_LAST_CHANNEL" to 229.toLong(), "KEYCODE_TV_DATA_SERVICE" to 230.toLong(), "KEYCODE_VOICE_ASSIST" to 231.toLong(), "KEYCODE_TV_RADIO_SERVICE" to 232.toLong(), "KEYCODE_TV_TELETEXT" to 233.toLong(), "KEYCODE_TV_NUMBER_ENTRY" to 234.toLong(), "KEYCODE_TV_TERRESTRIAL_ANALOG" to 235.toLong(), "KEYCODE_TV_TERRESTRIAL_DIGITAL" to 236.toLong(), "KEYCODE_TV_SATELLITE" to 237.toLong(), "KEYCODE_TV_SATELLITE_BS" to 238.toLong(), "KEYCODE_TV_SATELLITE_CS" to 239.toLong(), "KEYCODE_TV_SATELLITE_SERVICE" to 240.toLong(), "KEYCODE_TV_NETWORK" to 241.toLong(), "KEYCODE_TV_ANTENNA_CABLE" to 242.toLong(), "KEYCODE_TV_INPUT_HDMI_1" to 243.toLong(), "KEYCODE_TV_INPUT_HDMI_2" to 244.toLong(), "KEYCODE_TV_INPUT_HDMI_3" to 245.toLong(), "KEYCODE_TV_INPUT_HDMI_4" to 246.toLong(), "KEYCODE_TV_INPUT_COMPOSITE_1" to 247.toLong(), "KEYCODE_TV_INPUT_COMPOSITE_2" to 248.toLong(), "KEYCODE_TV_INPUT_COMPONENT_1" to 249.toLong(), "KEYCODE_TV_INPUT_COMPONENT_2" to 250.toLong(), "KEYCODE_TV_INPUT_VGA_1" to 251.toLong(), "KEYCODE_TV_AUDIO_DESCRIPTION" to 252.toLong(), "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP" to 253.toLong(), "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN" to 254.toLong(), "KEYCODE_TV_ZOOM_MODE" to 255.toLong(), "KEYCODE_TV_CONTENTS_MENU" to 256.toLong(), "KEYCODE_TV_MEDIA_CONTEXT_MENU" to 257.toLong(), "KEYCODE_TV_TIMER_PROGRAMMING" to 258.toLong(), "KEYCODE_HELP" to 259.toLong(), "KEYCODE_NAVIGATE_PREVIOUS" to 260.toLong(), "KEYCODE_NAVIGATE_NEXT" to 261.toLong(), "KEYCODE_NAVIGATE_IN" to 262.toLong(), "KEYCODE_NAVIGATE_OUT" to 263.toLong(), "KEYCODE_STEM_PRIMARY" to 264.toLong(), "KEYCODE_STEM_1" to 265.toLong(), "KEYCODE_STEM_2" to 266.toLong(), "KEYCODE_STEM_3" to 267.toLong(), "KEYCODE_DPAD_UP_LEFT" to 268.toLong(), "KEYCODE_DPAD_DOWN_LEFT" to 269.toLong(), "KEYCODE_DPAD_UP_RIGHT" to 270.toLong(), "KEYCODE_DPAD_DOWN_RIGHT" to 271.toLong(), "KEYCODE_MEDIA_SKIP_FORWARD" to 272.toLong(), "KEYCODE_MEDIA_SKIP_BACKWARD" to 273.toLong(), "KEYCODE_MEDIA_STEP_FORWARD" to 274.toLong(), "KEYCODE_MEDIA_STEP_BACKWARD" to 275.toLong(), "KEYCODE_SOFT_SLEEP" to 276.toLong(), "KEYCODE_CUT" to 277.toLong(), "KEYCODE_COPY" to 278.toLong(), "KEYCODE_PASTE" to 279.toLong(), "KEYCODE_SYSTEM_NAVIGATION_UP" to 280.toLong(), "KEYCODE_SYSTEM_NAVIGATION_DOWN" to 281.toLong(), "KEYCODE_SYSTEM_NAVIGATION_LEFT" to 282.toLong(), "KEYCODE_SYSTEM_NAVIGATION_RIGHT" to 283.toLong(), "KEYCODE_ALL_APPS" to 284.toLong(), "KEYCODE_REFRESH" to 285.toLong(), "KEYCODE_THUMBS_UP" to 286.toLong(), "KEYCODE_THUMBS_DOWN" to 287.toLong(), "KEYCODE_PROFILE_SWITCH" to 288.toLong()))
         val __removed3 = Attr("__removed3")
         val __removed4 = Attr("__removed4")
         val __removed5 = Attr("__removed5")
         val __removed6 = Attr("__removed6")
-        val layout_childType = Attr("layout_childType", "enum", mutableMapOf("none" to 0, "widget" to 1, "challenge" to 2, "userSwitcher" to 3, "scrim" to 4, "widgets" to 5, "expandChallengeHandle" to 6, "pageDeleteDropTarget" to 7))
+        val layout_childType = Attr("layout_childType", "enum", mutableListOf("none" to 0.toLong(), "widget" to 1.toLong(), "challenge" to 2.toLong(), "userSwitcher" to 3.toLong(), "scrim" to 4.toLong(), "widgets" to 5.toLong(), "expandChallengeHandle" to 6.toLong(), "pageDeleteDropTarget" to 7.toLong()))
         val lockPatternStyle = Attr("lockPatternStyle", "reference")
         val autoSizePresetSizes = Attr("autoSizePresetSizes")
+    }
+
+    /** added manually **/
+
+    object Resources2 {
+        val name = Attr("name", "string")
+        val type = Attr("type", "enum", arrayOf("transition" to 1, "animator" to 2, "anim" to 3, "interpolator" to 4, "style" to 5, "string" to 6, "array" to 7, "attr" to 8, "bool" to 9, "color" to 10, "dimen" to 11, "drawable" to 12, "font" to 13, "fraction" to 14, "id" to 15, "integer" to 16, "layout" to 17, "menu" to 18, "mipmap" to 19, "navigation" to 20, "plurals" to 21, "raw" to 22, "xml" to 23))
+        val format = Attr("format", "enum", arrayOf("integer" to 1, "float" to 2, "reference" to 3, "fraction" to 4, "color" to 5, "enum" to 6, "string" to 7, "boolean" to 8, "dimension" to 9, "flags" to 10))
+        val parent = Attr("parent", "string")
+        val value = Attr("value", "int")
+        val formatted = Attr("formatted", "bool")
+        val translatable = Attr("translatable", "bool")
+        val quantity = Attr("quantity", "enum", arrayOf("zero" to 1, "one" to 2, "two" to 3, "few" to 4, "many" to 5, "other" to 6))
     }
 }
 
@@ -2894,6 +2920,8 @@ class Attributes {
  *
  * sys.stdout = old
  * outf.close()
+ *
+ * # 注意，使用该代码生成该文件后，又使用正则替换对该文件进行了一些修改，即该代码生成对文件并非最终版本。
  */
 
 /**
@@ -3455,23 +3483,41 @@ class Attributes {
 
 /**
  * values 下面的
- * resources
- * item
- * style
- * declare-styleable
- * drawable
- * dimen
- * color
- * array
- * attr
- * bool
- * eat-comment
- * fraction
- * integer
- * integer-array
- * string
- * string-array
- * plurals
+ * <resources>
+ *     <item name="string" type=["transition" | "animator" | "anim" | "interpolator" | "style" | "string" | "array" | "attr" | "bool" | "color" | "dimen" | "drawable"
+ *         | "font" | "fraction" | "id" | "integer" | "layout" | "menu" | "mipmap" | "navigation" | "plurals" | "raw" | "xml"] format=["integer" | "float" | "reference"
+ *         | "fraction" | "color" | "enum" | "string" | "boolean" | "dimension" | "flags"] >text</item>
+ *     <style name="string" parent="string">
+ *         <item name="string">text</item>
+ *     </style>
+ *     <declare-styleable name="string">
+ *         <attr name="string" format="...">
+ *             <enum name="string" value="int" />
+ *             <flag name="string" value="int" />
+ *         </attr>
+ *     </declare-styleable>
+ *     <drawable name="string">reference</drawable>
+ *     <dimen name="string">100dp</dimen>
+ *     <color name="string">#rgb</color>
+ *     <array name="string">
+ *         <item>reference</item>
+ *     </array>
+ *     <attr .../>
+ *     <bool name="string">[true | false]</bool>
+ *     <fraction name="string">100%p</fraction>
+ *     <!-- eat-comment -->
+ *     <integer name="string">100</integer>
+ *     <integer-array name="string">
+ *         <item>100</item>
+ *     </integer-array>
+ *     <string name="string" formatted="bool" translatable="bool">string</string>
+ *     <string-array name="string">
+ *         <item>string</item>
+ *     </string-array>
+ *     <plurals name="string">
+ *         <item quantity=["zero" | "one" | "two" | "few" | "many" | "other"]>string</item>
+ *     </plurals>
+ * </resources>
  */
 
 /**
