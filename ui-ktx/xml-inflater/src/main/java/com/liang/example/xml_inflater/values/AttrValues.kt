@@ -236,6 +236,9 @@ open class ReferenceAttrProcessor(attr: Attr, open var context: Context) : AttrP
         } else {
             s.substring(1)
         }
+        if (resType !in validRefType) {
+            return null
+        }
         if (cache.containsKey("${resType}_$resName")) {
             return ReferenceAttrValue(attr, first, packageName, resType, resName, INNER_RES)
         }
@@ -464,16 +467,16 @@ interface IAttrProcessorManager {
     fun getAll(format: String): List<AttrProcessor<*>>
     fun <T : AttrProcessor<*>> getAll(clazz: Class<*>): List<T>
 
-    fun dimen(): DimenAttrProcessor
-    fun fraction(): FractionAttrProcessor
-    fun refer(): ReferenceAttrProcessor
-    fun color(): ColorAttrProcessor
-    fun str(): StringAttrProcessor
-    fun bool(): BooleanAttrProcessor
-    fun int(): IntegerAttrProcessor
-    fun float(): FloatAttrProcessor
-    fun enum(): EnumAttrProcessor
-    fun flag(): FlagAttrProcessor
+    fun dimen(s: String?, context: Context): Float?
+    fun fraction(s: String?): Float?
+    fun float(s: String?): Float?
+    fun refer(s: String?): Int?
+    fun str(s: String?): String?
+    fun bool(s: String?): Boolean?
+    fun color(s: String?): Long?
+    fun int(s: String?): Long?
+    fun enum(s: String?): Long?
+    fun flag(s: String?): Long?
 }
 
 open class AttrProcessorManager(override var processors: MutableList<AttrProcessor<*>>) : AttrProcessor<Any>(Attr.ATTR_EMPTY), IAttrProcessorManager {
@@ -503,16 +506,18 @@ open class AttrProcessorManager(override var processors: MutableList<AttrProcess
     override fun getAll(format: String): List<AttrProcessor<*>> = processors.filter { format in it.formats }
     override fun <T : AttrProcessor<*>> getAll(clazz: Class<*>): List<T> = processors.filterIsInstance(clazz) as List<T>
 
-    override fun dimen(): DimenAttrProcessor = get("dimen") as DimenAttrProcessor
-    override fun fraction(): FractionAttrProcessor = get("fraction") as FractionAttrProcessor
-    override fun refer(): ReferenceAttrProcessor = get("refer") as ReferenceAttrProcessor
-    override fun color(): ColorAttrProcessor = get("color") as ColorAttrProcessor
-    override fun str(): StringAttrProcessor = get("str") as StringAttrProcessor
-    override fun bool(): BooleanAttrProcessor = get("bool") as BooleanAttrProcessor
-    override fun int(): IntegerAttrProcessor = get("int") as IntegerAttrProcessor
-    override fun float(): FloatAttrProcessor = get("float") as FloatAttrProcessor
-    override fun enum(): EnumAttrProcessor = get("enum") as EnumAttrProcessor
-    override fun flag(): FlagAttrProcessor = get("flag") as FlagAttrProcessor
+    override fun dimen(s: String?, context: Context): Float? =
+            (get("dimen") as DimenAttrProcessor).from(s)?.let { DimenAttrProcessor.staticApply(context, it as DimenAttrProcessor.DimenAttrValue) }
+
+    override fun fraction(s: String?): Float? = (get("fraction") as FractionAttrProcessor).from(s)?.value()
+    override fun refer(s: String?): Int? = (get("refer") as ReferenceAttrProcessor).from(s)?.value()
+    override fun color(s: String?): Long? = (get("color") as ColorAttrProcessor).from(s)?.value()
+    override fun str(s: String?): String? = (get("str") as StringAttrProcessor).from(s)?.value()
+    override fun bool(s: String?): Boolean? = (get("bool") as BooleanAttrProcessor).from(s)?.value()
+    override fun int(s: String?): Long? = (get("int") as IntegerAttrProcessor).from(s)?.value()
+    override fun float(s: String?): Float? = (get("float") as FloatAttrProcessor).from(s)?.value()
+    override fun enum(s: String?): Long? = (get("enum") as EnumAttrProcessor).from(s)?.value()
+    override fun flag(s: String?): Long? = (get("flag") as FlagAttrProcessor).from(s)?.value()
 
     override fun innerFrom(s: String): AttrValue<Any>? {
         for (processor in processors) {

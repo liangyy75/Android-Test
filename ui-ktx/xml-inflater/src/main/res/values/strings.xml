@@ -20,6 +20,7 @@
 
     <array name="arrayd">
         <item>@drawable/adaptive_icon_test</item>
+        <item>false</item>
     </array>
     <attr name="attrd" format="color" />
     <bool name="boold">true</bool>

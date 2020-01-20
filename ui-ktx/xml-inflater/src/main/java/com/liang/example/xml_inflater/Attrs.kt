@@ -19,6 +19,9 @@ package com.liang.example.xml_inflater
 open class Attr(val name: String, val format: String? = null, val values: MutableList<Pair<String, Long>>? = null) {
     constructor(name: String, format: String?, values: Array<Pair<String, Int>>) : this(name, format, values.map { it.first to it.second.toLong() }.toMutableList())
 
+    override fun hashCode(): Int = name.hashCode() * 31 + (format?.hashCode() ?: 0)
+    override fun equals(other: Any?): Boolean = other === this || other is Attr && other.name == this.name && other.format == this.format
+
     override fun toString(): String = "attr(name: $name, format: $format, values: [${values?.toList()?.joinToString { "(${it.first}: ${it.second})" }
             ?: ""}])"
 
@@ -2857,6 +2860,31 @@ class Attrs {
         val translatable = Attr("translatable", "bool")
         val quantity = Attr("quantity", "enum", arrayOf("zero" to 1, "one" to 2, "two" to 3, "few" to 4, "many" to 5, "other" to 6))
     }
+
+    object FreeRes {
+        val name = Attr("name", "string")
+    }
+
+    object Color {
+        val color = Attr("color", "color")
+        val state_accelerated = Attr("state_accelerated", "bool")
+        val state_activated = Attr("state_activated", "bool")
+        val state_active = Attr("state_active", "bool")
+        val state_checkable = Attr("state_checkable", "bool")
+        val state_checked = Attr("state_checked", "bool")
+        val state_drag_can_accept = Attr("state_drag_can_accept", "bool")
+        val state_drag_hovered = Attr("state_drag_hovered", "bool")
+        val state_enabled = Attr("state_enabled", "bool")
+        val state_first = Attr("state_first", "bool")
+        val state_focused = Attr("state_focused", "bool")
+        val state_hovered = Attr("state_hovered", "bool")
+        val state_last = Attr("state_last", "bool")
+        val state_middle = Attr("state_middle", "bool")
+        val state_pressed = Attr("state_pressed", "bool")
+        val state_selected = Attr("state_selected", "bool")
+        val state_single = Attr("state_single", "bool")
+        val state_window_focused = Attr("state_window_focused", "bool")
+    }
 }
 
 /**
@@ -3518,27 +3546,6 @@ class Attrs {
  *         <item quantity=["zero" | "one" | "two" | "few" | "many" | "other"]>string</item>
  *     </plurals>
  * </resources>
- */
-
-/**
- * string @string/string_name
- * <string name="sss" formatted="true" translatable="true">sss</string>
- * <string-array name="hehehe">
- *     <item>hehehe1</item>
- * </string-array>
- * <plurals name="p">
- *     <item quantity=["zero" | "one" | "two" | "few" | "many" | "other"]>5</item>
- * </plurals>
- * https://developer.android.com/guide/topics/resources/string-resource?hl=zh-cn
- */
-
-/**
- * style @[package:]style/style_name
- * <style
- *     name="style_name"
- *     parent="@[package:]style/style_to_inherit">
- *     <item name="[package:]style_property_name">style_value</item>
- * </style>
  */
 
 /**
