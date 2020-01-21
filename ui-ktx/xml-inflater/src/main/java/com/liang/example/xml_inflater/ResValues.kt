@@ -1,6 +1,6 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.liang.example.xml_inflater.values
+package com.liang.example.xml_inflater
 
 import android.animation.Animator
 import android.animation.AnimatorSet
@@ -32,53 +32,8 @@ import android.view.animation.AnimationSet
 import android.view.animation.RotateAnimation
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
-import androidx.annotation.CallSuper
-import com.liang.example.xml_inflater.Attr
-import com.liang.example.xml_inflater.Attrs
-import com.liang.example.xml_inflater.FormatValue
-import com.liang.example.xml_inflater.debugFlag
-import com.liang.example.xml_inflater.tag
-import com.liang.example.xml_inflater.throwFlag
-
-open class Node(open var name: String) {
-    open var parent: Node? = null
-    open var text = EMPTY_TEXT
-    open var children: MutableList<Node> = EMPTY_CHILDREN
-    open var attributes: MutableList<NodeAttr> = EMPTY_ATTRIBUTES
-
-    operator fun get(attrName: String) = attributes.find { it.name == attrName }?.value
-
-    open class NodeAttr(open var name: String, open var value: String)
-
-    companion object {
-        val EMPTY_CHILDREN = mutableListOf<Node>()
-        val EMPTY_ATTRIBUTES = mutableListOf<NodeAttr>()
-        const val EMPTY_TEXT = ""
-    }
-}
 
 abstract class ResProcessor<T>(open val apm: IAttrProcessorManager, open val type: String) {
-    open val aps = mutableMapOf<Attr, AttrProcessor<*>>()
-
-    open fun register(attr: Attr): Boolean {
-        aps[attr] = when {
-            attr.format == null || attr.format == "flag" -> apm["flag"] ?: return false
-            attr.format.contains('|') -> apm.getComplex(*attr.format.split('|').toTypedArray()) ?: return false
-            else -> apm[attr.format] ?: return false
-        }
-        return true
-    }
-
-    open fun registerGlobal(attr: Attr): Boolean {
-        gaps[attr] = when {
-            attr.format == null || attr.format == "flag" -> apm["flag"] ?: return false
-            attr.format.contains('|') -> apm.getComplex(*attr.format.split('|').toTypedArray()) ?: return false
-            else -> apm[attr.format] ?: return false
-        }
-        return true
-    }
-
-    abstract fun prepare()
     abstract fun process(node: Node): NamedNodeValue<T>?
 
     open fun <T> makeFail(reason: String, value: T? = null): T? {
@@ -99,18 +54,20 @@ abstract class ResProcessor<T>(open val apm: IAttrProcessorManager, open val typ
     open class ListNodeValue(_node: Node, _value: List<NamedNodeValue<*>>, _type: Int, _name: String? = null)
         : NamedNodeValue<List<NamedNodeValue<*>>>(_node, _value, _type, _name)
 
+    open fun dimen(s: String?, context: Context, attr: Attr? = null): Float? =
+            (apm["dimen"] as DimenAttrProcessor).attr(attr).from(s)?.let { DimenAttrProcessor.staticApply(context, it as DimenAttrProcessor.DimenAttrValue) }
+
     open fun fraction(s: String?): Float? = (apm["fraction"] as FractionAttrProcessor).from(s)?.value()
     open fun refer(s: String?): Int? = (apm["refer"] as ReferenceAttrProcessor).from(s)?.value()
     open fun color(s: String?): Long? = (apm["color"] as ColorAttrProcessor).from(s)?.value()
     open fun str(s: String?): String? = (apm["str"] as StringAttrProcessor).from(s)?.value()
     open fun bool(s: String?): Boolean? = (apm["bool"] as BooleanAttrProcessor).from(s)?.value()
-    open fun int(s: String?): Long? = (apm["int"] as IntegerAttrProcessor).from(s)?.value()
+    open fun int(s: String?, attr: Attr? = null): Long? = (apm["int"] as IntegerAttrProcessor).attr(attr).from(s)?.value()
     open fun float(s: String?): Float? = (apm["float"] as FloatAttrProcessor).from(s)?.value()
-    open fun enum(s: String?): Long? = (apm["enum"] as EnumAttrProcessor).from(s)?.value()
-    open fun flag(s: String?): Long? = (apm["flag"] as FlagAttrProcessor).from(s)?.value()
+    open fun enum(s: String?, attr: Attr): Long? = (apm["enum"] as EnumAttrProcessor).attr(attr).from(s)?.value()
+    open fun flag(s: String?, attr: Attr): Long? = (apm["flag"] as FlagAttrProcessor).attr(attr).from(s)?.value()
 
     companion object {
-        val gaps = mutableMapOf<Attr, AttrProcessor<*>>()
         const val NOT_CARED = -1
     }
 }
@@ -160,25 +117,15 @@ interface IResProcessorManager {
  */
 open class ValuesResProcessor(open var context: Context, _attrProcessorManager: IAttrProcessorManager)
     : ResProcessor<List<ResProcessor.NamedNodeValue<*>>>(_attrProcessorManager, "values") {
-    override fun prepare() {
-        register(Attrs.Resources2.name)
-        register(Attrs.Resources2.type)  // TODO
-        register(Attrs.Resources2.format)  // TODO
-        register(Attrs.Resources2.parent)  // TODO
-        register(Attrs.Resources2.value)  // TODO
-        register(Attrs.Resources2.formatted)  // TODO
-        register(Attrs.Resources2.translatable)  // TODO
-        register(Attrs.Resources2.quantity)
-    }
 
     override fun process(node: Node): NamedNodeValue<List<NamedNodeValue<*>>>? {
-        if (node.name != "resources" || node.name != "array" || node.children.isEmpty()) {
-            return null
+        if ((node.name != "resources" && node.name != "array") || node.children.isEmpty()) {
+            return makeFail("resources should have resouces' element or array's element, and children should not be empty: " +
+                    "name: ${node.name}, node-children-size ${node.children.size}")
         }
         val list = mutableListOf<NamedNodeValue<*>>()
         node.children.forEach {
-            val name = aps[Attrs.Resources2.name]!!.from(it["name"])?.string()
-                    ?: return makeFail("resources's element should has name attribute")
+            val name = str(it["name"]) ?: return makeFail("resources's element should has name attribute")
             val temp: NamedNodeValue<*> = when (it.name) {
                 "item" -> item(it, name)
                 "style" -> style(it, name)
@@ -186,13 +133,13 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
                 "declare-styleable" -> declareStyleable(it, name)
                 "drawable" -> drawable(it, name)
                 "array" -> array(it, name)
-                "dimen" -> dimen(it, name)
+                "dimen", "dimension" -> dimen(it, name)
                 "color" -> color(it, name)
-                "bool" -> bool(it, name)
+                "bool", "boolean" -> bool(it, name)
                 "fraction" -> fraction(it, name)
-                "integer" -> integer(it, name)
+                "integer", "int" -> integer(it, name)
                 "integer-array" -> integerArray(it, name)
-                "string" -> string(it, name)
+                "string", "str" -> string(it, name)
                 "string-array" -> stringArray(it, name)
                 "plurals" -> plurals(it, name)
                 else -> return makeFail("unknown resources's element: ${it.name}", null)
@@ -219,7 +166,7 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
     }
 
     protected open fun drawable(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.refer(it.text) ?: return makeFail("drawable's text should be reference"), DRAWABLE, name)
+        return NamedNodeValue(it, refer(it.text) ?: return makeFail("drawable's text should be reference"), DRAWABLE, name)
     }
 
     protected open fun array(it: Node, name: String): NamedNodeValue<*>? {
@@ -232,23 +179,23 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
     }
 
     protected open fun dimen(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.dimen(it.text, context) ?: return makeFail("dimen's text is incorrect"), DIMEN, name)
+        return NamedNodeValue(it, dimen(it.text, context) ?: return makeFail("dimen's text is incorrect"), DIMEN, name)
     }
 
     protected open fun color(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.color(it.text) ?: return makeFail("color's text is incorrect"), COLOR, name)
+        return NamedNodeValue(it, color(it.text) ?: return makeFail("color's text is incorrect"), COLOR, name)
     }
 
     protected open fun bool(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.bool(it.text) ?: return makeFail("bool's text is incorrect"), BOOL, name)
+        return NamedNodeValue(it, bool(it.text) ?: return makeFail("bool's text is incorrect"), BOOL, name)
     }
 
     protected open fun fraction(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.fraction(it.text) ?: return makeFail("fraction's text is incorrect"), FRACTION, name)
+        return NamedNodeValue(it, fraction(it.text) ?: return makeFail("fraction's text is incorrect"), FRACTION, name)
     }
 
     protected open fun integer(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.int(it.text) ?: return makeFail("integer's text is incorrect"), INTEGER, name)
+        return NamedNodeValue(it, int(it.text) ?: return makeFail("integer's text is incorrect"), INTEGER, name)
     }
 
     protected open fun integerArray(it: Node, name: String): NamedNodeValue<*>? {
@@ -256,12 +203,12 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
             return makeFail("integer array must have children")
         }
         return NamedNodeValue(it, it.children.map { integer ->
-            apm.int(integer.text) ?: return makeFail("integer array's item text is incorrect")
+            int(integer.text) ?: return makeFail("integer array's item text is incorrect")
         }.toLongArray(), INTEGER_ARRAY, name)
     }
 
     protected open fun string(it: Node, name: String): NamedNodeValue<*>? {
-        return NamedNodeValue(it, apm.str(it.text) ?: return makeFail("string's text is incorrect"), STRING, name)
+        return NamedNodeValue(it, str(it.text) ?: return makeFail("string's text is incorrect"), STRING, name)
     }
 
     protected open fun stringArray(it: Node, name: String): NamedNodeValue<*>? {
@@ -269,7 +216,7 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
             return makeFail("string array must have children")
         }
         return NamedNodeValue(it, it.children.map { string ->
-            apm.str(string.text) ?: return makeFail("string array's item text is incorrect")
+            str(string.text) ?: return makeFail("string array's item text is incorrect")
         }.toTypedArray(), STRING_ARRAY, name)
     }
 
@@ -278,7 +225,7 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
             return makeFail("plurals must have children")
         }
         return NamedNodeValue(it, it.children.map { item ->
-            (apm.enum(item["quantity"]) ?: return makeFail("the quantity attribute of plurals's item is incorrect")) to
+            (enum(item["quantity"], Attrs.Resources2.quantity) ?: return makeFail("the quantity attribute of plurals's item is incorrect")) to
                     (apm.str(item.text) ?: return makeFail("plurals's item text is incorrect"))
         }.toMap(), STRING_ARRAY, name)
     }
@@ -324,13 +271,6 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
     }
 }
 
-abstract class FreeResProcessor<T>(manager: IAttrProcessorManager, _type: String) : ResProcessor<T>(manager, _type) {
-    @CallSuper
-    override fun prepare() {
-        register(Attrs.FreeRes.name)
-    }
-}
-
 /**
  * color @[package:]color/filename
  * <selector>
@@ -352,39 +292,31 @@ abstract class FreeResProcessor<T>(manager: IAttrProcessorManager, _type: String
  *     <item android:color="color" android:offset="integer"/>
  * </gradient>
  */
-open class SelectorColorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ColorStateList>(manager, "color") {
-    override fun prepare() {
-        super.prepare()
-        register(Attrs.Color.color)
-        register(Attrs.Color.state_accelerated)
-        register(Attrs.Color.state_activated)
-        register(Attrs.Color.state_active)
-        register(Attrs.Color.state_checkable)
-        register(Attrs.Color.state_checked)
-        register(Attrs.Color.state_drag_can_accept)
-        register(Attrs.Color.state_drag_hovered)
-        register(Attrs.Color.state_enabled)
-        register(Attrs.Color.state_first)
-        register(Attrs.Color.state_focused)
-        register(Attrs.Color.state_hovered)
-        register(Attrs.Color.state_last)
-        register(Attrs.Color.state_middle)
-        register(Attrs.Color.state_pressed)
-        register(Attrs.Color.state_selected)
-        register(Attrs.Color.state_single)
-        register(Attrs.Color.state_window_focused)
-    }
-
+open class SelectorColorResProcessor(manager: IAttrProcessorManager) : ResProcessor<ColorStateList>(manager, "color") {
     override fun process(node: Node): NamedNodeValue<ColorStateList>? {
         if (node.name != "selector" || node.children.isEmpty()) {
             return null
         }
-        val name = aps[Attrs.Resources2.name]!!.from(node["name"])?.string()
-                ?: return makeFail("resources's element should has name attribute")
+        val name = str(node["name"]) ?: return makeFail("resources's element should has name attribute")
         val stateSpecs = mutableListOf<IntArray>()
         val colors = mutableListOf<Int>()
         node.children.forEach { item ->
-            item.attributes.forEach { attrs ->
+            val color = color(item["color"])?.toInt() ?: return makeFail("color selector's item' color attribute should has color value")
+            val itemStates = mutableListOf<Int>()
+            item.attributes.forEach { attr ->
+                if (states.containsKey(attr.name)) {
+                    val value = bool(attr.value) ?: return makeFail("color selector's item's attribute's value is incorrect: ${attr.value}")
+                    itemStates.add(when {
+                        value -> states[attr.name]!!
+                        else -> -states[attr.name]!!
+                    })
+                } else if (throwFlag) {
+                    throw RuntimeException("color selector's item has incorrect attribute: ${attr.name}")
+                }
+            }
+            if (itemStates.isNotEmpty()) {
+                stateSpecs.add(itemStates.toIntArray())
+                colors.add(color)
             }
         }
         return NamedNodeValue(node, ColorStateList(stateSpecs.toTypedArray(), colors.toIntArray()), COLOR_STATE_LIST, name)
@@ -415,7 +347,7 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : FreeResPr
     }
 }
 
-// open class GradientColorResProcessor(_attrProcessorManager: IAttrProcessorManager) : FreeResProcessor<android.content.res.GradientColor>(_attrProcessorManager, "color")
+// open class GradientColorResProcessor(_attrProcessorManager: IAttrProcessorManager) : ResProcessor<android.content.res.GradientColor>(_attrProcessorManager, "color")
 // android.content.res.GradientColor is hidden
 
 /**
@@ -502,25 +434,25 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : FreeResPr
  * keyframe
  * item
  */
-open class AnimatorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Animator>(manager, "animator") {
+open class AnimatorResProcessor(manager: IAttrProcessorManager) : ResProcessor<Animator>(manager, "animator") {
     override fun process(node: Node): NamedNodeValue<Animator>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class ObjAnimatorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ObjectAnimator>(manager, "animator") {
+open class ObjAnimatorResProcessor(manager: IAttrProcessorManager) : ResProcessor<ObjectAnimator>(manager, "animator") {
     override fun process(node: Node): NamedNodeValue<ObjectAnimator>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AnimatorSetResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimatorSet>(manager, "animator") {
+open class AnimatorSetResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimatorSet>(manager, "animator") {
     override fun process(node: Node): NamedNodeValue<AnimatorSet>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AnimatorSelectorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Map<Int, Animator>>(manager, "animator") {
+open class AnimatorSelectorResProcessor(manager: IAttrProcessorManager) : ResProcessor<Map<Int, Animator>>(manager, "animator") {
     override fun process(node: Node): NamedNodeValue<Map<Int, Animator>>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -599,31 +531,31 @@ open class AnimatorSelectorResProcessor(manager: IAttrProcessorManager) : FreeRe
  * alpha
  * translate
  */
-open class AnimationSetResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimationSet>(manager, "anim") {
+open class AnimationSetResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimationSet>(manager, "anim") {
     override fun process(node: Node): NamedNodeValue<AnimationSet>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class RotateResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<RotateAnimation>(manager, "anim") {
+open class RotateResProcessor(manager: IAttrProcessorManager) : ResProcessor<RotateAnimation>(manager, "anim") {
     override fun process(node: Node): NamedNodeValue<RotateAnimation>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class ScaleResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ScaleAnimation>(manager, "anim") {
+open class ScaleResProcessor(manager: IAttrProcessorManager) : ResProcessor<ScaleAnimation>(manager, "anim") {
     override fun process(node: Node): NamedNodeValue<ScaleAnimation>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AlphaResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AlphaAnimation>(manager, "anim") {
+open class AlphaResProcessor(manager: IAttrProcessorManager) : ResProcessor<AlphaAnimation>(manager, "anim") {
     override fun process(node: Node): NamedNodeValue<AlphaAnimation>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class TranslateResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<TranslateAnimation>(manager, "anim") {
+open class TranslateResProcessor(manager: IAttrProcessorManager) : ResProcessor<TranslateAnimation>(manager, "anim") {
     override fun process(node: Node): NamedNodeValue<TranslateAnimation>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -641,7 +573,7 @@ open class TranslateResProcessor(manager: IAttrProcessorManager) : FreeResProces
  * </animation-list>
  * https://developer.android.com/guide/topics/resources/animation-resource.html?hl=zh-cn
  */
-open class AnimationListResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimationDrawable>(manager, "drawable") {
+open class AnimationListResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimationDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<AnimationDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -967,109 +899,109 @@ open class AnimationListResProcessor(manager: IAttrProcessorManager) : FreeResPr
  * group
  * path
  */
-open class ShapeResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ShapeDrawable>(manager, "drawable") {
+open class ShapeResProcessor(manager: IAttrProcessorManager) : ResProcessor<ShapeDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<ShapeDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class ClipResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ClipDrawable>(manager, "drawable") {
+open class ClipResProcessor(manager: IAttrProcessorManager) : ResProcessor<ClipDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<ClipDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class InsetResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<InsetDrawable>(manager, "drawable") {
+open class InsetResProcessor(manager: IAttrProcessorManager) : ResProcessor<InsetDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<InsetDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class LayerListResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<LayerDrawable>(manager, "drawable") {
+open class LayerListResProcessor(manager: IAttrProcessorManager) : ResProcessor<LayerDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<LayerDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class LevelListResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<LevelListDrawable>(manager, "drawable") {
+open class LevelListResProcessor(manager: IAttrProcessorManager) : ResProcessor<LevelListDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<LevelListDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class VectorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<VectorDrawable>(manager, "drawable") {
+open class VectorResProcessor(manager: IAttrProcessorManager) : ResProcessor<VectorDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<VectorDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class ColorDrawableResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<ColorDrawable>(manager, "drawable") {
+open class ColorDrawableResProcessor(manager: IAttrProcessorManager) : ResProcessor<ColorDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<ColorDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class SelectorDrawableResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<StateListDrawable>(manager, "drawable") {
+open class SelectorDrawableResProcessor(manager: IAttrProcessorManager) : ResProcessor<StateListDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<StateListDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class GradientDrawableResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<GradientDrawable>(manager, "drawable") {
+open class GradientDrawableResProcessor(manager: IAttrProcessorManager) : ResProcessor<GradientDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<GradientDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AdaptiveIconResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AdaptiveIconDrawable>(manager, "drawable") {
+open class AdaptiveIconResProcessor(manager: IAttrProcessorManager) : ResProcessor<AdaptiveIconDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<AdaptiveIconDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AnimatedRotateResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Attrs.AnimatedRotateDrawable>(manager, "drawable") {
+open class AnimatedRotateResProcessor(manager: IAttrProcessorManager) : ResProcessor<Attrs.AnimatedRotateDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<Attrs.AnimatedRotateDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AnimatedSelectorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimatedStateListDrawable>(manager, "drawable") {
+open class AnimatedSelectorResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimatedStateListDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<AnimatedStateListDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class AnimatedVectorResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimatedVectorDrawable>(manager, "drawable") {
+open class AnimatedVectorResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimatedVectorDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<AnimatedVectorDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class BitmapResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<BitmapDrawable>(manager, "drawable") {
+open class BitmapResProcessor(manager: IAttrProcessorManager) : ResProcessor<BitmapDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<BitmapDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class DrawableResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Drawable>(manager, "drawable") {
+open class DrawableResProcessor(manager: IAttrProcessorManager) : ResProcessor<Drawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<Drawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class RippleResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<RippleDrawable>(manager, "drawable") {
+open class RippleResProcessor(manager: IAttrProcessorManager) : ResProcessor<RippleDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<RippleDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class MaskableIconResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<AnimatedStateListDrawable>(manager, "drawable") {
+open class MaskableIconResProcessor(manager: IAttrProcessorManager) : ResProcessor<AnimatedStateListDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<AnimatedStateListDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
 
-open class TransitionResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<TransitionDrawable>(manager, "drawable") {
+open class TransitionResProcessor(manager: IAttrProcessorManager) : ResProcessor<TransitionDrawable>(manager, "drawable") {
     override fun process(node: Node): NamedNodeValue<TransitionDrawable>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -1114,7 +1046,7 @@ open class TransitionResProcessor(manager: IAttrProcessorManager) : FreeResProce
  *     </item>
  * </menu>
  */
-open class MenuResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Menu>(manager, "menu") {
+open class MenuResProcessor(manager: IAttrProcessorManager) : ResProcessor<Menu>(manager, "menu") {
     override fun process(node: Node): NamedNodeValue<Menu>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -1129,7 +1061,7 @@ open class MenuResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<M
  *         android:fontWeight="weight_value" />
  * </font-family>
  */
-open class FontResProcessor(manager: IAttrProcessorManager) : FreeResProcessor<Font>(manager, "font") {
+open class FontResProcessor(manager: IAttrProcessorManager) : ResProcessor<Font>(manager, "font") {
     override fun process(node: Node): NamedNodeValue<Font>? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }

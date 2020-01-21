@@ -289,6 +289,9 @@
         <activity
             android:name="com.liang.example.groovyandroidtest.MainActivity"
             android:label="Groovy Activity" />
+        <activity
+            android:name="com.liang.example.xmlinflatertest.MainActivity"
+            android:label="Xml Inflater" />
 
         <!-- Logger Configuration -->
         <meta-data

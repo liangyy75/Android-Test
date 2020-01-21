@@ -1,28 +1,30 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package com.liang.example.xml_inflater.values
+package com.liang.example.xml_inflater
 
 import android.content.Context
 import android.content.res.TypedArray
 import android.util.TypedValue
 import com.liang.example.basic_ktx.KKMap
 import com.liang.example.basic_ktx.ReflectHelper
-import com.liang.example.xml_inflater.Attr
-import com.liang.example.xml_inflater.FormatValue
-import com.liang.example.xml_inflater.throwFlag
 import java.lang.StringBuilder
 import java.util.regex.Pattern
 
 abstract class AttrProcessor<T>(_attr: Attr, vararg _formats: String) {
     open var formats: MutableList<String> = _formats.toMutableList()
-    open var attr: Attr = _attr
+    open var mAttr: Attr = _attr
         set(value) {
-            if (attr.format == null || formats.containsAll(attr.format!!.split('|'))) {
+            if (mAttr.format == null || formats.containsAll(mAttr.format!!.split('|'))) {
                 field = value
             } else {
                 throw RuntimeException("attr's format isn't $formats: $value")
             }
         }
+
+    open fun attr(attr: Attr?): AttrProcessor<T> {
+        this.mAttr = attr ?: Attr.ATTR_EMPTY
+        return this
+    }
 
     open fun from(s: String?): AttrValue<T>? {
         if (s.isNullOrEmpty()) {
@@ -58,15 +60,17 @@ open class WrongAttrProcessor : AttrProcessor<Unit>(Attr.ATTR_EMPTY) {
 /**
  * px / dp / sp / pt / in / mm
  */
-open class DimenAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "dimension", "dimen") {
+open class DimenAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Float>(attr, "dimension", "dimen") {
+    override fun attr(attr: Attr?): DimenAttrProcessor = super.attr(attr) as DimenAttrProcessor
+
     override fun innerFrom(s: String): AttrValue<Float>? {
         val len = s.length
         return when {
-            s in attr -> DimenAttrValue(attr, attr[s]!!.toFloat(), DIMENSION_UNIT_ENUM)
-            len <= 2 -> DimenAttrValue(attr, 0.0f, DIMENSION_UNIT_PX)
-            else -> DimenAttrValue(attr, s.substring(0, len - 2).toFloatOrNull()
+            s in mAttr -> DimenAttrValue(mAttr, mAttr[s]!!.toFloat(), DIMENSION_UNIT_ENUM)
+            len <= 2 -> DimenAttrValue(mAttr, 0.0f, DIMENSION_UNIT_PX)
+            else -> DimenAttrValue(mAttr, s.substring(0, len - 2).toFloatOrNull()
                     ?: 0.0f, dimenUnitsMap[s.substring(len - 2)]
-                    ?: return DimenAttrValue(attr, 0.0f, DIMENSION_UNIT_PX))
+                    ?: return DimenAttrValue(mAttr, 0.0f, DIMENSION_UNIT_PX))
         }
     }
 
@@ -132,11 +136,11 @@ open class DimenAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "dimensio
 /**
  * 100% / 100%p / 100%r
  */
-open class FractionAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "fraction") {
+open class FractionAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Float>(attr, "fraction") {
     override fun innerFrom(s: String): AttrValue<Float>? {
         val len = s.length
         if (s == "0") {
-            return FractionAttrValue(attr, 0.0f, RELATIVE_TO_SELF)
+            return FractionAttrValue(mAttr, 0.0f, RELATIVE_TO_SELF)
         }
         if (len == 1) {
             return null
@@ -153,7 +157,7 @@ open class FractionAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "fract
             s[end] != '%' -> null
             else -> {
                 val value = s.substring(start, end).toFloatOrNull() ?: return null
-                return FractionAttrValue(attr, value, relatives.get(last.toString())!!)
+                return FractionAttrValue(mAttr, value, relatives.get(last.toString())!!)
             }
         }
     }
@@ -208,7 +212,7 @@ open class FractionAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "fract
  * ?android:textColorSecondary
  * ?colorAccent
  */
-open class ReferenceAttrProcessor(attr: Attr, open var context: Context) : AttrProcessor<Int>(attr, "reference", "refer") {
+open class ReferenceAttrProcessor(attr: Attr = Attr.ATTR_EMPTY, open var context: Context) : AttrProcessor<Int>(attr, "reference", "refer") {
     override fun innerFrom(s: String): AttrValue<Int>? {
         val len = s.length
         if (len < 5) {
@@ -240,11 +244,11 @@ open class ReferenceAttrProcessor(attr: Attr, open var context: Context) : AttrP
             return null
         }
         if (cache.containsKey("${resType}_$resName")) {
-            return ReferenceAttrValue(attr, first, packageName, resType, resName, INNER_RES)
+            return ReferenceAttrValue(mAttr, first, packageName, resType, resName, INNER_RES)
         }
         val resId = ReflectHelper.getInt("$packageName.R\$$resType", resName)
         return when {
-            resId != 0 -> ReferenceAttrValue(attr, first, packageName, resType, resName, resId)
+            resId != 0 -> ReferenceAttrValue(mAttr, first, packageName, resType, resName, resId)
             else -> null
         }
     }
@@ -280,7 +284,7 @@ open class ReferenceAttrProcessor(attr: Attr, open var context: Context) : AttrP
  * #rgb / #argb / #rrggbb / #aarrggbb /red / green / blue / ...
  * TODO: 其他类型的color，而不仅仅是 argb
  */
-open class ColorAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "color") {
+open class ColorAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Long>(attr, "color") {
     override fun innerFrom(s: String): AttrValue<Long>? = when {
         s.startsWith('#') -> {
             val len = s.length
@@ -299,11 +303,11 @@ open class ColorAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "color") {
                 s2.length != 9 -> null
                 else -> when (val temp = s2.substring(1).toLongOrNull(16)) {
                     null -> null
-                    else -> ColorAttrValue(attr, temp)
+                    else -> ColorAttrValue(mAttr, temp)
                 }
             }
         }
-        colors.containsKey(s) -> ColorAttrValue(attr, colors[s]!!)
+        colors.containsKey(s) -> ColorAttrValue(mAttr, colors[s]!!)
         else -> null
     }
 
@@ -325,8 +329,8 @@ open class ColorAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "color") {
 /**
  * none
  */
-open class StringAttrProcessor(attr: Attr) : AttrProcessor<String>(attr, "string", "str") {
-    override fun innerFrom(s: String): AttrValue<String>? = StringAttrValue(attr, s)
+open class StringAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<String>(attr, "string", "str") {
+    override fun innerFrom(s: String): AttrValue<String>? = StringAttrValue(mAttr, s)
     open class StringAttrValue(_attr: Attr, value: String) : AttrValue<String>(_attr, value) {
         override fun innerCopy(): AttrValue<String> = StringAttrValue(attr, value)
     }
@@ -335,7 +339,7 @@ open class StringAttrProcessor(attr: Attr) : AttrProcessor<String>(attr, "string
 /**
  * true / false / 0 / 1
  */
-open class BooleanAttrProcessor(attr: Attr) : AttrProcessor<Boolean>(attr, "boolean") {
+open class BooleanAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Boolean>(attr, "boolean", "bool") {
     override fun innerFrom(s: String): AttrValue<Boolean>? = when (s) {
         "1", "true" -> ATTR_TRUE
         "0", "false" -> ATTR_FALSE
@@ -352,12 +356,14 @@ open class BooleanAttrProcessor(attr: Attr) : AttrProcessor<Boolean>(attr, "bool
     }
 }
 
-open class IntegerAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "integer", "int") {
+open class IntegerAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Long>(attr, "integer", "int") {
+    override fun attr(attr: Attr?): IntegerAttrProcessor = super.attr(attr) as IntegerAttrProcessor
+
     override fun innerFrom(s: String): AttrValue<Long>? = when (s) {
-        in attr -> IntegerAttrValue(attr, attr[s]!!, INTEGER_TYPE_ENUM)
+        in mAttr -> IntegerAttrValue(mAttr, mAttr[s]!!, INTEGER_TYPE_ENUM)
         else -> when (val temp = s.toLongOrNull()) {
             null -> null
-            else -> IntegerAttrValue(attr, temp, INTEGER_TYPE_NORMAL)
+            else -> IntegerAttrValue(mAttr, temp, INTEGER_TYPE_NORMAL)
         }
     }
 
@@ -377,9 +383,9 @@ open class IntegerAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "integer
     }
 }
 
-open class FloatAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "float") {
+open class FloatAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Float>(attr, "float") {
     override fun innerFrom(s: String): AttrValue<Float>? {
-        return FloatAttrValue(attr, s.toFloatOrNull() ?: return null)
+        return FloatAttrValue(mAttr, s.toFloatOrNull() ?: return null)
     }
 
     open class FloatAttrValue(_attr: Attr, value: Float) : AttrValue<Float>(_attr, value) {
@@ -387,9 +393,11 @@ open class FloatAttrProcessor(attr: Attr) : AttrProcessor<Float>(attr, "float") 
     }
 }
 
-open class EnumAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "enum") {
+open class EnumAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Long>(attr, "enum") {
+    override fun attr(attr: Attr?): EnumAttrProcessor = super.attr(attr) as EnumAttrProcessor
+
     override fun innerFrom(s: String): AttrValue<Long>? = when (s) {
-        in attr -> EnumAttrValue(attr, attr[s]!!)
+        in mAttr -> EnumAttrValue(mAttr, mAttr[s]!!)
         else -> null
     }
 
@@ -399,24 +407,26 @@ open class EnumAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "enum") {
     }
 }
 
-open class FlagAttrProcessor(attr: Attr) : AttrProcessor<Long>(attr, "flag") {
+open class FlagAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Long>(attr, "flag") {
+    override fun attr(attr: Attr?): FlagAttrProcessor = super.attr(attr) as FlagAttrProcessor
+
     override fun innerFrom(s: String): AttrValue<Long>? {
-        val flags = s.split('|').filter { it in attr }
+        val flags = s.split('|').filter { it in mAttr }
         if (flags.isEmpty()) {
             return null
         }
         var value: Long = 0
-        flags.forEach { value = value.or(attr[it]!!) }
-        return FlagsAttrValue(attr, value)
+        flags.forEach { value = value.or(mAttr[it]!!) }
+        return FlagAttrValue(mAttr, value)
     }
 
-    open class FlagsAttrValue(_attr: Attr, value: Long) : AttrValue<Long>(_attr, value) {
-        override fun innerCopy(): AttrValue<Long> = FlagsAttrValue(attr, value)
+    open class FlagAttrValue(_attr: Attr, value: Long) : AttrValue<Long>(_attr, value) {
+        override fun innerCopy(): AttrValue<Long> = FlagAttrValue(attr, value)
         override fun innerString(): String = attr.values!!.filter { it.second.and(value) == it.second }.joinToString("|") { it.first }
     }
 }
 
-open class ComplexAttrProcessor(attr: Attr, _processors: MutableList<AttrProcessor<*>>) : AttrProcessor<Any>(attr) {
+open class ComplexAttrProcessor(attr: Attr = Attr.ATTR_EMPTY, _processors: MutableList<AttrProcessor<*>>) : AttrProcessor<Any>(attr) {
     protected var processors: MutableList<AttrProcessor<*>> = _processors
     override var formats: MutableList<String> = mutableListOf()
 
@@ -467,19 +477,20 @@ interface IAttrProcessorManager {
     fun getAll(format: String): List<AttrProcessor<*>>
     fun <T : AttrProcessor<*>> getAll(clazz: Class<*>): List<T>
 
-    fun dimen(s: String?, context: Context): Float?
+    fun dimen(s: String?, context: Context, attr: Attr? = null): Float?
     fun fraction(s: String?): Float?
     fun float(s: String?): Float?
     fun refer(s: String?): Int?
     fun str(s: String?): String?
     fun bool(s: String?): Boolean?
     fun color(s: String?): Long?
-    fun int(s: String?): Long?
-    fun enum(s: String?): Long?
-    fun flag(s: String?): Long?
+    fun int(s: String?, attr: Attr? = null): Long?
+    fun enum(s: String?, attr: Attr): Long?
+    fun flag(s: String?, attr: Attr): Long?
 }
 
-open class AttrProcessorManager(override var processors: MutableList<AttrProcessor<*>>) : AttrProcessor<Any>(Attr.ATTR_EMPTY), IAttrProcessorManager {
+open class AttrProcessorManager(override var processors: MutableList<AttrProcessor<*>> = mutableListOf())
+    : AttrProcessor<Any>(Attr.ATTR_EMPTY), IAttrProcessorManager {
     override fun plus(processor: AttrProcessor<*>) = processors.add(processor)
     override fun plus(processors: Collection<AttrProcessor<*>>) = this.processors.addAll(processors)
 
@@ -506,18 +517,18 @@ open class AttrProcessorManager(override var processors: MutableList<AttrProcess
     override fun getAll(format: String): List<AttrProcessor<*>> = processors.filter { format in it.formats }
     override fun <T : AttrProcessor<*>> getAll(clazz: Class<*>): List<T> = processors.filterIsInstance(clazz) as List<T>
 
-    override fun dimen(s: String?, context: Context): Float? =
-            (get("dimen") as DimenAttrProcessor).from(s)?.let { DimenAttrProcessor.staticApply(context, it as DimenAttrProcessor.DimenAttrValue) }
+    override fun dimen(s: String?, context: Context, attr: Attr?): Float? =
+            (get("dimen") as DimenAttrProcessor).attr(attr).from(s)?.let { DimenAttrProcessor.staticApply(context, it as DimenAttrProcessor.DimenAttrValue) }
 
     override fun fraction(s: String?): Float? = (get("fraction") as FractionAttrProcessor).from(s)?.value()
     override fun refer(s: String?): Int? = (get("refer") as ReferenceAttrProcessor).from(s)?.value()
     override fun color(s: String?): Long? = (get("color") as ColorAttrProcessor).from(s)?.value()
     override fun str(s: String?): String? = (get("str") as StringAttrProcessor).from(s)?.value()
     override fun bool(s: String?): Boolean? = (get("bool") as BooleanAttrProcessor).from(s)?.value()
-    override fun int(s: String?): Long? = (get("int") as IntegerAttrProcessor).from(s)?.value()
+    override fun int(s: String?, attr: Attr?): Long? = (get("int") as IntegerAttrProcessor).attr(attr).from(s)?.value()
     override fun float(s: String?): Float? = (get("float") as FloatAttrProcessor).from(s)?.value()
-    override fun enum(s: String?): Long? = (get("enum") as EnumAttrProcessor).from(s)?.value()
-    override fun flag(s: String?): Long? = (get("flag") as FlagAttrProcessor).from(s)?.value()
+    override fun enum(s: String?, attr: Attr): Long? = (get("enum") as EnumAttrProcessor).attr(attr).from(s)?.value()
+    override fun flag(s: String?, attr: Attr): Long? = (get("flag") as FlagAttrProcessor).attr(attr).from(s)?.value()
 
     override fun innerFrom(s: String): AttrValue<Any>? {
         for (processor in processors) {

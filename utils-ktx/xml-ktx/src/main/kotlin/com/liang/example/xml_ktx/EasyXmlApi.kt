@@ -558,10 +558,11 @@ open class EasyXmlParser {
             while (Character.isLetterOrDigit(ch) || ch in mEffectiveTagChars) {  // TODO: 待确认
                 ch = getNextChar() ?: return null
             }
-            if (mIndex - 1 == begin) {
+            mIndex--
+            if (mIndex == begin) {
                 return makeFail<Int>("start tag should not be empty! ch: $ch")
             }
-            mTagPath.add(xmlStr.substring(begin, mIndex - 1))
+            mTagPath.add(xmlStr.substring(begin, mIndex))
             mTag = mTagPath.last()
             mType = START_TAG
             parseAttributes() ?: return null
@@ -638,11 +639,11 @@ open class EasyXmlParser {
 
         protected fun parseText(): Int? {
             if (mType != START_TAG && mType != END_TAG && mType != ENTITY_REF && mType != COMMENT || mTagPath.isEmpty()) {
-                return makeFail<Int>("text only can be placed as element's child: $mType")
+                return makeFail<Int>("text only can be placed as element's child: ($mType, ${EVENT_NAMES[mType]}), ch: ${xmlStr[mIndex]}")
             }
             var ch = getNextChar() ?: return null
             mText.clear()
-            while (ch != '>') {
+            while (ch != '<') {
                 when (ch) {
                     '&' -> {
                         mType = ENTITY_REF
@@ -671,6 +672,7 @@ open class EasyXmlParser {
                 }
                 ch = getNextChar() ?: return null
             }
+            mIndex--
             mType = TEXT
             return mType
         }
@@ -701,11 +703,12 @@ open class EasyXmlParser {
             if (mIndex >= mLength || mType == END_TAG && mTagPath.isEmpty()) {
                 return parseEndDocument()
             }
-            var ch = xmlStr[mIndex++]
+            var ch = xmlStr[mIndex]
             if (ch != '<') {
                 return parseText()
             }
 
+            mIndex++
             ch = getNextChar() ?: return null
             val start: String
             val end: String

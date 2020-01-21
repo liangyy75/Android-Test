@@ -160,6 +160,8 @@ dependencies {
     }
 
     compileOnly 'com.anggrayudi:android-hidden-api:28.1'
+
+    api project(":xml-inflater")
 }
 
 greeting {

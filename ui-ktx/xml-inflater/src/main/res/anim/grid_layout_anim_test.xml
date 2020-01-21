@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<gridLayoutAnimation xmlns:android="http://schemas.android.com/apk/res/android"
-    android:columnDelay="@android:integer/config_shortAnimTime"
-    android:direction="top_to_bottom"
-    android:directionPriority="column"
-    android:rowDelay="@android:integer/config_shortAnimTime" />
