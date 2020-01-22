@@ -225,8 +225,10 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
             return makeFail("plurals must have children")
         }
         return NamedNodeValue(it, it.children.map { item ->
-            (enum(item["quantity"], Attrs.Resources2.quantity) ?: return makeFail("the quantity attribute of plurals's item is incorrect")) to
-                    (apm.str(item.text) ?: return makeFail("plurals's item text is incorrect"))
+            (enum(item["quantity"], Attrs.Resources2.quantity) ?: return makeFail(
+                    "the quantity attribute of plurals's item is incorrect: ${item["quantity"]}, ${Attrs.Resources2.quantity}")) to
+                    // (str(item.text) ?: return makeFail("plurals's item text is incorrect: ${item.text}"))
+                    item.text
         }.toMap(), STRING_ARRAY, name)
     }
 
@@ -314,10 +316,8 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : ResProces
                     throw RuntimeException("color selector's item has incorrect attribute: ${attr.name}")
                 }
             }
-            if (itemStates.isNotEmpty()) {
-                stateSpecs.add(itemStates.toIntArray())
-                colors.add(color)
-            }
+            stateSpecs.add(itemStates.toIntArray())
+            colors.add(color)
         }
         return NamedNodeValue(node, ColorStateList(stateSpecs.toTypedArray(), colors.toIntArray()), COLOR_STATE_LIST, name)
     }

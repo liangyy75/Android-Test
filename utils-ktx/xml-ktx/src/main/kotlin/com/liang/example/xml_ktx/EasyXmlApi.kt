@@ -347,27 +347,26 @@ open class EasyXmlNumber(n: Number?) : EasyXmlValueAdapter<Number>(n, XmlValueTy
 open class EasyXmlString(s: String?) : EasyXmlValueAdapter<String>(s, XmlValueType.STRING) {
     override fun string(): String {
         val tempValue = mValue ?: return "null"
-        val resultBuilder = StringBuilder("\"")
+        val resultBuilder = StringBuilder(/*"\""*/)
         var i = 0
         val length = tempValue.length
         while (i < length) {
             val ch = tempValue[i]
-            // val chInt = ch.toInt()
             resultBuilder.append(
-                    when {
-                        ch == '\\' -> "\\\\"
-                        ch == '"' -> "\\\""
-                        ch == '\b' -> "\\b"
-                        ch == '\u000C' -> "\\f"
-                        ch == '\n' -> "\\n"
-                        ch == '\r' -> "\\r"
-                        ch == '\t' -> "\\t"
+                    when (ch) {
+                        '\\' -> "\\\\"
+                        '"' -> "\\\""
+                        '\b' -> "\\b"
+                        '\u000C' -> "\\f"
+                        '\n' -> "\\n"
+                        '\r' -> "\\r"
+                        '\t' -> "\\t"
                         else -> ch
                     }
             )
             i++
         }
-        return resultBuilder.append("\"").toString()
+        return resultBuilder/*.append("\"")*/.toString()
     }
 
     override fun clone(): EasyXmlValue<String> = EasyXmlString(mValue)
@@ -438,7 +437,7 @@ open class EasyXmlElement(open var mTag: String) : EasyXmlNode2 {
 
 open class EasyXmlAttribute(open var mName: String, open var mValue: EasyXmlValue<*>, open var mNameSpace: String? = null) : EasyXmlNode {
     override fun elementType(): XmlNodeType = XmlNodeType.ATTRIBUTE
-    override fun string(): String = """${if (mNameSpace != null) "$mNameSpace:" else ""}$mName=${mValue.string()}"""
+    override fun string(): String = """${if (mNameSpace != null) "$mNameSpace:" else ""}$mName="${mValue.string()}""""
     open val isXmlns: Boolean
         get() = mNameSpace == "xmlns"
 
