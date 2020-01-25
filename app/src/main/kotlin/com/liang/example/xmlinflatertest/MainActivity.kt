@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun testSelectorColor(transformer: XmlTransformer, resProcessor: SelectorColorResProcessor) {
         val dom = transformer.parser.parseXmlOrThrow("""
-            <selector xmlns:android="http://schemas.android.com/apk/res/android">
+            <selector xmlns:android="http://schemas.android.com/apk/res/android" android:name="selector_color1">
                  <item android:state_pressed="true" android:color="#000000" />
                  <item android:state_focused="true" android:color="#000000" />
                  <item android:color="#FFFFFF"/>

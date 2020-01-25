@@ -153,7 +153,7 @@ object ReflectHelper {
             tryAction { findCtor(cls, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } as? T
 
     fun <T> newInstance(name: String, vararg args: Any?): T? =
-            tryAction { findCls(name)?.let { findCtor(it, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } } as? T
+            tryAction { findCls(name)?.let { clazz -> findCtor(clazz, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } } as? T
 
     fun <T> invoke(name: String, thisObj: Any?, vararg args: Any?): T? =
             tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, args)?.invoke(thisObj, *args) } as? T

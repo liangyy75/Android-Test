@@ -323,6 +323,8 @@ open class ColorAttrProcessor(attr: Attr = Attr.ATTR_EMPTY) : AttrProcessor<Long
                 "olive" to 0xFF808000, "purple" to 0xFF800080, "silver" to 0xFFC0C0C0, "teal" to 0xFF008080)
 
         val BLACK = ColorAttrValue(Attr.ATTR_EMPTY, 0xFF000000)
+
+        fun isColor(value: String?) = value != null && value.startsWith("#") && value in colors.keys
     }
 }
 

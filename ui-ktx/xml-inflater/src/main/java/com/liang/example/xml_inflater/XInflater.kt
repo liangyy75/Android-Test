@@ -38,6 +38,7 @@ open class Node(open var name: String) {
     open var attributes: MutableList<NodeAttr> = EMPTY_ATTRIBUTES
 
     operator fun get(attrName: String) = attributes.find { it.name == attrName }?.value
+    operator fun contains(attrName: String) = attributes.find { it.name == attrName } != null
 
     open class NodeAttr(open var name: String, open var value: String, open var nameSpace: String? = null)
 

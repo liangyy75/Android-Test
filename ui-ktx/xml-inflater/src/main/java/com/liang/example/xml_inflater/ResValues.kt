@@ -4,7 +4,12 @@ package com.liang.example.xml_inflater
 
 import android.animation.Animator
 import android.animation.AnimatorSet
+import android.animation.ArgbEvaluator
+import android.animation.Keyframe
 import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.TypeEvaluator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -25,14 +30,18 @@ import android.graphics.drawable.StateListDrawable
 import android.graphics.drawable.TransitionDrawable
 import android.graphics.drawable.VectorDrawable
 import android.graphics.fonts.Font
+import android.os.Build
 import android.util.Log
 import android.view.Menu
 import android.view.animation.AlphaAnimation
 import android.view.animation.AnimationSet
+import android.view.animation.AnimationUtils
 import android.view.animation.RotateAnimation
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
+import com.liang.example.basic_ktx.ReflectHelper
 
+// TODO: auto process attr's value, but seems unnecessary
 abstract class ResProcessor<T>(open val apm: IAttrProcessorManager, open val type: String) {
     abstract fun process(node: Node): NamedNodeValue<T>?
 
@@ -69,6 +78,28 @@ abstract class ResProcessor<T>(open val apm: IAttrProcessorManager, open val typ
 
     companion object {
         const val NOT_CARED = -1
+
+        const val ITEM = 1  // 注意， string / bool / dimen / ... 这种基本类型会转换为对应的 FormatValue ，其余用 ReferenceAttrValue
+        const val STYLE = ITEM + 1
+        const val DECLARE_STYLEABLE = STYLE + 1
+        const val ATTR = DECLARE_STYLEABLE + 1
+
+        const val DRAWABLE = ATTR + 1
+        const val ARRAY = DRAWABLE + 1
+
+        const val DIMEN = ARRAY + 1
+        const val COLOR = DIMEN + 1
+        const val BOOL = COLOR + 1
+        const val FRACTION = BOOL + 1
+        const val INTEGER = FRACTION + 1
+        const val INTEGER_ARRAY = INTEGER + 1
+        const val STRING = INTEGER_ARRAY + 1
+        const val STRING_ARRAY = STRING + 1
+        const val PLURALS = STRING_ARRAY + 1
+
+        const val COLOR_STATE_LIST = PLURALS + 1
+
+        const val ANIMATOR = COLOR_STATE_LIST + 1
     }
 }
 
@@ -125,7 +156,7 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
         }
         val list = mutableListOf<NamedNodeValue<*>>()
         node.children.forEach {
-            val name = str(it["name"]) ?: return makeFail("resources's element should has name attribute")
+            val name = str(it[Attrs.Resources2.name.name]) ?: return makeFail("resources's element should has name attribute")
             val temp: NamedNodeValue<*> = when (it.name) {
                 "item" -> item(it, name)
                 "style" -> style(it, name)
@@ -225,32 +256,14 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
             return makeFail("plurals must have children")
         }
         return NamedNodeValue(it, it.children.map { item ->
-            (enum(item["quantity"], Attrs.Resources2.quantity) ?: return makeFail(
-                    "the quantity attribute of plurals's item is incorrect: ${item["quantity"]}, ${Attrs.Resources2.quantity}")) to
+            (enum(item[Attrs.Resources2.quantity.name], Attrs.Resources2.quantity) ?: return makeFail(
+                    "the quantity attribute of plurals's item is incorrect: ${item[Attrs.Resources2.quantity.name]}, ${Attrs.Resources2.quantity}")) to
                     // (str(item.text) ?: return makeFail("plurals's item text is incorrect: ${item.text}"))
-                    item.text
+                    item.text  // TODO: 为什么 str(item.text) 会报错: java.lang.Long cannot be cast to java.lang.String
         }.toMap(), STRING_ARRAY, name)
     }
 
     companion object {
-        const val ITEM = 1  // 注意， string / bool / dimen / ... 这种基本类型会转换为对应的 FormatValue ，其余用 ReferenceAttrValue
-        const val STYLE = 2
-        const val DECLARE_STYLEABLE = 3
-        const val ATTR = 8
-
-        const val DRAWABLE = 4
-        const val ARRAY = 7
-
-        const val DIMEN = 5
-        const val COLOR = 6
-        const val BOOL = 9
-        const val FRACTION = 10
-        const val INTEGER = 11
-        const val INTEGER_ARRAY = 12
-        const val STRING = 13
-        const val STRING_ARRAY = 14
-        const val PLURALS = 15
-
         const val PLURALS_ZERO = 0L
         const val PLURALS_ONE = 1L
         const val PLURALS_TWO = 2L
@@ -261,14 +274,14 @@ open class ValuesResProcessor(open var context: Context, _attrProcessorManager: 
         fun NamedNodeValue<String>.str(vararg args: Any): String = String.format(value(), *args)
         fun NamedNodeValue<Map<Long, String>>.plurals(num: Long, vararg args: Any): String {
             val temp = value()
-            return when {
+            return String.format(when {
                 num == 0L -> temp[PLURALS_ZERO]
                 num == 1L -> temp[PLURALS_ONE]
                 num == 2L -> temp[PLURALS_TWO]
                 num < 100L -> temp[PLURALS_FEW]
                 num >= 100L -> temp[PLURALS_MANY]
                 else -> temp[PLURALS_OTHER]
-            }!!
+            }!!, *args)
         }
     }
 }
@@ -299,21 +312,23 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : ResProces
         if (node.name != "selector" || node.children.isEmpty()) {
             return null
         }
-        val name = str(node["name"]) ?: return makeFail("resources's element should has name attribute")
+        val name = str(node[Attrs.FreeRes.name.name]) ?: return makeFail("color selector's element should has name attribute")
         val stateSpecs = mutableListOf<IntArray>()
         val colors = mutableListOf<Int>()
         node.children.forEach { item ->
-            val color = color(item["color"])?.toInt() ?: return makeFail("color selector's item' color attribute should has color value")
+            val color = color(item[Attrs.Color.color.name])?.toInt()
+                    ?: return makeFail("color selector's item' color attribute should has color value")
             val itemStates = mutableListOf<Int>()
             item.attributes.forEach { attr ->
-                if (states.containsKey(attr.name)) {
+                val attrName = attr.name
+                if (states.containsKey(attrName)) {
                     val value = bool(attr.value) ?: return makeFail("color selector's item's attribute's value is incorrect: ${attr.value}")
                     itemStates.add(when {
-                        value -> states[attr.name]!!
-                        else -> -states[attr.name]!!
+                        value -> states[attrName]!!
+                        else -> -states[attrName]!!
                     })
-                } else if (throwFlag) {
-                    throw RuntimeException("color selector's item has incorrect attribute: ${attr.name}")
+                } else if (attrName != Attrs.Color.color.name && throwFlag) {
+                    throw RuntimeException("color selector's item has incorrect attribute: $attrName")
                 }
             }
             stateSpecs.add(itemStates.toIntArray())
@@ -323,8 +338,6 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : ResProces
     }
 
     companion object {
-        const val COLOR_STATE_LIST = 16
-
         val states = mutableMapOf(
                 Attrs.Color.state_accelerated.name to android.R.attr.state_accelerated,
                 Attrs.Color.state_activated.name to android.R.attr.state_activated,
@@ -434,9 +447,267 @@ open class SelectorColorResProcessor(manager: IAttrProcessorManager) : ResProces
  * keyframe
  * item
  */
-open class AnimatorResProcessor(manager: IAttrProcessorManager) : ResProcessor<Animator>(manager, "animator") {
-    override fun process(node: Node): NamedNodeValue<Animator>? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+open class AnimatorResProcessor(_context: Context, manager: IAttrProcessorManager) : ResProcessor<ValueAnimator>(manager, "animator") {
+    open var context: Context = _context
+        set(value) {
+            field = value
+            propertyValuesResProcessor.context = value
+        }
+    open var propertyValuesResProcessor = PropertyValueResProcessor(_context, manager)
+
+    override fun process(node: Node): NamedNodeValue<ValueAnimator>? {
+        if (node.name != "animator") {
+            return null
+        }
+        val name = str(node[Attrs.FreeRes.name.name]) ?: return makeFail("animator's element should has name attribute")
+        val result = ValueAnimator()
+        if (node.children.isNotEmpty()) {
+            val pVHs = node.children.mapNotNull { propertyValuesResProcessor.process(it) }
+            if (pVHs.isNotEmpty()) {
+                result.setValues(*pVHs.map { it.value() }.toTypedArray())
+            }
+        }
+        Attrs.Animator.duration.name
+        return NamedNodeValue(node, result, ANIMATOR, name)
+    }
+
+    // TODO: support pathData
+    open class PropertyValueResProcessor(open var context: Context, manager: IAttrProcessorManager) : ResProcessor<PropertyValuesHolder>(manager, "animator") {
+        override fun process(node: Node): NamedNodeValue<PropertyValuesHolder>? {
+            if (node.name != "propertyValuesHolder") {
+                return null
+            }
+            val propertyName = str(node[Attrs.PropertyValuesHolder.propertyName.name])
+                    ?: return makeFail("animator's element should has propertyName attribute")
+            var valueType: Int = VALUE_TYPE_UNDEFINED
+            val propertyValuesHolder: PropertyValuesHolder? = if (node.children.isNotEmpty()) {
+                val pair = keyFramesParse(node, valueType, propertyName) ?: return null
+                valueType = pair.second
+                pair.first
+            } else {
+                val valueFrom = node[Attrs.PropertyValuesHolder.valueFrom.name]
+                val valueTo = node[Attrs.PropertyValuesHolder.valueTo.name]
+                val hasFrom = valueFrom != null
+                val hasTo = valueTo != null
+                valueType = when {
+                    hasFrom && ColorAttrProcessor.isColor(valueFrom) || hasTo && ColorAttrProcessor.isColor(valueTo) -> VALUE_TYPE_COLOR
+                    else -> VALUE_TYPE_FLOAT
+                }
+                when (valueType) {
+                    VALUE_TYPE_PATH -> pathTypeParse(hasFrom, valueFrom, hasTo, valueTo, propertyName)
+                    VALUE_TYPE_FLOAT -> when {
+                        hasFrom && hasTo -> PropertyValuesHolder.ofFloat(propertyName,
+                                dimen(valueFrom, context) ?: float(valueFrom)
+                                ?: return makeFail("animator element should has right valueFrom attribute"),
+                                dimen(valueTo, context) ?: float(valueTo) ?: return makeFail("animator element should has right valueTo attribute"))
+                        hasFrom -> PropertyValuesHolder.ofFloat(propertyName,
+                                dimen(valueFrom, context) ?: float(valueFrom)
+                                ?: return makeFail("animator element should has right valueFrom attribute"))
+                        hasTo -> PropertyValuesHolder.ofFloat(propertyName,
+                                dimen(valueTo, context) ?: float(valueTo) ?: return makeFail("animator element should has right valueTo attribute"))
+                        else -> null
+                    }
+                    else -> when {
+                        hasFrom && hasTo -> PropertyValuesHolder.ofInt(propertyName,
+                                dimen(valueFrom, context)?.toInt() ?: color(valueFrom)?.toInt() ?: int(valueFrom)?.toInt()
+                                ?: return makeFail("animator element should has right valueFrom attribute"),
+                                dimen(valueTo, context)?.toInt() ?: color(valueTo)?.toInt() ?: int(valueTo)?.toInt()
+                                ?: return makeFail("animator element should has right valueTo attribute"))
+                        hasFrom -> PropertyValuesHolder.ofInt(propertyName,
+                                dimen(valueFrom, context)?.toInt() ?: color(valueFrom)?.toInt() ?: int(valueFrom)?.toInt()
+                                ?: return makeFail("animator element should has right valueFrom attribute"))
+                        hasTo -> PropertyValuesHolder.ofInt(propertyName,
+                                dimen(valueTo, context)?.toInt() ?: color(valueTo)?.toInt() ?: int(valueTo)?.toInt()
+                                ?: return makeFail("animator element should has right valueTo attribute"))
+                        else -> null
+                    }
+                }
+            }
+            return when {
+                propertyValuesHolder != null -> {
+                    if (valueType == VALUE_TYPE_COLOR) {
+                        propertyValuesHolder.setEvaluator(argbEvaluator)
+                    }
+                    NamedNodeValue(node, propertyValuesHolder, NOT_CARED, "")
+                }
+                else -> null
+            }
+        }
+
+        private fun keyFramesParse(node: Node, valueType: Int, propertyName: String): Pair<PropertyValuesHolder, Int>? {
+            val keyframes = node.children.mapNotNull { keyFrameParse(valueType, it) }.toMutableList()
+            val size = keyframes.size
+            if (size != 0) {
+                distributeKeyFrames(keyframes, size)
+            }
+            return Pair(PropertyValuesHolder.ofKeyframe(propertyName, *keyframes.toTypedArray()), valueType)
+        }
+
+        private fun keyFrameParse(valueType: Int, keyFrameNode: Node): Keyframe? {
+            var valueType2 = valueType
+            return if (keyFrameNode.name == "keyframe") {
+                val keyFrameValue = keyFrameNode[Attrs.Keyframe.value.name]
+                val keyFrameFraction = keyFrameNode[Attrs.Keyframe.fraction.name]
+                if (valueType2 == VALUE_TYPE_UNDEFINED) {
+                    valueType2 = keyFrameTypes[keyFrameNode[Attrs.Keyframe.valueType.name]] ?: when {
+                        ColorAttrProcessor.isColor(keyFrameValue) -> VALUE_TYPE_COLOR
+                        else -> VALUE_TYPE_FLOAT
+                    }
+                }
+                if (valueType2 == VALUE_TYPE_PATH) {
+                    return makeFail("keyframe node can't have pathType")
+                }
+                val keyframe = when {
+                    keyFrameValue == null && valueType2 == VALUE_TYPE_FLOAT -> Keyframe.ofFloat(float(keyFrameFraction)
+                            ?: return makeFail("keyframe node should have right fraction attribute or value attribute"))
+                    keyFrameValue == null -> Keyframe.ofFloat(float(keyFrameFraction)
+                            ?: return makeFail("keyframe node should have right fraction attribute or value attribute"))
+                    valueType2 == VALUE_TYPE_FLOAT -> Keyframe.ofFloat(
+                            float(keyFrameFraction) ?: return makeFail("keyframe node should have right fraction attribute"),
+                            float(keyFrameValue) ?: return makeFail("keyframe node should have right value attribute"))
+                    else -> Keyframe.ofInt(
+                            float(keyFrameFraction) ?: return makeFail("keyframe node should have right fraction attribute"),
+                            int(keyFrameValue)?.toInt() ?: return makeFail("keyframe node should have right value attribute"))
+                }
+                val interpolatorId = interpolators[keyFrameNode[Attrs.Keyframe.interpolator.name]] // TODO: custom interpolator
+                if (interpolatorId != null) {
+                    keyframe.interpolator = AnimationUtils.loadInterpolator(context, interpolatorId)
+                }
+                keyframe
+            } else null
+        }
+
+        protected fun distributeKeyFrames(keyframes: MutableList<Keyframe>, size: Int) {
+            var size1 = size
+            val first = keyframes[0]
+            val last = keyframes[size1 - 1]
+            var fraction = last.fraction
+            if (fraction < 1f) {
+                if (fraction < 0f) {
+                    last.fraction = 1f
+                } else {
+                    keyframes.add(createNewKeyframe(last, 1f))
+                    ++size1
+                }
+            }
+            fraction = first.fraction
+            if (fraction != 0f) {
+                if (fraction < 0f) {
+                    first.fraction = 0f
+                } else {
+                    keyframes.add(createNewKeyframe(first, 0f))
+                    ++size1
+                }
+            }
+            keyframes.forEachIndexed { index, keyframe ->
+                if (keyframe.fraction < 0f) {
+                    when (index) {
+                        0 -> keyframe.fraction = 0f
+                        size1 - 1 -> keyframe.fraction = 1f
+                        else -> {
+                            var endIndex = index
+                            for (index2 in (index + 1) until (size1 - 1)) {
+                                if (keyframes[index2].fraction >= 0f) {
+                                    break
+                                }
+                                endIndex = index2
+                            }
+                            val increment = (keyframes[endIndex + 1].fraction - keyframes[index - 1].fraction) / (endIndex - index + 2)
+                            (index..endIndex).forEach { index2 -> keyframes[index2].fraction = keyframes[index2 + 1].fraction + increment }
+                        }
+                    }
+                }
+            }
+        }
+
+        protected fun pathTypeParse(hasFrom: Boolean, valueFrom: String?, hasTo: Boolean, valueTo: String?, propertyName: String): PropertyValuesHolder? {
+            val nodeFrom = when {
+                hasFrom -> ReflectHelper.newInstance<Any>("android.util.PathParser.PathData", valueFrom)
+                else -> null
+            }
+            val nodeTo = when {
+                hasTo -> ReflectHelper.newInstance<Any>("android.util.PathParser.PathData", valueTo)
+                else -> null
+            }
+            return when {
+                hasFrom && hasTo -> {
+                    if (ReflectHelper.findMethod("canMorph", ReflectHelper.findCls("android.util.PathParser")!!,
+                                    nodeFrom!!::class.java, nodeTo!!::class.java)?.invoke(nodeFrom, nodeTo) as? Boolean == false) {
+                        return makeFail("Can't morph from $valueFrom to $valueTo")
+                    }
+                    PropertyValuesHolder.ofObject(propertyName, ReflectHelper.newInstance<TypeEvaluator<*>>(
+                            "android.animation.AnimationInflater.TypeEvaluator"), nodeFrom, nodeTo)
+                }
+                hasFrom -> PropertyValuesHolder.ofObject(propertyName, ReflectHelper.newInstance<TypeEvaluator<*>>(
+                        "android.animation.AnimationInflater.TypeEvaluator"), nodeFrom)
+                hasTo -> PropertyValuesHolder.ofObject(propertyName, ReflectHelper.newInstance<TypeEvaluator<*>>(
+                        "android.animation.AnimationInflater.TypeEvaluator"), nodeTo)
+                else -> null
+            }
+        }
+
+        open fun createNewKeyframe(sampleKeyframe: Keyframe, fraction: Float): Keyframe = when (sampleKeyframe.type) {
+            Float::class.javaPrimitiveType -> Keyframe.ofFloat(fraction)
+            Int::class.javaPrimitiveType -> Keyframe.ofInt(fraction)
+            else -> Keyframe.ofObject(fraction)
+        }
+    }
+
+    companion object {
+        const val VALUE_TYPE_FLOAT = 0
+        const val VALUE_TYPE_INT = 1
+        const val VALUE_TYPE_PATH = 2
+        const val VALUE_TYPE_COLOR = 3
+        const val VALUE_TYPE_UNDEFINED = 4
+
+        val argbEvaluator = ArgbEvaluator()
+
+        val keyFrameTypes = mutableMapOf(
+                "intType" to VALUE_TYPE_INT,
+                "floatType" to VALUE_TYPE_FLOAT,
+                "pathData" to VALUE_TYPE_PATH,
+                "colorType" to VALUE_TYPE_COLOR
+        )
+
+        val interpolators = mutableMapOf(
+                "@android:interpolator/accelerate_cubic" to android.R.interpolator.accelerate_cubic,
+                "@android:interpolator/accelerate_decelerate" to android.R.interpolator.accelerate_decelerate,
+                "@android:interpolator/accelerate_quad" to android.R.interpolator.accelerate_quad,
+                "@android:interpolator/accelerate_quint" to android.R.interpolator.accelerate_quint,
+                "@android:interpolator/anticipate" to android.R.interpolator.anticipate,
+                "@android:interpolator/anticipate_overshoot" to android.R.interpolator.anticipate_overshoot,
+                "@android:interpolator/bounce" to android.R.interpolator.bounce,
+                "@android:interpolator/cycle" to android.R.interpolator.cycle,
+                "@android:interpolator/decelerate_cubic" to android.R.interpolator.decelerate_cubic,
+                "@android:interpolator/decelerate_quad" to android.R.interpolator.decelerate_quad,
+                "@android:interpolator/decelerate_quint" to android.R.interpolator.decelerate_quint,
+                "@android:interpolator/linear" to android.R.interpolator.linear,
+                "@android:interpolator/overshoot" to android.R.interpolator.overshoot,
+                "@android:anim/accelerate_decelerate_interpolator" to android.R.anim.accelerate_decelerate_interpolator,
+                "@android:anim/accelerate_interpolator" to android.R.anim.accelerate_interpolator,
+                "@android:anim/anticipate_interpolator" to android.R.anim.anticipate_interpolator,
+                "@android:anim/anticipate_overshoot_interpolator" to android.R.anim.anticipate_overshoot_interpolator,
+                "@android:anim/bounce_interpolator" to android.R.anim.bounce_interpolator,
+                "@android:anim/cycle_interpolator" to android.R.anim.cycle_interpolator,
+                "@android:anim/decelerate_interpolator" to android.R.anim.decelerate_interpolator,
+                "@android:anim/fade_in" to android.R.anim.fade_in,
+                "@android:anim/fade_out" to android.R.anim.fade_out,
+                "@android:anim/linear_interpolator" to android.R.anim.linear_interpolator,
+                "@android:anim/overshoot_interpolator" to android.R.anim.overshoot_interpolator,
+                "@android:anim/slide_in_left" to android.R.anim.slide_in_left,
+                "@android:anim/slide_out_right" to android.R.anim.slide_out_right
+        )
+
+        init {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                interpolators["@android:interpolator/fast_out_extra_slow_in"] = android.R.interpolator.fast_out_extra_slow_in
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                interpolators["@android:interpolator/fast_out_linear_in"] = android.R.interpolator.fast_out_linear_in
+                interpolators["@android:interpolator/fast_out_slow_in"] = android.R.interpolator.fast_out_slow_in
+                interpolators["@android:interpolator/linear_out_slow_in"] = android.R.interpolator.linear_out_slow_in
+            }
+        }
     }
 }
 
