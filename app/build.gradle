@@ -99,7 +99,7 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
-    implementation 'com.google.android.material:material:1.2.0-alpha03'
+    implementation 'com.google.android.material:material:1.2.0-alpha04'
     implementation 'androidx.cardview:cardview:1.0.0'
 
     implementation 'com.github.bumptech.glide:glide:4.10.0'
@@ -183,22 +183,22 @@ File.metaClass.allFiles = { ->
     return files
 }
 
-task("learn") {
-    doLast {
-        def ifs = inputs.files
-        def ips = inputs.properties
-        def isfs = inputs.sourceFiles
-        def ofs = outputs.files
-        def jcofs = getTask("compileDebugJavaWithJavac").outputs.files
-        def jcoafs = jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.collect { it.length() > 0 ? it.allFiles().join('\n\t\t') : '' }.findAll { it.size() > 0 }.join('\n\t\t'))
-        println "\tinputs.files: ${ifs.size() == 0 ? '' : ('\n\t\t' + ifs.join('\n\t\t'))}" +
-                "\n\tinputs.properties: ${ips.size() == 0 ? '' : ('\n\t\t' + ips.entrySet().join('\n\t\t'))}" +
-                "\n\tinputs.sourceFiles: ${isfs.size() == 0 ? '' : ('\n\t\t' + isfs.join('\n\t\t'))}" +
-                "\n\toutputs.files: ${ofs.size() == 0 ? '' : ('\n\t\t' + ofs.join('\n\t\t'))}" +
-                "\n\tcompileDebugJavaWithJavac.outputs.files: ${jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.join('\n\t\t'))}" +
-                "\n\tcompileDebugJavaWithJavac.outputs.allFiles: ${jcoafs}"
-    }
-}
+// task("learn") {
+//     doLast {
+//         def ifs = inputs.files
+//         def ips = inputs.properties
+//         def isfs = inputs.sourceFiles
+//         def ofs = outputs.files
+//         def jcofs = getTask("compileDebugJavaWithJavac").outputs.files
+//         def jcoafs = jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.collect { it.length() > 0 ? it.allFiles().join('\n\t\t') : '' }.findAll { it.size() > 0 }.join('\n\t\t'))
+//         println "\tinputs.files: ${ifs.size() == 0 ? '' : ('\n\t\t' + ifs.join('\n\t\t'))}" +
+//                 "\n\tinputs.properties: ${ips.size() == 0 ? '' : ('\n\t\t' + ips.entrySet().join('\n\t\t'))}" +
+//                 "\n\tinputs.sourceFiles: ${isfs.size() == 0 ? '' : ('\n\t\t' + isfs.join('\n\t\t'))}" +
+//                 "\n\toutputs.files: ${ofs.size() == 0 ? '' : ('\n\t\t' + ofs.join('\n\t\t'))}" +
+//                 "\n\tcompileDebugJavaWithJavac.outputs.files: ${jcofs.size() == 0 ? '' : ('\n\t\t' + jcofs.join('\n\t\t'))}" +
+//                 "\n\tcompileDebugJavaWithJavac.outputs.allFiles: ${jcoafs}"
+//     }
+// }
 
 afterEvaluate {
     tasks.forEach { Task task ->
@@ -224,7 +224,7 @@ afterEvaluate {
     getTasksByName("mergeDebugAssets", false)[0].enabled = false
     getTasksByName("processDebugJavaRes", false)[0].enabled = false
 
-    insert(getTask("learn"), getTask("compileDebugJavaWithJavac"), getTask("transformClassesWithDexBuilderForDebug"))
+    // insert(getTask("learn"), getTask("compileDebugJavaWithJavac"), getTask("transformClassesWithDexBuilderForDebug"))
 
     def sss = project.extensions.getByType(AppExtension.class).sourceSets
     println "\tproject.projectDir: ${project.projectDir}" +
@@ -232,29 +232,29 @@ afterEvaluate {
             "\n\tproject.rootDir: ${project.rootDir}" +
             "\n\tproject.sourceSets: ${sss.getNames().join(', ')}" +
             "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.java.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.res.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.resources.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jni.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jniLibs.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.assets.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.aidl.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.renderscript.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
-            "\n\tproject.sourceSets.java: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.shaders.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}"
+            "\n\tproject.sourceSets.res: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.res.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.resources: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.resources.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.jni: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jni.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.jniLibs: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.jniLibs.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.assets: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.assets.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.aidl: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.aidl.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.renderscript: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.renderscript.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}" +
+            "\n\tproject.sourceSets.shaders: ${sss.getAsMap().collect { "name: ${it.key}, sourceSet: ${it.value.shaders.srcDirs.join('\n\t\t\t')}" }.join('\n\t\t')}"
 }
 
-def getTask(String name) {
-    return getTasksByName(name, false)[0]
-}
-
-static def insert(Task targetTask, Task beforeTask, Task afterTask) {
-    before(targetTask, afterTask)
-    after(targetTask, beforeTask)
-}
-
-static def before(Task targetTask, Task afterTask) {
-    afterTask.dependsOn(targetTask)
-}
-
-static def after(Task targetTask, Task beforeTask) {
-    targetTask.dependsOn(beforeTask)
-}
+// def getTask(String name) {
+//     return getTasksByName(name, false)[0]
+// }
+//
+// static def insert(Task targetTask, Task beforeTask, Task afterTask) {
+//     before(targetTask, afterTask)
+//     after(targetTask, beforeTask)
+// }
+//
+// static def before(Task targetTask, Task afterTask) {
+//     afterTask.dependsOn(targetTask)
+// }
+//
+// static def after(Task targetTask, Task beforeTask) {
+//     targetTask.dependsOn(beforeTask)
+// }

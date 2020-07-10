@@ -1,19 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set xmlns:android="http://schemas.android.com/apk/res/android"
-    android:ordering="sequentially">
-    <animator
-        android:duration="@android:integer/config_mediumAnimTime"
-        android:interpolator="@android:integer/config_mediumAnimTime"
-        android:repeatCount="@android:integer/config_mediumAnimTime"
-        android:repeatMode="restart"
-        android:startOffset="@android:integer/config_mediumAnimTime"
-        android:valueFrom="@android:integer/config_mediumAnimTime"
-        android:valueTo="@android:integer/config_mediumAnimTime"
-        android:valueType="colorType">
-        <propertyValuesHolder
-            android:propertyName="alpha"
-            android:valueFrom="@android:integer/config_mediumAnimTime"
-            android:valueTo="@android:integer/config_mediumAnimTime"
-            android:valueType="colorType" />
-    </animator>
+    android:ordering="together">
 </set>

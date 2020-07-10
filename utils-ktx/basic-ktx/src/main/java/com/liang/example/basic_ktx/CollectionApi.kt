@@ -4,6 +4,96 @@ interface Filter<T> {
     fun execute(t: T): Boolean
 }
 
+fun <E> Collection<E>.only(index: Int, action: (E) -> Boolean): Boolean {
+    forEachIndexed { i, e ->
+        if (action(e) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun <T> Array<T>.only(index: Int, action: (T) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun ByteArray.only(index: Int, action: (Byte) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun ShortArray.only(index: Int, action: (Short) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun IntArray.only(index: Int, action: (Int) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun LongArray.only(index: Int, action: (Long) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun FloatArray.only(index: Int, action: (Float) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun DoubleArray.only(index: Int, action: (Double) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun CharArray.only(index: Int, action: (Char) -> Boolean): Boolean {
+    forEachIndexed { i, t ->
+        if (action(t) != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun BooleanArray.only(index: Int): Boolean {
+    forEachIndexed { i, t ->
+        if (t != (index == i)) {
+            return false
+        }
+    }
+    return true
+}
+
 fun <K, V> MutableMap<K, V>.removeIf(filter: Filter<Map.Entry<K, V>>): Boolean {
     var removed = false
     val iterator = entries.iterator()

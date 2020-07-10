@@ -143,27 +143,42 @@ object ReflectHelper {
         return field
     }
 
+    // 下面都是封装
+
     fun findMethod(name: String, thisObj: Any?, vararg args: Any?): Method? =
-            findMethod(name, if (thisObj != null) thisObj::class.java else null, *args.map { it!!::class.java }.toTypedArray())
+            findMethod(name, if (thisObj != null) thisObj::class.java else null, *argClasses(args))
 
     fun findField(name: String, thisObj: Any?): Field? =
             findField(name, if (thisObj != null) thisObj::class.java else null)
 
     fun <T> newInstance(cls: Class<*>?, vararg args: Any?): T? =
-            tryAction { findCtor(cls, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } as? T
+            tryAction { findCtor(cls, *argClasses(args))?.newInstance(*args) } as? T
 
     fun <T> newInstance(name: String, vararg args: Any?): T? =
-            tryAction { findCls(name)?.let { clazz -> findCtor(clazz, *args.map { it!!::class.java }.toTypedArray())?.newInstance(*args) } } as? T
+            tryAction { findCls(name)?.let { clazz -> findCtor(clazz, *argClasses(args))?.newInstance(*args) } } as? T
 
     fun <T> invoke(name: String, thisObj: Any?, vararg args: Any?): T? =
-            tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, args)?.invoke(thisObj, *args) } as? T
+            tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, *argClasses(args))?.invoke(thisObj, *args) } as? T
 
     fun <T> invokeS(name: String, cls: Class<*>?, vararg args: Any?): T? =
-            tryAction { findMethod(name, cls, args)?.invoke(null, *args) } as? T
+            tryAction { findMethod(name, cls, *argClasses(args))?.invoke(null, *args) } as? T
 
     fun invokeN(name: String, thisObj: Any?, vararg args: Any?) {
-        tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, args)?.invoke(thisObj, *args) }
+        tryAction { findMethod(name, if (thisObj != null) thisObj::class.java else null, *argClasses(args))?.invoke(thisObj, *args) }
     }
+
+    fun argClasses(args: Array<out Any?>): Array<Class<*>> = args.map {
+        when (it) {
+            is Byte -> Byte::class.java
+            is Short -> Short::class.java
+            is Int -> Int::class.java
+            is Long -> Long::class.java
+            is Float -> Float::class.java
+            is Double -> Double::class.java
+            is Char -> Char::class.java
+            else -> it!!::class.java
+        }
+    }.toTypedArray()
 
     fun get(name: String, thisObj: Any?): Any? = tryAction { findField(name, thisObj)?.get(thisObj) }
     fun getByte(name: String, thisObj: Any?): Byte = tryAction { findField(name, thisObj)?.getByte(thisObj) } ?: 0
@@ -184,4 +199,24 @@ object ReflectHelper {
     fun setDouble(name: String, thisObj: Any?, value: Double?) = tryAction { findField(name, thisObj)?.setDouble(thisObj, value ?: 0.0) }
     fun setChar(name: String, thisObj: Any?, value: Char?) = tryAction { findField(name, thisObj)?.setChar(thisObj, value ?: '\u0000') }
     fun setBoolean(name: String, thisObj: Any?, value: Boolean?) = tryAction { findField(name, thisObj)?.setBoolean(thisObj, value ?: false) }
+
+    fun getStatic(name: String, cls: Class<*>?): Any? = tryAction { findField(name, cls)?.get(null) }
+    fun getByteStatic(name: String, cls: Class<*>?): Byte = tryAction { findField(name, cls)?.getByte(null) } ?: 0
+    fun getShortStatic(name: String, cls: Class<*>?): Short = tryAction { findField(name, cls)?.getShort(null) } ?: 0
+    fun getIntStatic(name: String, cls: Class<*>?): Int = tryAction { findField(name, cls)?.getInt(null) } ?: 0
+    fun getLongStatic(name: String, cls: Class<*>?): Long = tryAction { findField(name, cls)?.getLong(null) } ?: 0
+    fun getFloatStatic(name: String, cls: Class<*>?): Float = tryAction { findField(name, cls)?.getFloat(null) } ?: 0f
+    fun getDoubleStatic(name: String, cls: Class<*>?): Double = tryAction { findField(name, cls)?.getDouble(null) } ?: 0.0
+    fun getCharStatic(name: String, cls: Class<*>?): Char = tryAction { findField(name, cls)?.getChar(null) } ?: '\u0000'
+    fun getBooleanStatic(name: String, cls: Class<*>?): Boolean = tryAction { findField(name, cls)?.getBoolean(null) } ?: false
+
+    fun setStatic(name: String, cls: Class<*>?, value: Any?) = tryAction { findField(name, cls)?.set(null, value) }
+    fun setByteStatic(name: String, cls: Class<*>?, value: Byte?) = tryAction { findField(name, cls)?.setByte(null, value ?: 0) }
+    fun setShortStatic(name: String, cls: Class<*>?, value: Short?) = tryAction { findField(name, cls)?.setShort(null, value ?: 0) }
+    fun setIntStatic(name: String, cls: Class<*>?, value: Int?) = tryAction { findField(name, cls)?.setInt(null, value ?: 0) }
+    fun setLongStatic(name: String, cls: Class<*>?, value: Long?) = tryAction { findField(name, cls)?.setLong(null, value ?: 0L) }
+    fun setFloatStatic(name: String, cls: Class<*>?, value: Float?) = tryAction { findField(name, cls)?.setFloat(null, value ?: 0f) }
+    fun setDoubleStatic(name: String, cls: Class<*>?, value: Double?) = tryAction { findField(name, cls)?.setDouble(null, value ?: 0.0) }
+    fun setCharStatic(name: String, cls: Class<*>?, value: Char?) = tryAction { findField(name, cls)?.setChar(null, value ?: '\u0000') }
+    fun setBooleanStatic(name: String, cls: Class<*>?, value: Boolean?) = tryAction { findField(name, cls)?.setBoolean(null, value ?: false) }
 }

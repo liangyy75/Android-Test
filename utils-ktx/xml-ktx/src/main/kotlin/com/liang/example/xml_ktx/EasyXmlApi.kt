@@ -78,7 +78,7 @@ interface EasyXmlNode2 : EasyXmlNode {
         val nextDepth = depth + 1
         children?.forEach {
             if (it is EasyXmlNode2) {
-                it.depth = nextDepth
+                it.setRightDepth(nextDepth)
             }
         }
     }
@@ -108,9 +108,9 @@ interface EasyXmlNode2 : EasyXmlNode {
     fun add(node: EasyXmlNode, index: Int = -1) {
         if (children != null) {
             if (index == -1) {
-                children?.add(node)
+                children!!.add(node)
             } else {
-                children?.add(index, node)
+                children!!.add(index, node)
             }
             if (node is EasyXmlNode2) {
                 node.parent = this
@@ -210,8 +210,8 @@ interface EasyXmlNode2 : EasyXmlNode {
     fun previousSibling() = parent?.get(parent!!.indexOf(this) - 1)
     fun nextSibling() = parent?.get(parent!!.indexOf(this) + 1)
 
-    fun previousSibling(tag: String) = parent?.get(parent!!.indexOf(this) - 1)
-    fun nextSibling(tag: String) = parent?.get(parent!!.indexOf(this) + 1)
+    // fun previousSibling(tag: String) = parent?.get(parent!!.indexOf(this) - 1)
+    // fun nextSibling(tag: String) = parent?.get(parent!!.indexOf(this) + 1)
 
     fun findElementsByAction(action: (EasyXmlNode) -> Boolean): List<EasyXmlNode>? {
         if (children.isNullOrEmpty()) {
@@ -479,6 +479,7 @@ open class EasyXmlDeclaration(
         open var version: String = DEFAULT_VERSION, open var encoding: String = DEFAULT_ENCODING,
         open var attributes: MutableList<EasyXmlAttribute>? = null
 ) : EasyXmlNode {
+    override fun tag(): String? = "xml"
     open var mStrategy: XmlStrategy = XmlStrategy.SIMPLEST
     override fun elementType(): XmlNodeType = XmlNodeType.DECLARATION
     override fun string(): String = when (mStrategy) {
@@ -579,9 +580,9 @@ open class EasyXmlParser {
                         mText.append(ch)
                         ch = getNextChar() ?: return null
                     }
-                    val key = mText.toString()
                     getNextChar() ?: return null
                     ch = getNextChar() ?: return null
+                    val key = mText.toString()
                     mText.clear()
                     while (ch != '"') {
                         mText.append(ch)
@@ -613,9 +614,6 @@ open class EasyXmlParser {
 
         // </ 后面的内容
         protected fun parseEndTag(): Int? {
-            if (mTagPath.isEmpty()) {
-                return makeFail<Int>("xml format error!!!")
-            }
             val begin = mIndex
             var ch = getNextChar() ?: return null
             while (ch != '>') {
@@ -755,10 +753,7 @@ open class EasyXmlParser {
             }
             if (end.isNotEmpty()) {
                 mIndex = mIndex - end.length - 1
-                if (mIndex < 2) {
-                    return makeFail<Int>("xml format is wrong, now type is $mType, and expect $end")
-                }
-                if (!compareExpected(end, false, consume = true)) {
+                if (mIndex < 2 || !compareExpected(end, false, consume = true)) {
                     return makeFail<Int>("xml format is wrong, now type is $mType, and expect $end")
                 }
                 mIndex++

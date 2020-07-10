@@ -44,7 +44,7 @@ enum class JsonStrategy {
     USE_NULL_AND_BLANK;
 
     fun useNull(): Boolean = this == USE_NULL_AND_BLANK || this == USE_NULL
-    fun useBLANK(): Boolean = this == USE_NULL_AND_BLANK || this == USE_BLANK
+    fun useBlank(): Boolean = this == USE_NULL_AND_BLANK || this == USE_BLANK
 }
 
 interface SimpleJsonValue<T : Any> : Cloneable {
@@ -90,7 +90,7 @@ open class SimpleJsonObject(m: MutableMap<String, SimpleJsonValue<*>?>?) : Simpl
         }
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
-        return if (!mStrategy.useBLANK()) {
+        return if (!mStrategy.useBlank()) {
             """{${tempValue.map { "\"${it.key}\":${it.value?.string() ?: "null"}" }.joinToString(",")}}"""
         } else {
             val prefix1 = "\t".repeat(mDepth)
@@ -164,7 +164,7 @@ open class SimpleJsonArray(l: MutableList<SimpleJsonValue<*>?>?) : SimpleJsonVal
         val tempValue = mValue!!
         setRightDepth(mDepth)
         setRightStrategy(mStrategy)
-        return if (!mStrategy.useBLANK()) {
+        return if (!mStrategy.useBlank()) {
             "[${tempValue.joinToString(",") { it?.string() ?: "null" }}]"
         } else {
             val prefix1 = "\t".repeat(mDepth)
@@ -338,8 +338,8 @@ open class SimpleJsonBoolean(b: Boolean? = false) : SimpleJsonValueAdapter<Boole
     override fun clone(): SimpleJsonBoolean = SimpleJsonBoolean(mValue)
 }
 
-open class SimpleJsonNULL : SimpleJsonValueAdapter<Unit>(null, JsonType.NUL) {
-    override fun clone(): SimpleJsonNULL = SimpleJsonNULL()
+open class SimpleJsonNull : SimpleJsonValueAdapter<Unit>(null, JsonType.NUL) {
+    override fun clone(): SimpleJsonNull = SimpleJsonNull()
 }
 
 // open class SimpleJsonComment(s: String? = null) : SimpleJsonValueAdapter<String>(s, JsonType.COMMENT) {
@@ -353,17 +353,36 @@ val JSON_EMPTY_ARRAY = SimpleJsonArray(EMPTY_ARRAY)
 val JSON_EMPTY_OBJECT = SimpleJsonObject(EMPTY_OBJECT)
 val JSON_TRUE = SimpleJsonBoolean(true)
 val JSON_FALSE = SimpleJsonBoolean(false)
-val JSON_NULL = SimpleJsonNULL()
+val JSON_NULL = SimpleJsonNull()
 
 open class SimpleJsonParser(var strategy: JsonStyle) {
     open fun parseJson(jsonStr: String): SimpleJsonValue<*> = SimpleJsonParseTask(jsonStr, strategy).run()
     open fun parseJsonOrThrow(jsonStr: String): SimpleJsonValue<*> = SimpleJsonParseTask(jsonStr, strategy, true).run()
     open fun parseJsonOrNull(jsonStr: String): SimpleJsonValue<*>? = SimpleJsonParseTask(jsonStr, strategy).runOrNull()
 
-    open class SimpleJsonParseTask(val jsonStr: String, val strategy: JsonStyle, val throwEx: Boolean = false) {
-        protected val length = jsonStr.length
+    open class SimpleJsonParseTask(_jsonStr: String, val strategy: JsonStyle, val throwEx: Boolean = false) {
+        var jsonStr: String = _jsonStr
+            set(value) {
+                field = value
+                length = value.length
+            }
+        protected var length = _jsonStr.length
         protected var index: Int = 0
         protected var failReason: String? = null
+
+        fun run(jsonStr: String): SimpleJsonValue<*> {
+            this.jsonStr = jsonStr
+            index = 0
+            failReason = null
+            return run()
+        }
+
+        fun runOrNull(jsonStr: String): SimpleJsonValue<*>? {
+            this.jsonStr = jsonStr
+            index = 0
+            failReason = null
+            return runOrNull()
+        }
 
         fun runOrNull(): SimpleJsonValue<*>? {
             val result = parseJson(0)

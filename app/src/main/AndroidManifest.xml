@@ -292,6 +292,9 @@
         <activity
             android:name="com.liang.example.xmlinflatertest.MainActivity"
             android:label="Xml Inflater" />
+        <activity
+            android:name="com.liang.example.xmlinflatertest.MainActivity2"
+            android:label="Xml Inflater2" />
 
         <!-- Logger Configuration -->
         <meta-data

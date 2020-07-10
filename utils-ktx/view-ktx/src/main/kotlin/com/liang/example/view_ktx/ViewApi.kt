@@ -1,5 +1,6 @@
 package com.liang.example.view_ktx
 
+import android.app.Activity
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
@@ -88,19 +89,19 @@ fun TextView.setDrawableBottom(d: Drawable) = setDrawableByIndex(d, 3)
 fun TextView.setDrawableByIndex(d: Drawable, index: Int) {
     val drawables = compoundDrawables
     drawables[index] = d
-    setCompoundDrawables(drawables[0], drawables[1], drawables[2], drawables[3])  // left, top, right, bottom
+    setCompoundDrawablesWithIntrinsicBounds(drawables[0], drawables[1], drawables[2], drawables[3])  // left, top, right, bottom
 }
 
 fun TextView.setDrawableHorizontal(@DrawableRes d: Int) = setDrawableHorizontal(ContextApi.app.resources.getDrawable(d))
 fun TextView.setDrawableHorizontal(d: Drawable) {
     val drawables = compoundDrawables
-    setCompoundDrawables(d, drawables[1], d, drawables[3])
+    setCompoundDrawablesWithIntrinsicBounds(d, drawables[1], d, drawables[3])
 }
 
 fun TextView.setDrawableVertical(@DrawableRes d: Int) = setDrawableVertical(ContextApi.app.resources.getDrawable(d))
 fun TextView.setDrawableVertical(d: Drawable) {
     val drawables = compoundDrawables
-    setCompoundDrawables(drawables[0], d, drawables[2], d)
+    setCompoundDrawablesWithIntrinsicBounds(drawables[0], d, drawables[2], d)
 }
 
 private val sNextGeneratedId = AtomicInteger(1)
@@ -127,17 +128,36 @@ var View.strId: String?
                 strToIdMaps.remove(idToStrMaps[id])
                 idToStrMaps.remove(id)
             }
-        } else if (!strToIdMaps.containsKey(value)) {
-            val id = generateViewId()
-            strToIdMaps[value] = id
-            idToStrMaps[id] = value
-            this.id = id
+        } else {
+            this.id = getIntIdByStrId(value)
         }
     }
-    get() {
-        val id = this.id
-        if (id == View.NO_ID || !idToStrMaps.containsKey(id)) {
-            return null
-        }
-        return idToStrMaps[id]!!
+    get() = getStrIdByIntId(this.id)
+
+fun getIntIdByStrId(strId: String?): Int {
+    if (strId == null) {
+        return View.NO_ID
     }
+    var id = strToIdMaps[strId]
+    if (id == null) {
+        id = generateViewId()
+        strToIdMaps[strId] = id
+        idToStrMaps[id] = strId
+    }
+    return id
+}
+
+fun getStrIdByIntId(id: Int?): String? {
+    if (id == View.NO_ID || !idToStrMaps.containsKey(id)) {
+        return null
+    }
+    return idToStrMaps[id]!!
+}
+
+fun <T : View> Activity.findViewByStrId2(strId: String): T? = when (val intId = strToIdMaps[strId]) {
+    null, View.NO_ID -> null
+    else -> findViewById(intId)
+}
+
+fun <T : View> Activity.findViewByStrId(strId: String): T = findViewById(strToIdMaps[strId]!!)
+fun <T : View> Activity.findViewById(strId: String): T = findViewById(strToIdMaps[strId]!!)
