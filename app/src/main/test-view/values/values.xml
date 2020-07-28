@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--PagerIndicatorImpl-->
+    <integer name="PagerIndicatorImpl_default_orientation2">0</integer>
+    <color name="PagerIndicatorImpl_default_unselectedSrc">#e0e0e0</color>
+    <color name="PagerIndicatorImpl_default_selectedSrc">#ff4e33</color>
+    <color name="PagerIndicatorImpl_default_strokeColor">#aaa</color>
+    <dimen name="PagerIndicatorImpl_default_strokeWidth">0dp</dimen>
+    <dimen name="PagerIndicatorImpl_default_dividerWidth">10dp</dimen>
+    <bool name="PagerIndicatorImpl_default_center">true</bool>
+    <bool name="PagerIndicatorImpl_default_snap">false</bool>
+    <fraction name="PagerIndicatorImpl_default_radius">50%</fraction>
+</resources>

@@ -6,8 +6,21 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-
         <!--<item name="windowNoTitle">true</item>-->
+
+        <item name="PIIStyleInTheme">@style/PagerIndicatorImpl_DefaultStyle</item>
+    </style>
+
+    <style name="PagerIndicatorImpl_DefaultStyle">
+        <item name="center">true</item>
+        <item name="snap">false</item>
+        <item name="orientation2">horizontal</item>
+        <item name="unselectedSrc">#e0e0e0</item>
+        <item name="selectedSrc">#ff4e33</item>
+        <item name="strokeColor">#aaa</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="dividerWidth">10dp</item>
+        <item name="radius">50%</item>
     </style>
 
 </resources>

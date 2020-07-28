@@ -25,60 +25,60 @@ import java.util.*
 
 // test class
 class MainActivity2 : AppCompatActivity() {
-    fun test() {
-        val paint = Paint()
-        paint.isAntiAlias = true
-        paint.color = Color.RED
-        paint.style = Paint.Style.FILL
-        paint.strokeWidth = 30f
-        paint.setShadowLayer(10f, 20f, 20f, Color.RED)
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            paint.blendMode = BlendMode.SRC
-        }
-
-        val canvas = Canvas()
-        canvas.drawColor(Color.RED)
-        canvas.drawRGB(Color.red(Color.RED), Color.green(Color.RED), Color.blue(Color.RED))
-        canvas.drawARGB(Color.alpha(Color.RED), Color.red(Color.RED), Color.green(Color.RED), Color.blue(Color.RED))
-        canvas.drawText("text", 0, 4, 20f, 20f, paint)
-        canvas.drawText("text".toCharArray(), 0, 4, 20f, 20f, paint)
-        canvas.drawPosText("text".toCharArray(), 0, 4, floatArrayOf(/* 应该要有8个float值的 */), paint)
-        // canvas.drawTextRun()
-        canvas.drawPath(Path(), paint)
-        // canvas.drawTextOnPath()
-        canvas.drawPoint(10f, 10f, paint)
-        canvas.drawPoints(floatArrayOf(10f, 10f, 20f, 10f, 10f, 20f), paint)
-        canvas.drawLine(0f, 0f, 300f, 300f, paint)
-        canvas.drawLines(floatArrayOf(0f, 0f, 100f, 100f, 100f, 100f, 300f, -100f), paint)
-        canvas.drawRect(0f, 0f, 300f, 200f, paint)
-        canvas.drawRoundRect(0f, 0f, 300f, 200f, 5f, 5f, paint)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            canvas.drawDoubleRoundRect(RectF(0f, 0f, 200f, 300f), 5f, 5f, RectF(20f, 20f, 280f, 280f), 5f, 5f, paint)
-        }
-        canvas.drawCircle(300f, 300f, 200f, paint)
-        canvas.drawOval(0f, 0f, 300f, 200f, paint)
-        canvas.drawArc(RectF(0f, 0f, 300f, 200f), 0, 90, true, paint)
-        canvas.drawBitmap()
-        canvas.drawPatch(patch: NinePatch, Rect(0, 0, 300, 200), paint)
-
-        canvas.drawVertices()
-        canvas.drawRenderNode()
-
-        paint.textAlign = Paint.Align.LEFT
-        paint.textLocale = Locale.CHINA
-        paint.textLocales = LocaleList.getDefault()
-        paint.textSize = 50f
-        paint.textScaleX = 2f
-        paint.textSkewX = 2f
-
-        paint.isLinearText = false
-        paint.isSubpixelText = false
-        paint.isUnderlineText = false
-        paint.isElegantTextHeight = false
-        paint.isFakeBoldText = false
-        paint.isStrikeThruText = false
-    }
+    // fun test() {
+    //     val paint = Paint()
+    //     paint.isAntiAlias = true
+    //     paint.color = Color.RED
+    //     paint.style = Paint.Style.FILL
+    //     paint.strokeWidth = 30f
+    //     paint.setShadowLayer(10f, 20f, 20f, Color.RED)
+    //     paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC)
+    //     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    //         paint.blendMode = BlendMode.SRC
+    //     }
+    //
+    //     val canvas = Canvas()
+    //     canvas.drawColor(Color.RED)
+    //     canvas.drawRGB(Color.red(Color.RED), Color.green(Color.RED), Color.blue(Color.RED))
+    //     canvas.drawARGB(Color.alpha(Color.RED), Color.red(Color.RED), Color.green(Color.RED), Color.blue(Color.RED))
+    //     canvas.drawText("text", 0, 4, 20f, 20f, paint)
+    //     canvas.drawText("text".toCharArray(), 0, 4, 20f, 20f, paint)
+    //     canvas.drawPosText("text".toCharArray(), 0, 4, floatArrayOf(/* 应该要有8个float值的 */), paint)
+    //     // canvas.drawTextRun()
+    //     canvas.drawPath(Path(), paint)
+    //     // canvas.drawTextOnPath()
+    //     canvas.drawPoint(10f, 10f, paint)
+    //     canvas.drawPoints(floatArrayOf(10f, 10f, 20f, 10f, 10f, 20f), paint)
+    //     canvas.drawLine(0f, 0f, 300f, 300f, paint)
+    //     canvas.drawLines(floatArrayOf(0f, 0f, 100f, 100f, 100f, 100f, 300f, -100f), paint)
+    //     canvas.drawRect(0f, 0f, 300f, 200f, paint)
+    //     canvas.drawRoundRect(0f, 0f, 300f, 200f, 5f, 5f, paint)
+    //     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    //         canvas.drawDoubleRoundRect(RectF(0f, 0f, 200f, 300f), 5f, 5f, RectF(20f, 20f, 280f, 280f), 5f, 5f, paint)
+    //     }
+    //     canvas.drawCircle(300f, 300f, 200f, paint)
+    //     canvas.drawOval(0f, 0f, 300f, 200f, paint)
+    //     canvas.drawArc(RectF(0f, 0f, 300f, 200f), 0, 90, true, paint)
+    //     canvas.drawBitmap()
+    //     canvas.drawPatch(patch: NinePatch, Rect(0, 0, 300, 200), paint)
+    //
+    //     canvas.drawVertices()
+    //     canvas.drawRenderNode()
+    //
+    //     paint.textAlign = Paint.Align.LEFT
+    //     paint.textLocale = Locale.CHINA
+    //     paint.textLocales = LocaleList.getDefault()
+    //     paint.textSize = 50f
+    //     paint.textScaleX = 2f
+    //     paint.textSkewX = 2f
+    //
+    //     paint.isLinearText = false
+    //     paint.isSubpixelText = false
+    //     paint.isUnderlineText = false
+    //     paint.isElegantTextHeight = false
+    //     paint.isFakeBoldText = false
+    //     paint.isStrikeThruText = false
+    // }
 }
 
 /**

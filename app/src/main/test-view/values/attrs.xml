@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <declare-styleable name="PagerIndicatorImpl">
+        <attr name="center" format="boolean|reference" />
+        <attr name="orientation2">
+            <enum name="horizontal" value="0" />
+            <enum name="vertical" value="1" />
+        </attr>
+        <attr name="unselectedSrc" format="color|reference" />
+        <attr name="selectedSrc" format="color|reference" />
+        <attr name="strokeColor" format="color|reference" />
+        <attr name="strokeWidth" format="dimension|reference" />
+        <attr name="dividerWidth" format="dimension|reference" />
+        <attr name="radius" format="dimension|fraction|reference" />
+        <attr name="snap" format="boolean|reference" />
+    </declare-styleable>
+    <attr name="PIIStyleInTheme" format="reference" />
+</resources>
