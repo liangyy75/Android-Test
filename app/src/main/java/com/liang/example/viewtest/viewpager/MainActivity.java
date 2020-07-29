@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
             public View instantiateItem(@NonNull ViewGroup container, int position, String data) {
                 ApiManager.LOGGER.d(TAG, "instantiateItem -- position: %d, data: %s", position, data);
                 TextView view = new TextView(MainActivity.this);
-                view.setBackgroundResource(colors.get(Integer.valueOf(data) % colors.size()));
+                view.setBackgroundResource(colors.get(Integer.parseInt(data) % colors.size()));
                 view.setText(data);
                 view.setGravity(Gravity.CENTER);
                 view.setTextColor(background_dark);
@@ -135,6 +135,9 @@ public class MainActivity extends AppCompatActivity {
             }
             pagerAdapterTest.setItem(String.valueOf(intVal), intPos);
         });
+
+        viewPager.postDelayed(() -> viewPager.setCurrentItem(3), 5000);
+        viewPager.postDelayed(() -> viewPager.setCurrentItem(4), 10000);
     }
 
     static void showDataSet(List<String> dataSet, String tag) {

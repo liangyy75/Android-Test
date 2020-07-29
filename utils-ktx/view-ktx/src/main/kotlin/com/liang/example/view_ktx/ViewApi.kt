@@ -10,6 +10,8 @@ import com.liang.example.context_ktx.ContextApi
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+const val INVALID_LAYOUT_PARAMS = -10
+
 fun View.setPadding(p: Int) = this.setPadding(p, p, p, p)
 fun View.setPaddingLeft(p: Int) = this.setPadding(p, this.paddingTop, this.paddingRight, this.paddingBottom)
 fun View.setPaddingRight(p: Int) = this.setPadding(this.paddingLeft, this.paddingTop, p, this.paddingBottom)
@@ -17,6 +19,22 @@ fun View.setPaddingTop(p: Int) = this.setPadding(this.paddingLeft, p, this.paddi
 fun View.setPaddingBottom(p: Int) = this.setPadding(this.paddingLeft, this.paddingTop, this.paddingRight, p)
 fun View.setPaddingHorizontal(p: Int) = this.setPadding(p, this.paddingTop, p, this.paddingBottom)
 fun View.setPaddingVertical(p: Int) = this.setPadding(this.paddingLeft, p, this.paddingRight, p)
+
+var View.layoutWidth: Int
+    get() = this.layoutParams?.width ?: INVALID_LAYOUT_PARAMS
+    set(value) {
+        val lp = this.layoutParams ?: return
+        lp.width = value
+        this.layoutParams = lp
+    }
+
+var View.layoutHeight: Int
+    get() = this.layoutParams?.height ?: INVALID_LAYOUT_PARAMS
+    set(value) {
+        val lp = this.layoutParams ?: return
+        lp.height = value
+        this.layoutParams = lp
+    }
 
 fun View.setMargin(m: Int) {
     val params = this.layoutParams

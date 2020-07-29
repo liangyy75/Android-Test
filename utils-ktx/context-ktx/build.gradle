@@ -35,4 +35,6 @@ android {
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
     api 'androidx.appcompat:appcompat:1.1.0'
+
+    deps.lifecycle.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
 }

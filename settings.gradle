@@ -1,5 +1,5 @@
 include ':app', ':router', ':remote', ':utils-ktx', ':spi_interface', ':spi_impl1', ':spi_impl2', ':plugin', ':lua', ':block', ':network', ':priority', ':out-service' ,
-        ':popup', ':basic-block', ':xml-inflater', ':json-inflater', ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx'
+        ':popup', ':basic-block', ':xml-inflater', ':json-inflater', ':view-ktx', ':context-ktx', ':logger', ':basic-ktx', ':json-ktx', ':xml-ktx', ':image-ktx'
 
 project(":spi_interface").projectDir = new File("spi/spi_interface")
 project(":spi_impl1").projectDir = new File("spi/spi_impl1")
@@ -20,6 +20,7 @@ project(":logger").projectDir = new File("utils-ktx/logger")
 project(":basic-ktx").projectDir = new File("utils-ktx/basic-ktx")
 project(":json-ktx").projectDir = new File("utils-ktx/json-ktx")
 project(":xml-ktx").projectDir = new File("utils-ktx/xml-ktx")
+project(":image-ktx").projectDir = new File("utils-ktx/image-ktx")
 
 project(":priority").projectDir = new File("custom/priority")
 project(":network").projectDir = new File("custom/network")

@@ -28,10 +28,12 @@ import java.util.TimerTask;
  * 1.4 支持缓存  TODO: 动态修改时不需要重新生成一遍收到影响的所有page
  * 1.5 支持懒加载与预加载(PagerAdapter特性)
  * 1.6 支持ViewPagerIndicator
- * 1.7 多item显示 -- 两种形式
+ * 1.7 多item显示 -- 两种形式  TODO: 需要修正
  * 2. bug
  * 2.1 2019-09-22: subViews出错 -- SparseArray当作List处理了，其实subViews内容是没错的
  * 2.2 2019-09-23: pageMargin需要深入理解一下 -- https://juejin.im/post/5a4c2f496fb9a044fd122631 -- 没有使用getResources.getDimensionPixelSize而是用getResources.getDimension
+ * <p>
+ * https://www.jianshu.com/p/0dbd4d157feb -- ViewPager显示两边的item
  *
  * @param <T> 数据集中数据的类型，不需要时可以用 {@link Void}
  */
@@ -49,14 +51,14 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     private volatile Timer timer;  // 轮播的timer
     private int pageChangePos = -1;  // pager当前位置
 
-    private boolean canChanged;
+    private boolean canChanged;  // 是否可以增加/删除item
     private HashMap<Integer, Boolean> changedMap;
 
-    private boolean useCache;
-    private SparseArray<View> cachedViews;
+    private boolean useCache;  // 是否使用cache
+    private SparseArray<View> cachedViews;  // 缓存的view
 
-    private boolean useIndicator;
-    private IndicatorHolder<T> indicatorHolder;
+    private boolean useIndicator;  // 是否使用indicator
+    private IndicatorHolder<T> indicatorHolder;  // indicator holder
     private List<View> indicators;
 
     private float pageWidth = 1.f;
@@ -106,7 +108,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             this.changedMap = new HashMap<>();
         }
         setUseCache(useCache);
-        setUseController(useIndicator, indicatorHolder);
+        setUseController(useIndicator, indicatorHolder, viewPager);
     }
 
     /**************************************** page的生成与销毁 ****************************************/
@@ -156,6 +158,7 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     public void setPrimaryItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         int newPos = parsePos(position, "setPrimaryItem");
         pagerAdapterHolder.setPrimaryItem(container, newPos, object, subViews.get(position));
+        pageChangePos = position;
     }
 
     @Override
@@ -445,13 +448,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
         ApiManager.LOGGER.d(TAG, "onPageScrolled(pos: %d, posOff: %f, posOffPx: %d)", position, positionOffset, positionOffsetPixels);
-        pageChangePos = position;
+        // pageChangePos = position;
     }
 
     @Override
     public void onPageSelected(int position) {
         ApiManager.LOGGER.d(TAG, "onPageSelected(pos: %d)", position);
-        pageChangePos = position;
+        // pageChangePos = position;
     }
 
     @Override
@@ -469,7 +472,8 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
     }
 
     /**************************************** 控制器相关 ****************************************/
-    public void setUseController(boolean useController, IndicatorHolder<T> indicatorHolder) {
+    public void setUseController(boolean useController, IndicatorHolder<T> indicatorHolder, ViewPager viewPager) {
+        this.viewPager = viewPager;
         ApiManager.LOGGER.d(TAG, "setUseController(useIndicator: %s)", String.valueOf(useController));
         this.useIndicator = useController;
         this.indicatorHolder = indicatorHolder;
@@ -480,7 +484,11 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
             for (int i = 0; i < size; i++) {
                 View controller = this.indicatorHolder.getIndicator(i, dataSet.get(i));
                 controller.setTag(key, carousel ? i + 1 : i);
-                controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
+                controller.setOnClickListener((v) -> {
+                    int index = (Integer) v.getTag(key);
+                    viewPager.setCurrentItem(index);
+                    this.indicatorHolder.onIndicatorClick(index, dataSet.get(index), v);
+                });
                 this.indicators.add(controller);
             }
         } else {
@@ -513,7 +521,11 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
         }
         View controller = indicatorHolder.getIndicator(position, dataSet.get(position));
         controller.setTag(key, carousel ? position + 1 : position);
-        controller.setOnClickListener((v) -> viewPager.setCurrentItem((Integer) v.getTag(key)));
+        controller.setOnClickListener((v) -> {
+            int index = (Integer) v.getTag(key);
+            viewPager.setCurrentItem(index);
+            this.indicatorHolder.onIndicatorClick(index, dataSet.get(index), v);
+        });
         indicators.add(position, controller);
     }
 
@@ -534,9 +546,13 @@ public class PagerAdapterTest<T> extends PagerAdapter implements ViewPager.OnPag
 
         default void removeIndicator(int index, T data, View view) {
         }
+
+        default void onIndicatorClick(int index, T data, View view) {
+        }
     }
 
     /**************************************** 委托接口 ****************************************/
+
     public interface PagerAdapterHolder<T> {
         View instantiateItem(@NonNull ViewGroup container, int position, T data);
 

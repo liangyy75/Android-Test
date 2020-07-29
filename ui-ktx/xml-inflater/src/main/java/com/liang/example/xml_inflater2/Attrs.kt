@@ -3,7 +3,7 @@
 package com.liang.example.xml_inflater2
 
 // format的可能的值：'dimension', 'fraction', 'reference', 'color', 'string', 'boolean', 'integer', 'float', 'enum', 'flag'，
-// [flag, enum, dimension, integer]是重点，都带有values
+// [flag, enum, dimension, integer]是重点，都带有values，即可枚举
 /**
  * dimension: dp / in / pt / px / mm / sp
  * fraction: 100%(percent of myself) / 100%p(percent of parent)

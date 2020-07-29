@@ -2,11 +2,13 @@ package com.liang.example.context_ktx
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
 
 object ContextApi {
     lateinit var app: Application

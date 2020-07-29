@@ -3,9 +3,13 @@
 package com.liang.example.viewtest.chart
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.sqrt
 
 object EnumHelper {
     private val map = mutableMapOf<String, Int>()
@@ -23,10 +27,96 @@ object EnumHelper {
     }
 }
 
+fun Canvas.rotate(degrees: Float, px: Float, py: Float, action: Canvas.() -> Unit) {
+    this.save()
+    this.rotate(degrees, px, py)
+    this.action()
+    this.restore()
+}
+
+@Suppress("LeakingThis")
 open class ChartView : View {
     constructor(c: Context) : super(c)
     constructor(c: Context, attributeSet: AttributeSet?) : super(c, attributeSet)
     constructor(c: Context, attributeSet: AttributeSet?, defStyleAttr: Int) : super(c, attributeSet, defStyleAttr)
+
+    open val mainPaint = Paint()
+    open val strokePaint = Paint()
+
+    init {
+        mainPaint.style = Paint.Style.FILL
+        strokePaint.style = Paint.Style.STROKE
+    }
+
+    open fun drawSymbol(canvas: Canvas, style: ChartSymbolStyle, x: Float, y: Float, bgColor: Long /* chart's bg or area's bg */) {
+        when (style.contentStyle) {
+            ChartSymbolStyle.NORMAL -> mainPaint.color = style.color.toInt()
+            ChartSymbolStyle.INNER_EMPTY -> {
+                mainPaint.color = bgColor.toInt()
+                strokePaint.color = style.strokeColor.toInt()
+            }
+            ChartSymbolStyle.BORDER_EMPTY -> {
+                mainPaint.color = style.color.toInt()
+                strokePaint.color = bgColor.toInt()
+            }
+            ChartSymbolStyle.INNER_AND_BORDER -> {
+                mainPaint.color = style.color.toInt()
+                strokePaint.color = style.strokeColor.toInt()
+            }
+        }
+        var drawStroke = false
+        if (style.contentStyle != ChartSymbolStyle.NORMAL) {
+            drawStroke = true
+            strokePaint.strokeWidth = style.strokeSize
+        }
+        when (style.shapeStyle) {
+            ChartSymbolStyle.NONE -> Unit
+            ChartSymbolStyle.CIRCLE -> drawCircleSymbol(canvas, x, y, style, drawStroke)
+            ChartSymbolStyle.SQUARE -> drawSquareSymbol(style, canvas, x, y, drawStroke)
+            ChartSymbolStyle.DIAMOND -> canvas.rotate(45f, x, y) { drawSquareSymbol(style, this, x, y, drawStroke) }
+            ChartSymbolStyle.TRIANGLE -> drawTriangleSymbol(style, x, y, canvas, false, drawStroke)
+            ChartSymbolStyle.TRIANGLEDOWN -> drawTriangleSymbol(style, x, y, canvas, true, drawStroke)
+        }
+    }
+
+    protected open fun drawCircleSymbol(canvas: Canvas, x: Float, y: Float, style: ChartSymbolStyle, drawStroke: Boolean) {
+        canvas.drawCircle(x, y, style.size, mainPaint)
+        if (drawStroke) {
+            canvas.drawCircle(x, y, style.size, strokePaint)
+        }
+    }
+
+    protected open fun drawTriangleSymbol(style: ChartSymbolStyle, x: Float, y: Float, canvas: Canvas, down: Boolean, drawStroke: Boolean) {
+        val temp = style.size / 2
+        var temp2 = style.size * SQUARE_ROOT_3 / 6
+        var temp3 = style.size / SQUARE_ROOT_3
+        if (down) {
+            temp2 = -temp2
+            temp3 = -temp3
+        }
+        val path = Path()
+        path.fillType = Path.FillType.EVEN_ODD
+        path.moveTo(x - temp, y + temp2)
+        path.lineTo(x + temp, y + temp2)
+        path.lineTo(x, y - temp3)
+        path.close()
+        canvas.drawPath(path, mainPaint)
+        if (drawStroke) {
+            canvas.drawPath(path, strokePaint)
+        }
+    }
+
+    protected open fun drawSquareSymbol(style: ChartSymbolStyle, canvas: Canvas, x: Float, y: Float, drawStroke: Boolean) {
+        val temp = style.size / 2
+        canvas.drawRect(x - temp, y - temp, x + temp, y + temp, mainPaint)
+        if (drawStroke) {
+            canvas.drawRect(x - temp, y - temp, x + temp, y + temp, strokePaint)
+        }
+    }
+
+    companion object {
+        val SQUARE_ROOT_3 = sqrt(3f)
+    }
 }
 
 open class ChartText(
@@ -69,20 +159,24 @@ open class ChartText(
     }
 }
 
-open class ChartSymbolStyle(open var shapeStyle: Int, open var contentStyle: Int, open var size: Float, open var textMargin: Float) {
+open class ChartSymbolStyle(open var shapeStyle: Int, open var contentStyle: Int, open var size: Float, open var textMargin: Float, open var color: Long) {
+    open var strokeColor: Long = -1L
+    open var strokeSize: Float = -1f
+
     companion object {
         const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
         val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]
+        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // size是半径
+        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // size是边长
+        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // size是边长
+        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // size是边长
+        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // size是边长
 
         private const val SYMBOL_CONTENT_TYPE = "symbolContentType"
-        val FILL = EnumHelper[SYMBOL_CONTENT_TYPE]
-        val INNER_BLACK = EnumHelper[SYMBOL_CONTENT_TYPE]
-        val BORDER_BLACK = EnumHelper[SYMBOL_CONTENT_TYPE]
+        val NORMAL = EnumHelper[SYMBOL_CONTENT_TYPE]
+        val INNER_EMPTY = EnumHelper[SYMBOL_CONTENT_TYPE]
+        val BORDER_EMPTY = EnumHelper[SYMBOL_CONTENT_TYPE]
+        val INNER_AND_BORDER = EnumHelper[SYMBOL_CONTENT_TYPE]
     }
 }
 
@@ -91,7 +185,7 @@ open class ChartAxisSymbol(open var name: String, open var value: String, open v
 open class ChartAxisSymbol2(
         n: String, v: String, p: Float,
         open val shapeStyle: Int = NONE,
-        open val contentStyle: Int = ChartSymbolStyle.FILL
+        open val contentStyle: Int = ChartSymbolStyle.NORMAL
 ) : ChartAxisSymbol(n, v, p) {
     companion object {
         val NONE = EnumHelper[ChartSymbolStyle.SYMBOL_SHAPE_TYPE]

@@ -34,8 +34,9 @@ open class Block {
 // 7. TODO: observableData / liveData -- add / remove / get
 // 8. TODO: consumer / message / runnable / disposable
 // 9. TODO: holderByApp
+// 10. TODO: active / unActive 生命周期
 //
-// 10. 字段
+// 11. 字段
 //    1. provider: StrongViewModelProvider?
 //    2. swb: WhiteBoard<String>
 //    3. cwb: WhiteBoard<Class<*>>

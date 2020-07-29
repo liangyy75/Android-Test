@@ -256,12 +256,12 @@ public abstract class RVAdapterTest<T> extends RecyclerView.Adapter<RVViewHolder
     }
 
     public interface OnItemViewTypeListener<T> {
-        public int getItemViewType(int position, T data);
+        int getItemViewType(int position, T data);
     }
 
     public interface OnItemClickListener<T> {
-        public void onItemClick(View view, T data, int position);
+        void onItemClick(View view, T data, int position);
 
-        public boolean onItemLongClick(View view, T data, int position);
+        boolean onItemLongClick(View view, T data, int position);
     }
 }
