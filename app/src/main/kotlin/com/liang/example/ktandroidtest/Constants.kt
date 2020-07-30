@@ -6,7 +6,8 @@ val classes = arrayOf(
         com.liang.example.blocktest.MainActivity3::class.java,
         com.liang.example.blocktest.MainActivity4::class.java,
         com.liang.example.xmlinflatertest.MainActivity::class.java,
-        com.liang.example.viewtest_kt.temp.PagerPagerActivity::class.java
+        com.liang.example.viewtest_kt.temp.PagerPagerActivity::class.java,
+        com.liang.example.viewtest_kt.chart.MainActivity::class.java
 )
 
 val names = arrayOf(
@@ -15,7 +16,8 @@ val names = arrayOf(
         "Block Test3",
         "Block Test4",
         "Xml Inflater",
-        "Temp"
+        "Temp",
+        "Chart View"
 )
 
 val descs = arrayOf(
@@ -24,10 +26,13 @@ val descs = arrayOf(
         "一个安卓ui库，轻量级，能让代码划分的更清晰，一个Activity/Fragment能划分得更细粒度",
         "一个安卓ui库，轻量级，能让代码划分的更清晰，一个Activity/Fragment能划分得更细粒度",
         "xml inflater",
-        "Temp"
+        "Temp",
+        "Chart View"
 )
 
 val authors = arrayOf(
+        "liangyy75",
+        "liangyy75",
         "liangyy75",
         "liangyy75",
         "liangyy75",
@@ -42,7 +47,8 @@ val updated = arrayOf(
         "2019-12-08",
         "2019-12-08",
         "2020-01-21",
-        "2020-07-17"
+        "2020-07-17",
+        "2020-07-30"
 )
 
 val created = arrayOf(
@@ -51,5 +57,6 @@ val created = arrayOf(
         "2019-12-08",
         "2019-12-08",
         "2020-01-21",
-        "2020-07-17"
+        "2020-07-17",
+        "2020-07-30"
 )

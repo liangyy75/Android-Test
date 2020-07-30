@@ -279,6 +279,7 @@
         <activity android:name="com.liang.example.blocktest.MainActivity3" />
         <activity android:name="com.liang.example.blocktest.MainActivity4" />
         <activity android:name="com.liang.example.viewtest_kt.temp.PagerPagerActivity" />
+        <activity android:name="com.liang.example.viewtest_kt.chart.MainActivity" />
 
         <!-- Groovy <==> Java <==> Kotlin -->
         <activity
