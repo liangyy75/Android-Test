@@ -7,12 +7,16 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
 import com.liang.example.androidtest.R
 import com.liang.example.utils.r.dp2px
 import kotlin.math.sqrt
 
+/**
+ * 用来帮助Enum的，并且方便扩展、删除
+ */
 object EnumHelper {
     private val map = mutableMapOf<String, Int>()
 
@@ -29,6 +33,9 @@ object EnumHelper {
     }
 }
 
+/**
+ * 保留原本状态，之后旋转，然后action，最后恢复
+ */
 fun Canvas.rotate(degrees: Float, px: Float, py: Float, action: Canvas.() -> Unit) {
     this.save()
     this.rotate(degrees, px, py)
@@ -36,6 +43,9 @@ fun Canvas.rotate(degrees: Float, px: Float, py: Float, action: Canvas.() -> Uni
     this.restore()
 }
 
+/**
+ * 绘制Chart的View
+ */
 @Suppress("LeakingThis")
 open class ChartView : View {
     constructor(c: Context) : super(c)
@@ -154,9 +164,13 @@ open class ChartView : View {
     }
 }
 
-open class ChartItemBase {
+/**
+ * 组成Chart的所有组件共同的祖先，定义所有组件共同的事件
+ */
+open class ChartItemBase(open var color: Int) {
     open var clickListener: ClickListener? = null
     open var state: Int = ChartState.NORMAL
+    open var aboutItems: MutableMap<Int, ChartItemBase>? = null
     open var zIndex: Int = 0
 
     // TODO: 判断点在area中
@@ -168,6 +182,7 @@ open class ChartItemBase {
 
     object ChartState {
         const val STATE = "state"
+        val NONE = EnumHelper[STATE]  // 也就是平时看不见
         val NORMAL = EnumHelper[STATE]
         val TOUCHING = EnumHelper[STATE]
         val TOUCHED = EnumHelper[STATE]
@@ -176,15 +191,74 @@ open class ChartItemBase {
     }
 }
 
+/**
+ * chart中的border
+ */
+open class ChartBorder {
+    open var borderColor: Int = 0
+    open var borderWidth: Float = 0f
+    open var borderRadius: Float = 0f
+    open var borderStyle: Int = ChartLineBase.Style.SOLID
+    open var dashArray: MutableList<Float>? = null
+
+    open var padding: Float = 0f
+    open var paddingLeft: Float = 0f
+    open var paddingRight: Float = 0f
+    open var paddingTop: Float = 0f
+    open var paddingBottom: Float = 0f
+}
+
+/**
+ * chart中的background
+ */
+open class ChartBackground(
+        open var bgColor: Int,
+        open var bgImage: Int = 0,
+        open var bgDrawable: Drawable? = null
+)
+
+/**
+ * chart中的线
+ */
+open class ChartLineBase(
+        color: Int,
+        open var width: Float
+) : ChartItemBase(color) {
+    open var style: Int = Style.SOLID
+    open var startStyle: Int = EndStyle.NONE
+    open var endStyle: Int = EndStyle.NONE
+    open var text: ChartText? = null
+    open var dashArray: MutableList<Float>? = null
+    open var length: Float = -1f
+
+    object Style {
+        const val LINE_STYLE = "lineStyle"
+        val SOLID = EnumHelper[LINE_STYLE]
+        val DASH = EnumHelper[LINE_STYLE]
+        val DOUBLE = EnumHelper[LINE_STYLE]
+    }
+
+    object EndStyle {
+        const val LINE_END_STYLE = "lineEndStyle"
+        val NONE = EnumHelper[LINE_END_STYLE]
+        val ROUND = EnumHelper[LINE_END_STYLE]
+        // TODO: 箭头、三角等其他线条两端样式
+    }
+}
+
+/**
+ * chart中的symbol，可以是 “数据点”、“x/y轴的数值标记”、“每类数据对应的legend”等等
+ */
 open class ChartSymbolBase(
         open var shapeStyle: Int,
         open var contentStyle: Int,
         open var size: Float,
-        open var color: Int,
-        open var textMargin: Float = 0f,
-        open var strokeColor: Int = Color.WHITE,
-        open var strokeSize: Float = -1f
-) : ChartItemBase() {
+        color: Int
+) : ChartItemBase(color) {
+    open var textMargin: Float = 0f
+    open var strokeColor: Int = Color.WHITE
+    open var strokeSize: Float = -1f
+
     object ShapeType {
         const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
         val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
@@ -204,38 +278,27 @@ open class ChartSymbolBase(
     }
 }
 
-open class ChartLineBase(
-        open var width: Float,
-        open var color: Int,
-        open var style: Int = Style.SOLID,
-        open var startStyle: Int,
-        open var endStyle: Int,
-        open var text: ChartText? = null,
-        open var dashArray: MutableList<Float>? = null
-) {
-    object Style {
-        const val LINE_STYLE = "lineStyle"
-        val SOLID = EnumHelper[LINE_STYLE]
-        val DASH = EnumHelper[LINE_STYLE]
-        val DOUBLE = EnumHelper[LINE_STYLE]
-    }
+/**
+ * chart中的area
+ */
+open class ChartAreaBase(open var xys: MutableList<Float>) : ChartItemBase(0) {
+    open var background: ChartBackground? = null
+    open var border: ChartBorder? = null
 }
-
-open class ChartAreaBase(
-        open var xys: MutableList<Float>,
-        open var bgColor: Int
-) : ChartItemBase()
 
 open class ChartText(
         open var text: String,
         open var size: Float,
-        open var color: Int = Color.BLACK,
-        open var weight: Int = Weight.NORMAL,
-        open var align: Int = Align.CENTER,
-        open var angle: Float = 0f
-) : ChartItemBase() {
+        color: Int = Color.BLACK
+) : ChartItemBase(color) {
+    open var weight: Int = Weight.NORMAL
+    open var align: Int = Align.CENTER
+    open var angle: Float = 0f
     open var x: Int = -1
     open var y: Int = -1
+    open var decoration: Int = Decoration.NONE
+    open var border: ChartBorder? = null
+    open var background: ChartBackground? = null
 
     open fun pos(x: Int, y: Int) {
         this.x = x
@@ -255,12 +318,22 @@ open class ChartText(
         val NORMAL = EnumHelper[FONT_WEIGHT]
         val BOLD = EnumHelper[FONT_WEIGHT]
     }
+
+    object Decoration {
+        const val DECORATION = "decoration"
+        val NONE = EnumHelper[DECORATION]
+        val ABOVE = EnumHelper[DECORATION]
+        val THROUGH = EnumHelper[DECORATION]
+        val BELOW = EnumHelper[DECORATION]
+    }
 }
 
 open class ChartTitleText(
-        text: String, size: Float, color: Int = Color.BLACK, weight: Int = Weight.BOLD,
-        align: Int = Align.CENTER_HORIZONTAL.or(Align.TOP), angle: Float = 0f
-) : ChartText(text, size, color, weight, align, angle) {
+        text: String, size: Float, color: Int = Color.BLACK
+) : ChartText(text, size, color) {
+    override var weight: Int = Weight.BOLD
+    override var align: Int = Align.CENTER_HORIZONTAL.or(Align.TOP)
+
     object Align {
         const val TEXT_ALIGN = "textAlign"
         val LEFT = EnumHelper.get2(TEXT_ALIGN)
@@ -276,9 +349,11 @@ open class ChartTitleText(
 open class ChartAxisSymbol(
         open var name: String,
         open var value: String,
-        open var position: Float,
-        open var base: ChartSymbolBase? = null
+        open var position: Float
 ) {
+    open var base: ChartSymbolBase? = null
+    open var textStyle: ChartText? = null
+
     object ShapeType {
         val NONE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
         val DOT = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
@@ -287,48 +362,86 @@ open class ChartAxisSymbol(
     }
 }
 
-open class ChartAxisArea() : ChartItemBase()
-
 open class ChartAxis(
         open var max: Float,
         open var min: Float,
-        open var symbols: MutableList<ChartAxisSymbol>,
-        open var symbolStyle: ChartSymbolBase = ChartSymbolBase(ChartAxisSymbol.ShapeType.DOWN_LINE, ChartSymbolBase.ContentType.NORMAL, 2f, Color.GRAY),
-        open var symbolTextStyle: ChartText = ChartText("", 10f, Color.GRAY, ChartText.Weight.THIN, ChartText.Align.CENTER),
-        open var title: ChartText? = null,
-        open var style: Int = ChartAxisSymbol.ShapeType.DOT,
-        open var color: Int = Color.GRAY,
-        open var width: Float = 2f,
-        open var lines: MutableMap<Float, ChartLineBase>? = null,
-        open var areas: MutableList<ChartAxisArea>? = null
-) : ChartItemBase() {
+        open var width: Float,
+        color: Int = Color.GRAY
+) : ChartItemBase(color) {
+    open var symbols: MutableList<ChartAxisSymbol>? = null
+    open var symbolStyle: ChartSymbolBase = ChartSymbolBase(ChartAxisSymbol.ShapeType.DOWN_LINE, ChartSymbolBase.ContentType.NORMAL, width, Color.GRAY)
+    open var symbolTextStyle: ChartText = ChartText("", 10f, Color.GRAY).apply {
+        weight = ChartText.Weight.THIN
+        align = ChartText.Align.CENTER
+    }
+    open var title: ChartText? = null
+
     open var symbolDotRadius: Float = -1f
     open var symbolLineLength: Float = 10f
     open var symbolTextMargin: Float = 5f  // margin between symbol and text
 
     open var reversed: Boolean = false
     open var opposite: Boolean = false
-}
 
-open class ChartArea(
-        open var xStartPos: Float,
-        open var xEndPos: Float,
-        open var yStartPos: Float,
-        open var yEndPos: Float,
-        open var bgColor: Int)
+    open var offset: Float = 0f
+    open var symbolStep: Int = 0
+
+    open var lines: MutableMap<Float, ChartLineBase>? = null
+    open var areas: MutableList<ChartAreaBase>? = null
+
+    // TODO: inGrid
+}
 
 open class ChartData
 
-open class ChartModel(
-        open var type: Int,
-        open var title: ChartTitleText? = null,
-        open var subTitle: ChartTitleText? = null,
-        open var stacking: Int = StackStyle.STACK_NONE,  // 是否将图表每个数据列的值叠加在一起
-        open var zoom: Int = ZoomType.ZOOM_NONE,
-        open var xAxis: ChartAxis? = null,
-        open var yAxis: ChartAxis? = null,
-        open var bgColor: Int = Color.WHITE
-) {
+open class ChartToolTip(
+        open var textFormat: ChartTitleText,
+        xys: MutableList<Float>
+) : ChartAreaBase(xys)
+
+open class ChartPane : ChartItemBase(0) {
+    open var startAngle: Float = 0f
+    open var endAngle: Float = 0f
+    open var background: ChartBackground? = null
+    open var strokeWidth: Float = 0f
+    open var strokeColor: Int = 0
+}
+
+/**
+ * chart中每类数据对应的legend(标记)
+ */
+open class ChartLegend(
+        open var text: ChartText,
+        open var width: Float,
+        open var height: Float,
+        open var symbol: ChartSymbolBase
+) : ChartItemBase(0) {
+    open var border: ChartBorder? = null
+    open var background: ChartBackground? = null
+}
+
+open class ChartModel(open var type: Int) {
+    open var title: ChartTitleText? = null
+    open var subTitle: ChartTitleText? = null
+    open var zoom: Int = ZoomType.ZOOM_NONE
+    open var xAxis: ChartAxis? = null
+    open var yAxis: ChartAxis? = null
+    open var xAxisArr: MutableList<ChartAxis>? = null
+    open var yAxisArr: MutableList<ChartAxis>? = null
+
+    open var legend: ChartLegend? = null
+
+    open var width: Float = 0f
+    open var height: Float = 0f
+
+    open var background: ChartBackground? = null
+    open var border: ChartBorder? = null
+    open var innerBorder: ChartBorder? = null
+
+    open var ignoreHiddenData: Boolean = true
+    open var gridClickable: Boolean = false
+    open var stacking: Int = StackStyle.STACK_NONE  // 是否将图表每个数据列的值叠加在一起
+
     object Style {
         const val CHART_STYLE = "charStyle"
         val COLUMN = EnumHelper.get2(CHART_STYLE)
