@@ -10,38 +10,9 @@ import android.graphics.Path
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
-import com.liang.example.androidtest.R
-import com.liang.example.utils.r.dp2px
+import com.liang.example.basic_ktx.EnumHelper
+import com.liang.example.basic_ktx.MutablePair
 import kotlin.math.sqrt
-
-/**
- * 用来帮助Enum的，并且方便扩展、删除
- */
-object EnumHelper {
-    private val map = mutableMapOf<String, Int>()
-
-    operator fun get(name: String): Int {
-        val result = map[name]?.plus(1) ?: 1
-        map[name] = result
-        return result
-    }
-
-    fun get2(name: String): Int {
-        val result = map[name]?.times(2) ?: 1
-        map[name] = result
-        return result
-    }
-}
-
-/**
- * 保留原本状态，之后旋转，然后action，最后恢复
- */
-fun Canvas.rotate(degrees: Float, px: Float, py: Float, action: Canvas.() -> Unit) {
-    this.save()
-    this.rotate(degrees, px, py)
-    this.action()
-    this.restore()
-}
 
 /**
  * 绘制Chart的View
@@ -63,34 +34,9 @@ open class ChartView : View {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas ?: return
-        testSymbol(canvas)
-        testAxis(canvas)
     }
 
-    protected open fun testSymbol(canvas: Canvas) {
-        val dp5 = dp2px(5f).toFloat()
-        val dp10 = dp5 * 2
-        val dp30 = dp10 * 3
-        val dp50 = dp10 * 5
-        val resources = context.resources
-        val white = Color.WHITE
-        val red = resources.getColor(R.color.red300)
-        val green = context.resources.getColor(R.color.green300)
-        val style = ChartSymbolBase(ChartSymbolBase.ShapeType.NONE, ChartSymbolBase.ContentType.NORMAL, dp30, red)
-                .apply {
-                    strokeSize = dp5
-                    strokeColor = green
-                }
-        (1..4).forEach { style2 ->
-            style.contentStyle = style2
-            (2..6).forEach { style1 ->
-                style.shapeStyle = style1
-                drawSymbol(canvas, style, dp50 * (style1 - 1), dp50 * style2, white)
-            }
-        }
-    }
-
-    protected open fun testAxis(canvas: Canvas) {}
+    open fun drawItem(canvas: Canvas, item: ChartItemBase) {}
 
     open fun drawSymbol(canvas: Canvas, base: ChartSymbolBase, x: Float, y: Float, bgColor: Int /* chart's bg or area's bg */) {
         when (base.contentStyle) {
@@ -165,33 +111,6 @@ open class ChartView : View {
 }
 
 /**
- * 组成Chart的所有组件共同的祖先，定义所有组件共同的事件
- */
-open class ChartItemBase(open var color: Int) {
-    open var clickListener: ClickListener? = null
-    open var state: Int = ChartState.NORMAL
-    open var aboutItems: MutableMap<Int, ChartItemBase>? = null
-    open var zIndex: Int = 0
-
-    // TODO: 判断点在area中
-
-    interface ClickListener {
-        fun onClick(base: ChartItemBase, x: Float, y: Float)
-        fun onLongClick(base: ChartItemBase, x: Float, y: Float)
-    }
-
-    object ChartState {
-        const val STATE = "state"
-        val NONE = EnumHelper[STATE]  // 也就是平时看不见
-        val NORMAL = EnumHelper[STATE]
-        val TOUCHING = EnumHelper[STATE]
-        val TOUCHED = EnumHelper[STATE]
-        val ENABLED = EnumHelper[STATE]
-        val DISABLED = EnumHelper[STATE]
-    }
-}
-
-/**
  * chart中的border
  */
 open class ChartBorder {
@@ -200,6 +119,7 @@ open class ChartBorder {
     open var borderRadius: Float = 0f
     open var borderStyle: Int = ChartLineBase.Style.SOLID
     open var dashArray: MutableList<Float>? = null
+    open var useSpace: Boolean = true
 
     open var padding: Float = 0f
     open var paddingLeft: Float = 0f
@@ -217,19 +137,247 @@ open class ChartBackground(
         open var bgDrawable: Drawable? = null
 )
 
+open class ChartPosition {
+    open var x: Float = Invalid.INVALID_XY
+    open var y: Float = Invalid.INVALID_XY
+    open var xOffset: Float = Invalid.INVALID_XYOffset
+    open var yOffset: Float = Invalid.INVALID_XYOffset
+    open var width: Float = Invalid.INVALID_WH
+    open var height: Float = Invalid.INVALID_WH
+    open var xMode: Int = Mode.ABS
+    open var yMode: Int = Mode.ABS
+    open var wMode: Int = Mode.ABS
+    open var hMode: Int = Mode.ABS
+
+    object Mode {
+        const val POS_MODE = "posMode"
+        val ABS = EnumHelper[POS_MODE]
+        val ABS_TO_PARENT = EnumHelper[POS_MODE]
+        val REL_TO_PARENT = EnumHelper[POS_MODE]
+        val REL_TO_ROOT = EnumHelper[POS_MODE]  // 即相对于ChartView
+    }
+
+    object Invalid {
+        const val INVALID_XY = -1f
+        const val INVALID_XYOffset = -1f
+        const val INVALID_WH = -1f
+    }
+}
+
+/**
+ * 组成Chart的所有组件共同的祖先，定义所有组件共同的事件
+ */
+open class ChartItemBase(open var color: Int) {
+    open var changed: Boolean = true
+    open var clickListener: ClickListener? = null
+    open var state: Int = ChartState.NORMAL
+    open var aboutItems: MutableMap<Int, ChartItemBase>? = null
+    open var zIndex: Int = 0
+    open var position: ChartPosition? = null  // 不要主动set，尽量用pos/size
+    open var border: ChartBorder? = null
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var background: ChartBackground? = null
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var parentItem: ChartItemBase? = null
+        set(value) {
+            field = value
+            updatePosOffset()
+            childItems?.forEach {
+                it.parentItem = this
+                it.updatePosOffset()
+            }
+        }
+    open var childItems: MutableList<ChartItemBase>? = null
+        set(value) {
+            field = value
+            childItems?.forEach {
+                it.parentItem = this
+                it.updatePosOffset()
+            }
+        }
+    open var chartView: ChartView? = null
+        set(value) {
+            field = value
+            updatePosOffset()
+            childItems?.forEach {
+                it.chartView = field
+                it.updatePosOffset()
+            }
+        }
+
+    open fun pos(x: Float, y: Float, xMode: Int = ChartPosition.Mode.ABS, yMode: Int = ChartPosition.Mode.ABS) {
+        if (this.position == null) {
+            this.position = ChartPosition()
+        }
+        val pos = this.position!!
+        if (pos.x == x && pos.y == y && pos.xMode == xMode && pos.yMode == yMode) {
+            return
+        }
+        pos.x = x
+        pos.y = y
+        pos.xMode = xMode
+        pos.yMode = yMode
+        updatePosOffset(false)
+        childItems?.forEach {
+            it.updatePosOffset()
+        }
+    }
+
+    protected open fun updatePosOffset(care: Boolean = true) {
+        val pos = this.position ?: return
+        val x = pos.x
+        val y = pos.y
+        val xMode = pos.xMode
+        val yMode = pos.yMode
+        val posParent = this.parentItem?.position
+        val oldXOff = pos.xOffset
+        val oldYOff = pos.yOffset
+        if (!care || (xMode != ChartPosition.Mode.ABS && xMode != ChartPosition.Mode.ABS_TO_PARENT)) {
+            pos.xOffset = when {
+                xMode == ChartPosition.Mode.ABS_TO_PARENT && posParent != null && posParent.xOffset != ChartPosition.Invalid.INVALID_XYOffset ->
+                    posParent.xOffset + x
+                xMode == ChartPosition.Mode.REL_TO_PARENT && posParent != null && posParent.xOffset != ChartPosition.Invalid.INVALID_XYOffset
+                        && posParent.width != ChartPosition.Invalid.INVALID_WH -> posParent.xOffset + x * posParent.width
+                xMode == ChartPosition.Mode.ABS -> x
+                chartView != null -> this.chartView!!.measuredWidth * x
+                else -> ChartPosition.Invalid.INVALID_XY
+            }
+        }
+        if (!care || (yMode != ChartPosition.Mode.ABS && yMode != ChartPosition.Mode.ABS_TO_PARENT)) {
+            pos.yOffset = when {
+                yMode == ChartPosition.Mode.ABS_TO_PARENT && posParent != null && posParent.yOffset != ChartPosition.Invalid.INVALID_XYOffset ->
+                    posParent.yOffset + y
+                yMode == ChartPosition.Mode.REL_TO_PARENT && posParent != null && posParent.yOffset != ChartPosition.Invalid.INVALID_XYOffset
+                        && posParent.height != ChartPosition.Invalid.INVALID_WH -> posParent.yOffset + y * posParent.height
+                yMode == ChartPosition.Mode.ABS -> y
+                chartView != null -> this.chartView!!.measuredHeight * y
+                else -> ChartPosition.Invalid.INVALID_XY
+            }
+        }
+        changed = pos.xOffset != oldXOff || pos.yOffset != oldYOff
+    }
+
+    open fun size(width: Float, height: Float, wMode: Int = ChartPosition.Mode.ABS, hMode: Int = ChartPosition.Mode.ABS) {
+        if (this.position == null) {
+            this.position = ChartPosition()
+        }
+        val pos = this.position!!
+        if (pos.width == width && pos.height == height && pos.wMode == wMode && pos.hMode == hMode) {
+            return
+        }
+        pos.width = width
+        pos.height = height
+        pos.wMode = wMode
+        pos.hMode = hMode
+        childItems?.forEach {
+            it.updatePosOffset()
+        }
+        changed = true
+    }
+
+    open fun inArea(x: Float, y: Float): Boolean {
+        val pos = position ?: return false
+        return x >= pos.xOffset && x <= pos.xOffset + pos.width && y >= pos.yOffset && y <= pos.yOffset + pos.height
+    }
+
+    open fun addChild(child: ChartItemBase) {
+        child.parentItem = this
+        if (this.childItems == null) {
+            this.childItems = mutableListOf(child)
+        } else if (!this.childItems!!.contains(child)) {
+            this.childItems!!.add(child)
+        } else {
+            return
+        }
+        changed = true
+    }
+
+    open fun removeChild(child: ChartItemBase) {
+        if (this.childItems != null && this.childItems!!.contains(child)) {
+            child.parentItem = null
+            this.childItems!!.remove(child)
+            changed = true
+        }
+    }
+
+    open fun handleChild(field: ChartItemBase?, value: ChartItemBase?) {
+        if (field == value) {
+            return
+        }
+        if (value != null) {
+            addChild(value)
+        }
+        if (field != null) {
+            removeChild(field)
+        }
+    }
+
+    interface ClickListener {
+        fun onClick(base: ChartItemBase, x: Float, y: Float)
+        fun onLongClick(base: ChartItemBase, x: Float, y: Float)
+    }
+
+    object ChartState {
+        const val STATE = "state"
+        val NONE = EnumHelper[STATE]  // 也就是平时看不见
+        val NORMAL = EnumHelper[STATE]
+        val TOUCHING = EnumHelper[STATE]
+        val TOUCHED = EnumHelper[STATE]
+        val UNTOUCHED = EnumHelper[STATE]
+        val ENABLED = EnumHelper[STATE]
+        val DISABLED = EnumHelper[STATE]
+    }
+}
+
 /**
  * chart中的线
  */
 open class ChartLineBase(
         color: Int,
-        open var width: Float
+        _lineWidth: Float
 ) : ChartItemBase(color) {
+    open var lineWidth: Float = _lineWidth
+        set(value) {
+            field = value
+            changed = true
+        }
     open var style: Int = Style.SOLID
+        set(value) {
+            field = value
+            changed = true
+        }
     open var startStyle: Int = EndStyle.NONE
+        set(value) {
+            field = value
+            changed = true
+        }
     open var endStyle: Int = EndStyle.NONE
+        set(value) {
+            field = value
+            changed = true
+        }
     open var text: ChartText? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var dashArray: MutableList<Float>? = null
+        set(value) {
+            field = value
+            changed = true
+        }
     open var length: Float = -1f
+        set(value) {
+            field = value
+            changed = true
+        }
 
     object Style {
         const val LINE_STYLE = "lineStyle"
@@ -250,14 +398,41 @@ open class ChartLineBase(
  * chart中的symbol，可以是 “数据点”、“x/y轴的数值标记”、“每类数据对应的legend”等等
  */
 open class ChartSymbolBase(
-        open var shapeStyle: Int,
-        open var contentStyle: Int,
-        open var size: Float,
+        _shapeStyle: Int,
+        _contentStyle: Int,
+        _size: Float,
         color: Int
 ) : ChartItemBase(color) {
+    open var shapeStyle: Int = _shapeStyle
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var contentStyle: Int = _contentStyle
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var size: Float = _size
+        set(value) {
+            field = value
+            changed = true
+        }
     open var textMargin: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var strokeColor: Int = Color.WHITE
+        set(value) {
+            field = value
+            changed = true
+        }
     open var strokeSize: Float = -1f
+        set(value) {
+            field = value
+            changed = true
+        }
 
     object ShapeType {
         const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
@@ -281,29 +456,77 @@ open class ChartSymbolBase(
 /**
  * chart中的area
  */
-open class ChartAreaBase(open var xys: MutableList<Float>) : ChartItemBase(0) {
-    open var background: ChartBackground? = null
-    open var border: ChartBorder? = null
+open class ChartAreaBase(_xys: MutableList<Float>) : ChartItemBase(0) {
+    open var xys: MutableList<Float> = _xys
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var shapeStyle: Int = Style.POLYGON
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var startAngle: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var endAngle: Float = 360f
+        set(value) {
+            field = value
+            changed = true
+        }
+
+    object Style {
+        const val AREA_STYLE = "areaStyle"
+        val CIRCLE = EnumHelper[AREA_STYLE]
+        val OVAL = EnumHelper[AREA_STYLE]
+        val ARC = EnumHelper[AREA_STYLE]
+        val POLYGON = EnumHelper[AREA_STYLE]
+    }
 }
 
 open class ChartText(
-        open var text: String,
-        open var size: Float,
+        _text: String,
+        _size: Float,
         color: Int = Color.BLACK
 ) : ChartItemBase(color) {
+    open var text: String = _text
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var size: Float = _size
+        set(value) {
+            field = value
+            changed = true
+        }
     open var weight: Int = Weight.NORMAL
+        set(value) {
+            field = value
+            changed = true
+        }
     open var align: Int = Align.CENTER
+        set(value) {
+            field = value
+            changed = true
+        }
     open var angle: Float = 0f
-    open var x: Int = -1
-    open var y: Int = -1
+        set(value) {
+            field = value
+            changed = true
+        }
     open var decoration: Int = Decoration.NONE
-    open var border: ChartBorder? = null
-    open var background: ChartBackground? = null
-
-    open fun pos(x: Int, y: Int) {
-        this.x = x
-        this.y = y
-    }
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var isItalic: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
 
     object Align {
         const val TEXT_ALIGN = "textAlign"
@@ -332,7 +555,15 @@ open class ChartTitleText(
         text: String, size: Float, color: Int = Color.BLACK
 ) : ChartText(text, size, color) {
     override var weight: Int = Weight.BOLD
+        set(value) {
+            field = value
+            changed = true
+        }
     override var align: Int = Align.CENTER_HORIZONTAL.or(Align.TOP)
+        set(value) {
+            field = value
+            changed = true
+        }
 
     object Align {
         const val TEXT_ALIGN = "textAlign"
@@ -347,12 +578,37 @@ open class ChartTitleText(
 }
 
 open class ChartAxisSymbol(
-        open var name: String,
-        open var value: String,
-        open var position: Float
-) {
+        _name: String,
+        _value: String,
+        _position: Float,
+        _color: Int = Color.GRAY
+) : ChartItemBase(_color) {
+    open var name: String = _name
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var value: String = _value
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var axisPos: Float = _position
+        set(value) {
+            field = value
+            changed = true
+        }
     open var base: ChartSymbolBase? = null
-    open var textStyle: ChartText? = null
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var text: ChartText? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
 
     object ShapeType {
         val NONE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
@@ -363,62 +619,248 @@ open class ChartAxisSymbol(
 }
 
 open class ChartAxis(
-        open var max: Float,
-        open var min: Float,
-        open var width: Float,
+        _max: Float,
+        _min: Float,
+        _lineWidth: Float,
         color: Int = Color.GRAY
 ) : ChartItemBase(color) {
+    open var max: Float = _max
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var min: Float = _min
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var lineWidth: Float = _lineWidth
+        set(value) {
+            field = value
+            changed = true
+        }
     open var symbols: MutableList<ChartAxisSymbol>? = null
-    open var symbolStyle: ChartSymbolBase = ChartSymbolBase(ChartAxisSymbol.ShapeType.DOWN_LINE, ChartSymbolBase.ContentType.NORMAL, width, Color.GRAY)
+        set(value) {
+            field?.forEach {
+                removeChild(it)
+            }
+            field = value
+            field?.forEach {
+                addChild(it)
+            }
+            changed = true
+        }
+    open var symbolStyle: ChartSymbolBase = ChartSymbolBase(ChartAxisSymbol.ShapeType.DOWN_LINE, ChartSymbolBase.ContentType.NORMAL, _lineWidth, Color.GRAY)
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var symbolTextStyle: ChartText = ChartText("", 10f, Color.GRAY).apply {
         weight = ChartText.Weight.THIN
         align = ChartText.Align.CENTER
     }
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var title: ChartText? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
 
     open var symbolDotRadius: Float = -1f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var symbolLineLength: Float = 10f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var symbolTextMargin: Float = 5f  // margin between symbol and text
+        set(value) {
+            field = value
+            changed = true
+        }
 
+    open var rotation: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var reversed: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
     open var opposite: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
 
     open var offset: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var symbolStep: Int = 0
+        set(value) {
+            field = value
+            changed = true
+        }
 
     open var lines: MutableMap<Float, ChartLineBase>? = null
+        set(value) {
+            field?.forEach {
+                removeChild(it.value)
+            }
+            field = value
+            field?.forEach {
+                addChild(it.value)
+            }
+            changed = true
+        }
     open var areas: MutableList<ChartAreaBase>? = null
+        set(value) {
+            field?.forEach {
+                removeChild(it)
+            }
+            field = value
+            field?.forEach {
+                addChild(it)
+            }
+            changed = true
+        }
 
-    // TODO: inGrid
-}
+    open fun addSymbol(symbol: ChartAxisSymbol) {
+        if (this.symbols == null) {
+            this.symbols = mutableListOf(symbol)
+        } else if (!this.symbols!!.contains(symbol)) {
+            addChild(symbol)
+            this.symbols!!.add(symbol)
+        }
+    }
 
-open class ChartData
+    open fun removeSymbol(symbol: ChartAxisSymbol) {
+        removeChild(symbol)
+        this.symbols?.remove(symbol)
+    }
 
-open class ChartToolTip(
-        open var textFormat: ChartTitleText,
-        xys: MutableList<Float>
-) : ChartAreaBase(xys)
+    open fun addLine(pos: Float, line: ChartLineBase) {
+        if (this.lines == null) {
+            this.lines = mutableMapOf(pos to line)
+        } else if (!this.lines!!.containsKey(pos)) {
+            addChild(line)
+            this.lines!![pos] = line
+        }
+    }
 
-open class ChartPane : ChartItemBase(0) {
-    open var startAngle: Float = 0f
-    open var endAngle: Float = 0f
-    open var background: ChartBackground? = null
-    open var strokeWidth: Float = 0f
-    open var strokeColor: Int = 0
+    open fun removeLine(line: ChartLineBase) {
+        removeChild(line)
+        val lines = this.lines ?: return
+        var key: Float? = null
+        for ((pos, line2) in lines) {
+            if (line2 == line) {
+                key = pos
+                break
+            }
+        }
+        if (key != null) {
+            lines.remove(key)
+        }
+    }
+
+    open fun addArea(area: ChartAreaBase) {
+        if (this.areas == null) {
+            this.areas = mutableListOf(area)
+        } else if (!this.areas!!.contains(area)) {
+            addChild(area)
+            this.areas!!.add(area)
+        }
+    }
+
+    open fun removeArea(area: ChartAreaBase) {
+        removeChild(area)
+        this.areas?.remove(area)
+    }
 }
 
 /**
  * chart中每类数据对应的legend(标记)
  */
-open class ChartLegend(
-        open var text: ChartText,
-        open var width: Float,
-        open var height: Float,
-        open var symbol: ChartSymbolBase
-) : ChartItemBase(0) {
-    open var border: ChartBorder? = null
-    open var background: ChartBackground? = null
+open class ChartLegend(_text: ChartText) : ChartItemBase(0) {
+    open var text: ChartText = _text
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
+    open var symbol: ChartSymbolBase? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
+
+    object ShapeType {
+        val LINE_AND_SYMBOL = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
+        val SYMBOL = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
+        val LINE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
+    }
 }
+
+open class ChartData(_x: Float, _y: Float) : ChartItemBase(0) {
+    open var x: Float = _x
+    open var y: Float = _y
+    open var x2: Float = -1f
+    open var y2: Float = -1f
+    open var extra: MutableMap<String, Any>? = null
+    open var showLegend: Boolean = false
+    open var label: ChartText? = null
+    open var legend: ChartLegend? = null
+    open var subDataList: ChartDataList? = null
+    open var subChartModel: ChartModel? = null
+    open var selectedAll: Boolean = false
+}
+
+open class ChartDataList(
+        open var dataList: MutableList<MutablePair<Boolean, ChartData>>,
+        open var name: String
+) : ChartItemBase(0) {
+    open var commonLegend: ChartLegend? = null
+    open var symbols: MutableList<ChartSymbolBase>? = null  // ChartData对应的Symbol
+    open var splits: MutableMap<Int, Boolean>? = null
+    open var circlePanels: MutableList<ChartAreaBase>? = null  // 这是由dataList生成的，不要去设置
+    open var circlePanelMargin: Float = 10f
+}
+
+open class ChartToolTip(
+        open var titleTextFormat: ChartTitleText,
+        open var contentTextFormat: ChartText,
+        open var alignStyle: Int = Align.TOP.or(Align.CENTER),
+        open var offset: Float = 0f,
+        open var margin: Float = 0f,
+        open var contentTextFormats: MutableList<ChartText>? = null
+) : ChartAreaBase(mutableListOf()) {
+    open fun getContentTextFormat(item: ChartItemBase): ChartText? = null
+
+    object Align {
+        const val TOOL_TIP_ALIGN_STYLE = "toolTipShapeStyle"
+        val LEFT = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
+        val RIGHT = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
+        val TOP = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
+        val BOTTOM = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
+        val CENTER = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
+    }
+}
+
+open class ChartLegendPanel(open var legends: MutableList<ChartLegend>) : ChartItemBase(0)
 
 open class ChartModel(open var type: Int) {
     open var title: ChartTitleText? = null
@@ -427,31 +869,46 @@ open class ChartModel(open var type: Int) {
     open var xAxis: ChartAxis? = null
     open var yAxis: ChartAxis? = null
     open var xAxisArr: MutableList<ChartAxis>? = null
+        set(value) {
+            field = value
+            field?.forEach {
+                it.rotation = 90f
+            }
+        }
     open var yAxisArr: MutableList<ChartAxis>? = null
 
     open var legend: ChartLegend? = null
-
-    open var width: Float = 0f
-    open var height: Float = 0f
+    open var legends: MutableList<ChartLegend>? = null  // 同时用做labels
+    open var legendPanel: ChartLegendPanel? = null
+    open var dataList: ChartDataList? = null
+    open var dataLists: MutableList<MutablePair<Int, ChartDataList>>? = null  // first是style
+    open var dataLabel: ChartText? = null
 
     open var background: ChartBackground? = null
     open var border: ChartBorder? = null
     open var innerBorder: ChartBorder? = null
+    open var position: ChartPosition? = null
 
     open var ignoreHiddenData: Boolean = true
     open var gridClickable: Boolean = false
     open var stacking: Int = StackStyle.STACK_NONE  // 是否将图表每个数据列的值叠加在一起
 
+    open var barRadius: Float? = null
+    open var lineStyle: Int = ChartLineBase.Style.SOLID
+    open var startPieAngle: Float = 0f
+    open var endPieAngle: Float = 360f
+
+    open var items: MutableList<ChartItemBase>? = null
+
     object Style {
         const val CHART_STYLE = "charStyle"
-        val COLUMN = EnumHelper.get2(CHART_STYLE)
         val BAR = EnumHelper.get2(CHART_STYLE)
         val AREA = EnumHelper.get2(CHART_STYLE)
-        val AREASPLINE = EnumHelper.get2(CHART_STYLE)
         val LINE = EnumHelper.get2(CHART_STYLE)
-        val SPLINE = EnumHelper.get2(CHART_STYLE)
         val SCATTER = EnumHelper.get2(CHART_STYLE)
         val PIE = EnumHelper.get2(CHART_STYLE)
+        val AREASPLINE = EnumHelper.get2(CHART_STYLE)
+        val SPLINE = EnumHelper.get2(CHART_STYLE)
         val BUBBLE = EnumHelper.get2(CHART_STYLE)
         val PYRAMID = EnumHelper.get2(CHART_STYLE)
         val FUNNEL = EnumHelper.get2(CHART_STYLE)
@@ -465,11 +922,21 @@ open class ChartModel(open var type: Int) {
         val ERRORBAR = EnumHelper.get2(CHART_STYLE)
     }
 
+    object BarStyle {
+        const val BAR_STYLE = "barStyle"
+        val NORMAL = EnumHelper[BAR_STYLE]
+        val TRIANGLE = EnumHelper[BAR_STYLE]
+        val CIRCLE = EnumHelper[BAR_STYLE]
+        val OVAL = EnumHelper[BAR_STYLE]
+    }
+
     object StackStyle {
         const val STACK_STYLE = "stackStyle"
         val STACK_NONE = EnumHelper[STACK_STYLE]
         val STACK_NORMAL = EnumHelper[STACK_STYLE]
         val STACK_PERCENT = EnumHelper[STACK_STYLE]
+        val STACK_GROUP = EnumHelper[STACK_STYLE]  // 分组堆叠
+        val STACK_GROUP_PERCENT = EnumHelper[STACK_STYLE]  // 百分比分组堆叠
     }
 
     object ZoomType {
@@ -480,3 +947,8 @@ open class ChartModel(open var type: Int) {
         val ZOOM_XY = EnumHelper[ZOOM_TYPE]
     }
 }
+
+// todo: 面积范围图 https://www.highcharts.com.cn/demo/highcharts/arearange、迷你图 https://www.highcharts.com.cn/demo/highcharts/sparkline、
+//  流图 https://www.highcharts.com.cn/demo/highcharts/streamgraph、韦恩图 https://www.highcharts.com.cn/demo/highcharts/venn-diagram、
+//  欧拉图 https://www.highcharts.com.cn/demo/highcharts/euler-diagram、3D气泡图 https://www.highcharts.com.cn/demo/highcharts/bubble-3d、
+//  气泡填充图 https://www.highcharts.com.cn/demo/highcharts/packed-bubble
