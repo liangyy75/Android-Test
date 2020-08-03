@@ -1,6 +1,8 @@
 package com.liang.example.viewtest_kt.chart
 
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 
 /**
  * @author 梁毓颖
@@ -45,4 +47,11 @@ fun Canvas.skew(x: Float, y: Float, action: Canvas.() -> Unit) {
     this.skew(x, y)
     this.action()
     this.restore()
+}
+
+fun Canvas.mainAndStroke(main: Paint, stroke: Paint, drawStroke: Boolean, action: Canvas.(paint: Paint) -> Unit) {
+    this.action(main)
+    if (drawStroke) {
+        this.action(stroke)
+    }
 }

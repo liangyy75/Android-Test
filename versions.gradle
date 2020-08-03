@@ -180,7 +180,7 @@ versions.proteus = '5.0.1'
 deps.proteus = [
         proteus_core: new Tuple("api", "com.github.flipkart-incubator.proteus:proteus-core:${versions.proteus}"),
         gson_adapter: new Tuple("api", "com.github.flipkart-incubator.proteus:gson-adapter:${versions.proteus}"),
-        cardview_v7: new Tuple("api", "com.github.flipkart-incubator.proteus:cardview-v7:${versions.proteus}"),
+//        cardview_v7: new Tuple("api", "com.github.flipkart-incubator.proteus:cardview-v7:${versions.proteus}"),
         design: new Tuple("api", "com.github.flipkart-incubator.proteus:design:${versions.proteus}"),
         recyclerview_v7: new Tuple("api", "com.github.flipkart-incubator.proteus:recyclerview-v7:${versions.proteus}"),
         support_v4: new Tuple("api", "com.github.flipkart-incubator.proteus:support-v4:${versions.proteus}"),

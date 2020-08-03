@@ -7,6 +7,8 @@ fun Boolean.toInt() = if (this) 1 else 0
 open class MutablePair<T1, T2>(open var first: T1, open var second: T2)
 open class MutableTriple<T1, T2, T3>(open var first: T1, open var second: T2, open var third: T3)
 
+open class Tuple4<T1, T2, T3, T4>(open var first: T1, open var second: T2, open var third: T3, open var fourth: T4)
+
 /**
  * 用来帮助Enum的，并且方便扩展、删除
  */

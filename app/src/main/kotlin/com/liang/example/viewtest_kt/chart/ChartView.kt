@@ -36,49 +36,71 @@ open class ChartView : View {
         canvas ?: return
     }
 
-    open fun drawItem(canvas: Canvas, item: ChartItemBase) {}
+    open fun drawItem(canvas: Canvas, item: ChartItemBase) {
+        if (item.state == ChartItemBase.ChartState.NONE) {
+            return
+        }
+        mainPaint.reset()
+        strokePaint.reset()
+        mainPaint.color = item.color
+    }
 
-    open fun drawSymbol(canvas: Canvas, base: ChartSymbolBase, x: Float, y: Float, bgColor: Int /* chart's bg or area's bg */) {
-        when (base.contentStyle) {
-            ChartSymbolBase.ContentType.NORMAL -> mainPaint.color = base.color
+    open fun drawText(canvas: Canvas, text: ChartText, _x: Float?, _y: Float?, bgColor: Int) {
+        val x = _x ?: text.position?.x ?: return
+        val y = _y ?: text.position?.y ?: return
+        canvas.rotate(text.rotation, x, y) {
+            mainPaint.textSize = text.size
+            mainPaint.textAlign = text.toPaintAlign()
+            if (text.decoration == ChartText.Decoration.BELOW) {
+                mainPaint.isUnderlineText = true
+            } else if (text.decoration == ChartText.Decoration.ABOVE) {
+                mainPaint.isStrikeThruText = true
+            }
+            if (text.isItalic) {
+                mainPaint.setTextSkewX(-0.5f)
+            }
+            if (text.weight == ChartText.Weight.BOLD) {
+                mainPaint.isFakeBoldText = true
+            }
+            drawText(text.text, x, y, mainPaint)
+        }
+    }
+
+    open fun drawSymbol(canvas: Canvas, symbol: ChartSymbolBase, _x: Float?, _y: Float?, bgColor: Int /* chart's bg or area's bg */) {
+        val x = _x ?: symbol.position?.x ?: return
+        val y = _y ?: symbol.position?.y ?: return
+        when (symbol.contentStyle) {
             ChartSymbolBase.ContentType.INNER_EMPTY -> {
                 mainPaint.color = bgColor
-                strokePaint.color = base.color
+                strokePaint.color = symbol.color
             }
-            ChartSymbolBase.ContentType.BORDER_EMPTY -> {
-                mainPaint.color = base.color
-                strokePaint.color = bgColor
-            }
-            ChartSymbolBase.ContentType.INNER_AND_BORDER -> {
-                mainPaint.color = base.color
-                strokePaint.color = base.strokeColor
-            }
+            ChartSymbolBase.ContentType.BORDER_EMPTY -> strokePaint.color = bgColor
+            ChartSymbolBase.ContentType.INNER_AND_BORDER -> strokePaint.color = symbol.strokeColor
+            ChartAxisSymbol.ShapeType.DOWN_LINE, ChartAxisSymbol.ShapeType.UP_LINE -> mainPaint.strokeWidth = symbol.size
         }
         var drawStroke = false
-        if (base.contentStyle != ChartSymbolBase.ContentType.NORMAL) {
+        if (symbol.contentStyle != ChartSymbolBase.ContentType.NORMAL) {
             drawStroke = true
-            strokePaint.strokeWidth = base.strokeSize
+            strokePaint.strokeWidth = symbol.strokeSize
         }
-        when (base.shapeStyle) {
-            ChartSymbolBase.ShapeType.NONE -> Unit
-            ChartSymbolBase.ShapeType.CIRCLE -> drawCircleSymbol(canvas, x, y, base, drawStroke)
-            ChartSymbolBase.ShapeType.SQUARE -> drawSquareSymbol(base, canvas, x, y, drawStroke)
-            ChartSymbolBase.ShapeType.DIAMOND -> canvas.rotate(45f, x, y) { drawSquareSymbol(base, this, x, y, drawStroke) }
-            ChartSymbolBase.ShapeType.TRIANGLE -> drawTriangleSymbol(base, x, y, canvas, false, drawStroke)
-            ChartSymbolBase.ShapeType.TRIANGLEDOWN -> drawTriangleSymbol(base, x, y, canvas, true, drawStroke)
-        }
-    }
-
-    protected open fun drawCircleSymbol(canvas: Canvas, x: Float, y: Float, base: ChartSymbolBase, drawStroke: Boolean) {
-        val halfSize = base.size / 2
-        canvas.drawCircle(x, y, halfSize, mainPaint)
-        if (drawStroke) {
-            canvas.drawCircle(x, y, halfSize, strokePaint)
+        val halfSize = symbol.size / 2
+        when (symbol.shapeStyle) {
+            ChartSymbolBase.ShapeType.CIRCLE -> canvas.mainAndStroke(mainPaint, strokePaint, drawStroke) { drawCircle(x, y, halfSize, it) }
+            ChartSymbolBase.ShapeType.SQUARE -> canvas.mainAndStroke(mainPaint, strokePaint, drawStroke) {
+                drawRect(x - halfSize, y - halfSize, x + halfSize, y + halfSize, it)
+            }
+            ChartSymbolBase.ShapeType.DIAMOND -> canvas.rotate(45f, x, y) {
+                canvas.mainAndStroke(mainPaint, strokePaint, drawStroke) { drawRect(x - halfSize, y - halfSize, x + halfSize, y + halfSize, it) }
+            }
+            ChartSymbolBase.ShapeType.TRIANGLE -> drawTriangleSymbol(halfSize, symbol, x, y, canvas, false, drawStroke)
+            ChartSymbolBase.ShapeType.TRIANGLEDOWN -> drawTriangleSymbol(halfSize, symbol, x, y, canvas, true, drawStroke)
+            ChartAxisSymbol.ShapeType.DOWN_LINE -> canvas.drawLine(x, y, x, y + symbol.length, mainPaint)
+            ChartAxisSymbol.ShapeType.UP_LINE -> canvas.drawLine(x, y, x, y - symbol.length, mainPaint)
         }
     }
 
-    protected open fun drawTriangleSymbol(base: ChartSymbolBase, x: Float, y: Float, canvas: Canvas, down: Boolean, drawStroke: Boolean) {
-        val temp = base.size / 2
+    protected open fun drawTriangleSymbol(halfSize: Float, base: ChartSymbolBase, x: Float, y: Float, canvas: Canvas, down: Boolean,
+                                          drawStroke: Boolean) {
         var temp2 = base.size * SQUARE_ROOT_3 / 6
         var temp3 = base.size / SQUARE_ROOT_3
         if (down) {
@@ -87,25 +109,53 @@ open class ChartView : View {
         }
         val path = Path()
         path.fillType = Path.FillType.EVEN_ODD
-        path.moveTo(x - temp, y + temp2)
-        path.lineTo(x + temp, y + temp2)
+        path.moveTo(x - halfSize, y + temp2)
+        path.lineTo(x + halfSize, y + temp2)
         path.lineTo(x, y - temp3)
         path.close()
-        canvas.drawPath(path, mainPaint)
-        if (drawStroke) {
-            canvas.drawPath(path, strokePaint)
-        }
+        canvas.mainAndStroke(mainPaint, strokePaint, drawStroke) { drawPath(path, it) }
     }
 
-    protected open fun drawSquareSymbol(base: ChartSymbolBase, canvas: Canvas, x: Float, y: Float, drawStroke: Boolean) {
-        val temp = base.size / 2
-        canvas.drawRect(x - temp, y - temp, x + temp, y + temp, mainPaint)
-        if (drawStroke) {
-            canvas.drawRect(x - temp, y - temp, x + temp, y + temp, strokePaint)
+    open fun drawAxis(canvas: Canvas, axis: ChartAxis, _x: Float?, _y: Float?, bgColor: Int) {
+        val x = _x ?: axis.position?.x ?: return
+        val y = _y ?: axis.position?.y ?: return
+        canvas.rotate(axis.rotation, x, y) {
+            val x2 = x + axis.lineLength
+            val y2 = y + axis.lineWidth + axis.offset
+            this.drawLines(floatArrayOf(x, y, x2, y2), mainPaint)
+            val base = axis.lineLength / (axis.max - axis.min)
+            val y3 = y + axis.lineWidth / 2 + axis.offset
+            axis.symbols?.forEachIndexed { index, it ->
+                if (index % axis.symbolStep != 0) {
+                    return@forEachIndexed
+                }
+                if (it.length == -1f) {
+                    it.length = axis.symbolLineLength
+                }
+                val x3 = when {
+                    axis.reversed -> x2 - it.axisPos * base
+                    else -> it.axisPos * base + x
+                }
+                val symbol = it.base ?: axis.symbolStyle
+                drawSymbol(canvas, symbol, x3, y2, bgColor)
+                val spaces = symbol.getSpaces()
+                drawText(this, it.text ?: axis.symbolTextStyle.apply {
+                    text = it.value
+                }, x3, when {
+                    axis.textOpposite -> y2 + spaces[1] - symbol.textMargin
+                    else -> y2 + spaces[3] + symbol.textMargin
+                }, bgColor)
+            }
+            axis.title
+            axis.areas?.forEach {
+            }
+            axis.lines?.forEach {
+            }
         }
     }
 
     companion object {
+        val SQUARE_ROOT_2 = sqrt(2f)
         val SQUARE_ROOT_3 = sqrt(3f)
     }
 }
@@ -209,6 +259,11 @@ open class ChartItemBase(open var color: Int) {
                 it.chartView = field
                 it.updatePosOffset()
             }
+        }
+    open var rotation: Float = 0f
+        set(value) {
+            field = value
+            changed = true
         }
 
     open fun pos(x: Float, y: Float, xMode: Int = ChartPosition.Mode.ABS, yMode: Int = ChartPosition.Mode.ABS) {
@@ -418,6 +473,11 @@ open class ChartSymbolBase(
             field = value
             changed = true
         }
+    open var length: Float = -1f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var textMargin: Float = 0f
         set(value) {
             field = value
@@ -433,6 +493,26 @@ open class ChartSymbolBase(
             field = value
             changed = true
         }
+
+    open fun getSpaces(): FloatArray {
+        var halfSize = size / 2
+        if (contentStyle != ContentType.NORMAL) {
+            halfSize += strokeSize
+        }
+        return when (shapeStyle) {
+            ShapeType.CIRCLE -> floatArrayOf(halfSize, halfSize, halfSize, halfSize)
+            ShapeType.SQUARE -> floatArrayOf(halfSize, halfSize, halfSize, halfSize)
+            ShapeType.DIAMOND -> {
+                val temp = halfSize * ChartView.SQUARE_ROOT_2
+                floatArrayOf(temp, temp, temp, temp)
+            }
+            ShapeType.TRIANGLE -> floatArrayOf(halfSize, size * ChartView.SQUARE_ROOT_3 / 6, halfSize, size / ChartView.SQUARE_ROOT_3)
+            ShapeType.TRIANGLEDOWN -> floatArrayOf(halfSize, size / ChartView.SQUARE_ROOT_3, halfSize, size * ChartView.SQUARE_ROOT_3 / 6)
+            ChartAxisSymbol.ShapeType.DOWN_LINE -> floatArrayOf(halfSize, 0f, halfSize, length)
+            ChartAxisSymbol.ShapeType.UP_LINE -> floatArrayOf(halfSize, length, halfSize, 0f)
+            else -> floatArrayOf(0f, 0f, 0f, 0f)
+        }
+    }
 
     object ShapeType {
         const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
@@ -512,11 +592,6 @@ open class ChartText(
             field = value
             changed = true
         }
-    open var angle: Float = 0f
-        set(value) {
-            field = value
-            changed = true
-        }
     open var decoration: Int = Decoration.NONE
         set(value) {
             field = value
@@ -533,6 +608,12 @@ open class ChartText(
         val START = EnumHelper.get2(TEXT_ALIGN)
         val END = EnumHelper.get2(TEXT_ALIGN)
         val CENTER = EnumHelper.get2(TEXT_ALIGN)
+    }
+
+    open fun toPaintAlign(): Paint.Align = when (this.align) {
+        Align.END -> Paint.Align.RIGHT
+        Align.CENTER -> Paint.Align.CENTER
+        else -> Paint.Align.LEFT
     }
 
     object Weight {
@@ -578,16 +659,10 @@ open class ChartTitleText(
 }
 
 open class ChartAxisSymbol(
-        _name: String,
         _value: String,
         _position: Float,
         _color: Int = Color.GRAY
 ) : ChartItemBase(_color) {
-    open var name: String = _name
-        set(value) {
-            field = value
-            changed = true
-        }
     open var value: String = _value
         set(value) {
             field = value
@@ -601,6 +676,9 @@ open class ChartAxisSymbol(
     open var base: ChartSymbolBase? = null
         set(value) {
             field = value
+            if (value != null && value.length == -1f) {
+                value.length = this.length
+            }
             changed = true
         }
     open var text: ChartText? = null
@@ -609,9 +687,16 @@ open class ChartAxisSymbol(
             field = value
             changed = true
         }
+    open var length: Float = -1f
+        set(value) {
+            field = value
+            if (base != null && base!!.length == -1f) {
+                base!!.length = value
+            }
+            changed = true
+        }
 
     object ShapeType {
-        val NONE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
         val DOT = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
         val DOWN_LINE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
         val UP_LINE = EnumHelper[ChartSymbolBase.ShapeType.SYMBOL_SHAPE_TYPE]
@@ -635,6 +720,11 @@ open class ChartAxis(
             changed = true
         }
     open var lineWidth: Float = _lineWidth
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var lineLength: Float = -1f
         set(value) {
             field = value
             changed = true
@@ -672,11 +762,6 @@ open class ChartAxis(
             changed = true
         }
 
-    open var symbolDotRadius: Float = -1f
-        set(value) {
-            field = value
-            changed = true
-        }
     open var symbolLineLength: Float = 10f
         set(value) {
             field = value
@@ -685,20 +770,16 @@ open class ChartAxis(
     open var symbolTextMargin: Float = 5f  // margin between symbol and text
         set(value) {
             field = value
+            this.symbolStyle.textMargin = value
             changed = true
         }
 
-    open var rotation: Float = 0f
-        set(value) {
-            field = value
-            changed = true
-        }
     open var reversed: Boolean = false
         set(value) {
             field = value
             changed = true
         }
-    open var opposite: Boolean = false
+    open var textOpposite: Boolean = false
         set(value) {
             field = value
             changed = true
