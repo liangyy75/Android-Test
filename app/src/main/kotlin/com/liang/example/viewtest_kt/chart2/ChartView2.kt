@@ -3,22 +3,30 @@
 package com.liang.example.viewtest_kt.chart2
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PathEffect
+import android.graphics.Shader
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import com.liang.example.basic_ktx.EnumHelper
 import com.liang.example.utils.r.dp2px
+import com.liang.example.utils.r.getDrawable
+import kotlin.math.min
 
 /**
- * @author liangyuying.lyy75@bytedance.com
+ * @author liangyuying
  * @date 2020/8/3
  * <p>
- * todo 描述
+ * chart view
  */
 open class ChartView : View {
     constructor(c: Context) : super(c)
@@ -27,6 +35,7 @@ open class ChartView : View {
 
     open val mainPaint = Paint()
     open val strokePaint = Paint()
+    open val textPaint = Paint()
     open val unit = ChartUnit().apply {
         this.styles = mutableMapOf(ChartUnit.State.NORMAL to ChartUnitStyle().apply {
             this.position = ChartPosition().apply {
@@ -39,6 +48,7 @@ open class ChartView : View {
                 this.color = Color.RED
             }
         })
+        updatePos()
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -51,6 +61,7 @@ open class ChartView : View {
         val style = unit.styles?.get(unit.state)
                 ?: return returnLog("style is null while state is ${unit.state}", Unit)
         val position = style.position ?: return returnLog("position is null", Unit)
+        mainPaint.reset()
         val transform = style.transform
         if (transform != null) {
             canvas.save()
@@ -69,9 +80,32 @@ open class ChartView : View {
         }
         val border = style.border
         val background = style.background
-        if (border != null || background != null || unit is ChartArea) {
+        style.pathStyle?.apply {
+            strokePaint.reset()
+            strokePaint.strokeCap = toPaintCap()
+            strokePaint.strokeJoin = toPaintJoin()
+            strokePaint.pathEffect = effect
+        }
+        val left = position.trueLeft
+        val top = position.trueTop
+        val width = position.trueWidth
+        val height = position.trueHeight
+        if (border != null || background != null) {
             val path = Path()
-            mainPaint.color = background?.color ?: Color.WHITE
+            val bgBitmap = background?.getBgBitmap()
+            if (bgBitmap == null) {
+                mainPaint.color = background?.color ?: Color.WHITE
+            } else {
+                val bitmapShader = BitmapShader(bgBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+                val scaledMatrix = Matrix()
+                scaledMatrix.setScale(width / bgBitmap.width, height / bgBitmap.height)
+                bitmapShader.setLocalMatrix(scaledMatrix)
+                mainPaint.shader = bitmapShader
+            }
+            if (border != null) {
+                strokePaint.strokeWidth = border.borderWidth
+                strokePaint.color = border.borderColor
+            }
             if (unit is ChartArea) {
                 val xys = unit.xys
                 (0 until xys.size step 2).forEach { i ->
@@ -84,14 +118,65 @@ open class ChartView : View {
                 if (unit.close) {
                     path.close()
                 }
-            } else if (border == null || border.shape == ChartBorder.ShapeType.RECANTAGE) {
-                path.addRect(position.trueLeft, position.trueTop, position.trueLeft + position.trueWidth, position.trueTop + position.trueHeight,
-                        Path.Direction.CCW)
             } else {
+                val dir = style.pathStyle?.toPathDirection() ?: Path.Direction.CCW
+                val size = min(width, height)
+                when (style.shape) {
+                    ChartUnitStyle.ShapeType.NONE -> Unit
+                    ChartUnitStyle.ShapeType.CIRCLE -> path.addCircle(left + width / 2, top + height / 2, size / 2, dir)
+                    ChartUnitStyle.ShapeType.SQUARE -> path.addRect(left + (width - size) / 2, top + (height - size) / 2, left + (width + size) / 2,
+                            top + (height + size) / 2, dir)
+                    ChartUnitStyle.ShapeType.RECANTAGE -> path.addRect(left, top, left + width, top + height, dir)
+                    ChartUnitStyle.ShapeType.ROUND_RECTANGLE -> path.addRoundRect(left, top, left + width, top + height, style.roundRadius,
+                            style.roundRadius, dir)
+                    ChartUnitStyle.ShapeType.DIAMOND -> path.apply {
+                        moveTo(left + width / 2, top)
+                        lineTo(left + width, top + height / 2)
+                        lineTo(left + width / 2, top + height)
+                        lineTo(left, top + height / 2)
+                        lineTo(left + width / 2, top)
+                    }
+                    ChartUnitStyle.ShapeType.TRIANGLE -> path.apply {
+                        moveTo(left, top + height)
+                        lineTo(left + width / 2, top)
+                        lineTo(left + width, top + height)
+                        lineTo(left, top + height)
+                    }
+                    ChartUnitStyle.ShapeType.TRIANGLEDOWN -> path.apply {
+                        moveTo(left + width / 2, top + height)
+                        lineTo(left, top)
+                        lineTo(left + width, top)
+                        lineTo(left + width / 2, top + height)
+                    }
+                    else -> Unit
+                }
             }
             canvas.drawPath(path, mainPaint)
+            if (border != null) {
+                canvas.drawPath(path, strokePaint)
+            }
         }
         val textStyle = style.textStyle
+        if (textStyle?.text != null) {
+            textStyle.apply {
+                val text = this.text!!
+                textPaint.reset()
+                textPaint.color = color
+                textPaint.textSize = size
+                textPaint.isFakeBoldText = isBold()
+                textPaint.textAlign = toPaintAlign()
+                when (decoration) {
+                    ChartTextStyle.Decoration.THROUGH -> textPaint.isStrikeThruText = true
+                    ChartTextStyle.Decoration.BELOW -> textPaint.isUnderlineText = true
+                    else -> Unit  // TODO: above
+                }
+                if (isItalic) {
+                    textPaint.flags = Paint.UNDERLINE_TEXT_FLAG.or(textPaint.flags)
+                }
+                val fm = textPaint.fontMetrics
+                canvas.drawText(text, left + width / 2, top + height / 2 - (fm.bottom + fm.top) / 2, textPaint)
+            }
+        }
         if (transform != null) {
             canvas.restore()
         }
@@ -118,6 +203,8 @@ open class ChartPosition {
     open var bottom: Float? = null
     open var mode: Int = PosMode.ALIGN_PARENT
 
+    // TODO: left / top / right/ bottom 各自有单独的mode
+
     open var trueWidth: Float = 0f
     open var trueHeight: Float = 0f
     open var trueLeft: Float = 0f
@@ -133,26 +220,30 @@ open class ChartPosition {
 open class ChartBorder {
     open var borderWidth: Float = 0f
     open var borderColor: Int = Color.WHITE
-    open var borderRadius: Float = 0f
-
-    open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
-
-    object ShapeType {
-        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
-        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
-        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
-        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-    }
 }
 
 open class ChartBackground {
     open var color: Int = Color.WHITE
     open var bgResId: Int = 0
     open var bgDrawable: Drawable? = null
+
+    // TODO: bgPos
+    // TODO: 渐变色
+
+    open fun getBgBitmap(): Bitmap? {
+        val bgDrawable = this.bgDrawable ?: getDrawable(bgResId) ?: return null
+        this.bgDrawable = bgDrawable
+        if (bgDrawable is BitmapDrawable) {
+            return bgDrawable.bitmap
+        }
+        val w = bgDrawable.intrinsicWidth
+        val h = bgDrawable.intrinsicHeight
+        val bitmap: Bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        bgDrawable.setBounds(0, 0, w, h)
+        bgDrawable.draw(canvas)
+        return bitmap
+    }
 }
 
 open class ChartTransform {
@@ -171,12 +262,52 @@ open class ChartTransform {
     }
 }
 
+open class ChartPathStyle {
+    open var join: Int = Join.BEVEL
+    open var cap: Int = Cap.BUTT
+    open var effect: PathEffect? = null
+    open var ccwDirection: Boolean = true
+
+    object Cap {
+        const val LINE_CAP = "chartLineCap"
+        val ROUND = EnumHelper[LINE_CAP]
+        val BUTT = EnumHelper[LINE_CAP]
+        val SQUARE = EnumHelper[LINE_CAP]
+    }
+
+    object Join {
+        const val LINE_JOIN = "chartLineJoin"
+        val MITER = EnumHelper[LINE_JOIN]
+        val ROUND = EnumHelper[LINE_JOIN]
+        val BEVEL = EnumHelper[LINE_JOIN]
+    }
+
+    open fun toPaintJoin(): Paint.Join = when (join) {
+        Join.ROUND -> Paint.Join.ROUND
+        Join.MITER -> Paint.Join.MITER
+        else -> Paint.Join.BEVEL
+    }
+
+    open fun toPaintCap(): Paint.Cap = when (cap) {
+        Cap.ROUND -> Paint.Cap.ROUND
+        Cap.SQUARE -> Paint.Cap.SQUARE
+        else -> Paint.Cap.BUTT
+    }
+
+    open fun toPathDirection(): Path.Direction = when (ccwDirection) {
+        true -> Path.Direction.CCW
+        else -> Path.Direction.CW
+    }
+}
+
 open class ChartTextStyle {
+    open var color: Int = Color.BLACK
     open var size: Float = 12f
     open var weight: Int = Weight.NORMAL
-    open var align: Int = Align.START
+    open var align: Int = Align.CENTER
     open var decoration: Int = Decoration.NONE
     open var isItalic: Boolean = false
+    open var text: String? = null
 
     object Align {
         const val TEXT_ALIGN = "textAlign"
@@ -198,6 +329,8 @@ open class ChartTextStyle {
         val BOLD = EnumHelper[FONT_WEIGHT]
     }
 
+    open fun isBold() = weight == Weight.BOLD
+
     object Decoration {
         const val DECORATION = "decoration"
         val NONE = EnumHelper[DECORATION]
@@ -214,6 +347,22 @@ open class ChartUnitStyle {
     open var background: ChartBackground? = null
     open var transform: ChartTransform? = null
     open var textStyle: ChartTextStyle? = null
+    open var pathStyle: ChartPathStyle? = null
+
+    open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
+    open var roundRadius: Float = 0f
+
+    object ShapeType {
+        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
+        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
+        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
+        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
+        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val ROUND_RECTANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长，roundRadius是边角的半径
+        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+    }
 }
 
 /* base unit */
@@ -320,9 +469,8 @@ open class ChartUnit {
 
 open class ChartArea(open var xys: MutableList<Float>) : ChartUnit() {
     open var close: Boolean = true
+    open var stroke: Boolean = false
 }
-
-open class ChartText(open var text: String) : ChartUnit()
 
 /* high-level unit */
 
