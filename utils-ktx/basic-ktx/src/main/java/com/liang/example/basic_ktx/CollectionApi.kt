@@ -13,6 +13,14 @@ fun <E> Collection<E>.only(index: Int, action: (E) -> Boolean): Boolean {
     return true
 }
 
+fun <E> MutableList<E>.addIfNotContainsOrNull(data: E?): Boolean {
+    if (data == null || contains(data)) {
+        return false
+    }
+    this.add(data)
+    return true
+}
+
 fun <T> Array<T>.only(index: Int, action: (T) -> Boolean): Boolean {
     forEachIndexed { i, t ->
         if (action(t) != (index == i)) {

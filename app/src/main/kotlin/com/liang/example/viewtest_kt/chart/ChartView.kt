@@ -12,6 +12,7 @@ import android.util.AttributeSet
 import android.view.View
 import com.liang.example.basic_ktx.EnumHelper
 import com.liang.example.basic_ktx.MutablePair
+import com.liang.example.basic_ktx.addIfNotContainsOrNull
 import kotlin.math.sqrt
 
 /**
@@ -57,7 +58,7 @@ open class ChartView : View {
                 mainPaint.isStrikeThruText = true
             }
             if (text.isItalic) {
-                mainPaint.setTextSkewX(-0.5f)
+                mainPaint.textSkewX = -0.5f
             }
             if (text.weight == ChartText.Weight.BOLD) {
                 mainPaint.isFakeBoldText = true
@@ -265,6 +266,19 @@ open class ChartItemBase(open var color: Int) {
             field = value
             changed = true
         }
+    open var extra: MutableMap<String, Any>? = null
+
+    open fun addExtra(key: String, value: Any) {
+        if (extra == null) {
+            extra = mutableMapOf(key to value)
+        } else {
+            extra!![key] = value
+        }
+    }
+
+    open fun removeExtra(key: String): Any? {
+        return extra?.remove(key)
+    }
 
     open fun pos(x: Float, y: Float, xMode: Int = ChartPosition.Mode.ABS, yMode: Int = ChartPosition.Mode.ABS) {
         if (this.position == null) {
@@ -345,20 +359,23 @@ open class ChartItemBase(open var color: Int) {
         child.parentItem = this
         if (this.childItems == null) {
             this.childItems = mutableListOf(child)
-        } else if (!this.childItems!!.contains(child)) {
-            this.childItems!!.add(child)
+            changed = true
         } else {
-            return
+            changed = this.childItems!!.addIfNotContainsOrNull(child)
         }
-        changed = true
     }
 
     open fun removeChild(child: ChartItemBase) {
         if (this.childItems != null && this.childItems!!.contains(child)) {
             child.parentItem = null
-            this.childItems!!.remove(child)
-            changed = true
+            if (this.childItems!!.remove(child)) {
+                changed = true
+            }
         }
+    }
+
+    open fun removeChildAt(index: Int) {
+        removeChild(childItems?.getOrNull(index) ?: return)
     }
 
     open fun handleChild(field: ChartItemBase?, value: ChartItemBase?) {
@@ -833,6 +850,10 @@ open class ChartAxis(
         this.symbols?.remove(symbol)
     }
 
+    open fun removeSymbolAt(index: Int) {
+        removeSymbol(this.symbols?.getOrNull(index) ?: return)
+    }
+
     open fun addLine(pos: Float, line: ChartLineBase) {
         if (this.lines == null) {
             this.lines = mutableMapOf(pos to line)
@@ -855,6 +876,10 @@ open class ChartAxis(
         if (key != null) {
             lines.remove(key)
         }
+    }
+
+    open fun removeLineAt(pos: Float) {
+        removeLine(this.lines?.getOrElse(pos, { null }) ?: return)
     }
 
     open fun addArea(area: ChartAreaBase) {
@@ -898,38 +923,221 @@ open class ChartLegend(_text: ChartText) : ChartItemBase(0) {
 
 open class ChartData(_x: Float, _y: Float) : ChartItemBase(0) {
     open var x: Float = _x
+        set(value) {
+            field = value
+            changed = true
+        }
     open var y: Float = _y
+        set(value) {
+            field = value
+            changed = true
+        }
     open var x2: Float = -1f
+        set(value) {
+            field = value
+            changed = true
+        }
     open var y2: Float = -1f
-    open var extra: MutableMap<String, Any>? = null
+        set(value) {
+            field = value
+            changed = true
+        }
     open var showLegend: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
     open var label: ChartText? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var legend: ChartLegend? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var subDataList: ChartDataList? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var subChartModel: ChartModel? = null
-    open var selectedAll: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
 }
 
 open class ChartDataList(
-        open var dataList: MutableList<MutablePair<Boolean, ChartData>>,
-        open var name: String
+        _name: String,
+        _dataList: MutableList<ChartData> = mutableListOf()
 ) : ChartItemBase(0) {
+    open var dataList: MutableList<ChartData> = _dataList
+    open var name: String = _name
+        set(value) {
+            field = value
+            changed = true
+        }
     open var commonLegend: ChartLegend? = null
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
     open var symbols: MutableList<ChartSymbolBase>? = null  // ChartData对应的Symbol
+        set(value) {
+            field?.forEach {
+                removeChild(it)
+            }
+            field = value
+            field?.forEach {
+                addChild(it)
+            }
+            changed = true
+        }
     open var splits: MutableMap<Int, Boolean>? = null
-    open var circlePanels: MutableList<ChartAreaBase>? = null  // 这是由dataList生成的，不要去设置
-    open var circlePanelMargin: Float = 10f
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var panels: MutableList<ChartAreaBase>? = null  // 这是由dataList生成的，不要去设置
+        set(value) {
+            field?.forEach {
+                removeChild(it)
+            }
+            field = value
+            field?.forEach {
+                addChild(it)
+            }
+            changed = true
+        }
+    open var panelMargin: Float = 10f
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var selectedAll: Boolean = false
+        set(value) {
+            field = value
+            changed = true
+        }
+
+    open fun addData(data: ChartData) {
+        dataList.add(data)
+        changed = true
+    }
+
+    open fun removeData(data: ChartData) {
+        if (dataList.remove(data)) {
+            changed = true
+        }
+    }
+
+    open fun removeDataAt(index: Int) {
+        removeData(dataList.getOrNull(index) ?: return)
+    }
+
+    open fun addSymbol(symbol: ChartSymbolBase) {
+        addChild(symbol)
+        if (symbols == null) {
+            symbols = mutableListOf(symbol)
+        } else if (!symbols!!.contains(symbol)) {
+            addChild(symbol)
+            symbols!!.add(symbol)
+        }
+    }
+
+    open fun removeSymbol(symbol: ChartSymbolBase) {
+        removeChild(symbol)
+        symbols?.remove(symbol)
+    }
+
+    open fun removeSymbolAt(index: Int) {
+        removeSymbol(symbols?.getOrNull(index) ?: return)
+    }
+
+    open fun setSplit(index: Int, split: Boolean) {
+        if (splits == null && !split) {
+            splits = mutableMapOf(index to split)
+            changed = true
+        } else if (splits != null && splits!![index] != split) {
+            splits!![index] = split
+            changed = true
+        }
+    }
+
+    open fun addPanel(panel: ChartAreaBase) {
+        if (panels == null) {
+            panels = mutableListOf(panel)
+        } else if (!panels!!.contains(panel)) {
+            addChild(panel)
+            panels!!.add(panel)
+        }
+    }
+
+    open fun removePanel(panel: ChartAreaBase) {
+        this.panels?.remove(panel)
+        removeChild(panel)
+    }
+
+    open fun removePanelAt(index: Int) {
+        removePanel(this.panels?.getOrNull(index) ?: return)
+    }
 }
 
 open class ChartToolTip(
-        open var titleTextFormat: ChartTitleText,
-        open var contentTextFormat: ChartText,
-        open var alignStyle: Int = Align.TOP.or(Align.CENTER),
-        open var offset: Float = 0f,
-        open var margin: Float = 0f,
-        open var contentTextFormats: MutableList<ChartText>? = null
+        _titleFormat: ChartTitleText,
+        _contentFormat: ChartText
 ) : ChartAreaBase(mutableListOf()) {
-    open fun getContentTextFormat(item: ChartItemBase): ChartText? = null
+    open var titleFormat: ChartTitleText = _titleFormat
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
+    open var contentFormat: ChartText = _contentFormat
+        set(value) {
+            handleChild(field, value)
+            field = value
+            changed = true
+        }
+    open var alignStyle: Int = Align.TOP.or(Align.CENTER)
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var offset: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var margin: Float = 0f
+        set(value) {
+            field = value
+            changed = true
+        }
+    open var contentTextFormats: MutableList<ChartText>? = null
+        set(value) {
+            field?.forEach {
+                removeChild(it)
+            }
+            field = value
+            field?.forEach {
+                addChild(it)
+            }
+            changed = true
+        }
+    open var contentHolder: ContentHolder? = null
+        set(value) {
+            field = value
+            changed = true
+        }
+
+    open fun getContentTextFormat(index: Int): ChartText? = contentHolder?.getContentTextFormat(index)
 
     object Align {
         const val TOOL_TIP_ALIGN_STYLE = "toolTipShapeStyle"
@@ -939,11 +1147,22 @@ open class ChartToolTip(
         val BOTTOM = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
         val CENTER = EnumHelper.get2(TOOL_TIP_ALIGN_STYLE)
     }
+
+    interface ContentHolder {
+        fun getContentTextFormat(index: Int): ChartText?
+    }
 }
 
-open class ChartLegendPanel(open var legends: MutableList<ChartLegend>) : ChartItemBase(0)
+open class ChartLegendPanel(_legends: MutableList<ChartLegend>) : ChartItemBase(0) {
+    open var legends: MutableList<ChartLegend> = _legends
+        set(value) {
+            field = value
+            changed = true
+        }
+}
 
-open class ChartModel(open var type: Int) {
+open class ChartModel(_type: Int) {
+    open var type: Int = _type
     open var title: ChartTitleText? = null
     open var subTitle: ChartTitleText? = null
     open var zoom: Int = ZoomType.ZOOM_NONE
