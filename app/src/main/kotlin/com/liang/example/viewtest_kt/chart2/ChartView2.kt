@@ -11,14 +11,15 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathEffect
+import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import com.liang.example.androidtest.R
 import com.liang.example.basic_ktx.EnumHelper
+import com.liang.example.utils.ApiManager
 import com.liang.example.utils.r.dp2px
 import com.liang.example.utils.r.getColor
 import com.liang.example.utils.r.getDrawable
@@ -41,20 +42,19 @@ open class ChartView : View {
     open val mainPaint = Paint()
     open val strokePaint = Paint()
     open val textPaint = Paint()
-    open val zIndexedUnits = mutableMapOf<Int, MutableList<ChartUnit>>()
     open val unit = ChartUnit().setStyle(ChartUnitStyle()
             .p(ChartPosition().m(ChartPosition.PosMode.ALIGN_ROOT))
-            .bg(ChartBackground().c(Color.WHITE)))
+            .c(ChartColor().c(Color.WHITE)))
             .cv(this)
 
-    init {
+    private fun testSymbol() {
         val dp50 = dp5 * 10
         val position = ChartPosition().w(dp50).h(dp50)
         val style = ChartUnitStyle()
                 .p(position)
                 .pd(ChartPadding(dp5))
                 .b(ChartBorder().bw(dp5).bc(getColor(R.color.green100)))
-                .bg(ChartBackground().c(getColor(R.color.red100)))
+                .c(ChartColor().c(getColor(R.color.red100)))
                 .setShape(ChartUnitStyle.ShapeType.CIRCLE)
                 .ts(ChartTextStyle("test-text"))
         unit.addChild(ChartUnit().setStyle(style))
@@ -74,33 +74,36 @@ open class ChartView : View {
                         .p(position.copy().l(dp50 * 5))
                         .setShape(ChartUnitStyle.ShapeType.TRIANGLE)))
                 .addChild(ChartUnit().setStyle(style.copy()
-                        .p(position.copy().l(dp50 * 6))
+                        .p(position.copy().l(0f).t(dp50))
                         .setShape(ChartUnitStyle.ShapeType.TRIANGLEDOWN)))
+    }
+
+    init {
+        // testSymbol()
+        unit.addChild(ChartArea()
+                .xy(dp5, dp5)
+                .xy(dp5 * 11, dp5)
+                .xy(dp5 * 16, dp5 * 11)
+                .xy(dp5 * 6, dp5 * 11)
+                .xy(dp5, dp5)
+                .setStyle(ChartUnitStyle()
+                        .p(ChartPosition()
+                                .t(dp5)
+                                .l(dp5)
+                                .w(dp5 * 15)
+                                .h(dp5 * 10))
+                        .c(ChartColor(getColor(R.color.red100)))
+                        .t(ChartTransform()
+                                .r(90f)
+                                .seq("rotate"))))
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas ?: return
         unit.updatePos()
-        handleUnit(unit)
-        zIndexedUnits.keys.sorted().forEach { zIndex ->
-            zIndexedUnits[zIndex]?.forEach { unit ->
-                drawItem(canvas, unit)
-            }
-        }
-    }
-
-    open fun handleUnit(unit: ChartUnit) {
-        val zIndex = unit.style?.zIndex ?: 0
-        val units = zIndexedUnits[zIndex]
-        if (units == null) {
-            zIndexedUnits[zIndex] = mutableListOf(unit)
-        } else {
-            units.add(unit)
-        }
-        unit.children?.forEach {
-            handleUnit(it)
-        }
+        // ApiManager.LOGGER.d(TAG, unit.string())
+        drawItem(canvas, unit)
     }
 
     open fun drawItem(canvas: Canvas, unit: ChartUnit) {
@@ -108,15 +111,21 @@ open class ChartView : View {
                 ?: return returnLog("style is null while state is ${unit.state}", Unit)
         val position = style.position ?: return returnLog("position is null", Unit)
         val transform = style.transform
+        val left = position.trueLeft
+        val top = position.trueTop
+        val width = position.trueWidth
+        val height = position.trueHeight
         if (transform != null) {
             canvas.save()
+            val px = left + width / 2
+            val py = top + height / 2
             transform.sequence.split(";").forEach {
                 if (it == "translate" && (transform.translateX != 0f || transform.translateY != 0f)) {
                     canvas.translate(transform.translateX, transform.translateY)
                 } else if (it == "scale" && (transform.scaleX != 0f || transform.scaleY != 0f)) {
-                    canvas.scale(transform.scaleX, transform.scaleY)
+                    canvas.scale(transform.scaleX, transform.scaleY, px, py)
                 } else if (it == "rotate" && transform.rotation != 0f) {
-                    canvas.rotate(transform.rotation)
+                    canvas.rotate(transform.rotation, px, py)
                 } else if (it == "skew" && (transform.skewX != 0f || transform.skewY != 0f)) {
                     canvas.skew(transform.skewX, transform.skewY)
                 }
@@ -124,49 +133,23 @@ open class ChartView : View {
             transform.transform?.doTransform(canvas)
         }
         val border = style.border
-        val background = style.background
+        val contentColor = style.contentColor
         style.pathStyle?.apply {
             strokePaint.reset()
             strokePaint.strokeCap = toPaintCap()
             strokePaint.strokeJoin = toPaintJoin()
             strokePaint.pathEffect = effect
         }
-        val left = position.trueLeft
-        val top = position.trueTop
-        val width = position.trueWidth
-        val height = position.trueHeight
-        if (border != null || background != null) {
+        val lineFlag = unit is ChartArea && unit.isLine && unit.lineStyle != null
+        if (border != null || contentColor != null || lineFlag) {
             val path = Path()
-            val bgBitmap = background?.getBgBitmap()
-            val bgColor = background?.color
-            var useMainPaint = true
-            if (bgBitmap == null) {
-                if (bgColor != null) {
-                    mainPaint.reset()
-                    mainPaint.color = bgColor
-                } else {
-                    useMainPaint = false
-                }
-            } else {
-                mainPaint.reset()
-                val bitmapShader = BitmapShader(bgBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-                val scaledMatrix = Matrix()
-                scaledMatrix.setScale(width / bgBitmap.width, height / bgBitmap.height)
-                bitmapShader.setLocalMatrix(scaledMatrix)
-                mainPaint.shader = bitmapShader
-            }
-            if (border != null) {
-                strokePaint.style = Paint.Style.STROKE
-                strokePaint.strokeWidth = border.borderWidth
-                strokePaint.color = border.borderColor
-            }
             if (unit is ChartArea) {
                 val xys = unit.xys
                 (0 until xys.size step 2).forEach { i ->
                     if (i == 0) {
-                        path.moveTo(xys[i], xys[i + 1])
+                        path.moveTo(xys[i] + left, xys[i + 1] + top)
                     } else {
-                        path.lineTo(xys[i], xys[i + 1])
+                        path.lineTo(xys[i] + left, xys[i + 1] + top)
                     }
                 }
                 if (unit.close) {
@@ -188,27 +171,36 @@ open class ChartView : View {
                         lineTo(left + width, top + height / 2)
                         lineTo(left + width / 2, top + height)
                         lineTo(left, top + height / 2)
-                        lineTo(left + width / 2, top)
+                        close()
                     }
                     ChartUnitStyle.ShapeType.TRIANGLE -> path.apply {
                         moveTo(left, top + height)
                         lineTo(left + width / 2, top)
                         lineTo(left + width, top + height)
-                        lineTo(left, top + height)
+                        close()
                     }
                     ChartUnitStyle.ShapeType.TRIANGLEDOWN -> path.apply {
                         moveTo(left + width / 2, top + height)
                         lineTo(left, top)
                         lineTo(left + width, top)
-                        lineTo(left + width / 2, top + height)
+                        close()
                     }
                     else -> Unit
                 }
             }
-            if (useMainPaint) {
-                canvas.drawPath(path, mainPaint)
+            if (contentColor != null) {
+                mainPaint.reset()
+                if (contentColor.set(mainPaint, width, height)) {
+                    mainPaint.style = Paint.Style.FILL
+                    canvas.drawPath(path, mainPaint)
+                }
             }
             if (border != null) {
+                border.set(strokePaint)
+                canvas.drawPath(path, strokePaint)
+            }
+            if (lineFlag) {
+                (unit as ChartArea).lineStyle!!.set(strokePaint)
                 canvas.drawPath(path, strokePaint)
             }
         }
@@ -233,13 +225,16 @@ open class ChartView : View {
                 canvas.drawText(text, left + width / 2, top + height / 2 - (fm.bottom + fm.top) / 2, textPaint)
             }
         }
+        unit.children?.forEach {
+            drawItem(canvas, it)
+        }
         if (transform != null) {
             canvas.restore()
         }
     }
 
     open fun <T> returnLog(msg: String, value: T): T {
-        Log.d(TAG, msg)
+        ApiManager.LOGGER.d(TAG, msg)
         return value
     }
 
@@ -347,10 +342,17 @@ open class ChartBorder {
         this.borderWidth = this@ChartBorder.borderWidth
     }
 
+    open fun set(paint: Paint): ChartBorder {
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = borderWidth
+        paint.color = borderColor
+        return this
+    }
+
     override fun toString(): String = "{borderWidth: $borderWidth, borderColor: $borderColor}"
 }
 
-open class ChartBackground() {
+open class ChartColor() {
     open var color: Int? = null
     open var bgResId: Int = 0
     open var bgDrawable: Drawable? = null
@@ -364,17 +366,17 @@ open class ChartBackground() {
     // TODO: 渐变色
     // TODO: bg-box: content-box, padding-box, border-box
 
-    open fun c(color: Int?): ChartBackground {
+    open fun c(color: Int?): ChartColor {
         this.color = color
         return this
     }
 
-    open fun bg(id: Int): ChartBackground {
+    open fun bg(id: Int): ChartColor {
         this.bgResId = id
         return this
     }
 
-    open fun bg(drawable: Drawable?): ChartBackground {
+    open fun bg(drawable: Drawable?): ChartColor {
         this.bgDrawable = drawable
         return this
     }
@@ -394,10 +396,29 @@ open class ChartBackground() {
         return bitmap
     }
 
-    open fun copy(): ChartBackground = ChartBackground().apply {
-        this.color = this@ChartBackground.color
-        this.bgResId = this@ChartBackground.bgResId
-        this.bgDrawable = this@ChartBackground.bgDrawable
+    open fun copy(): ChartColor = ChartColor().apply {
+        this.color = this@ChartColor.color
+        this.bgResId = this@ChartColor.bgResId
+        this.bgDrawable = this@ChartColor.bgDrawable
+    }
+
+    open fun set(paint: Paint, w: Float, h: Float): Boolean {
+        val bgBitmap = getBgBitmap()
+        if (bgBitmap == null) {
+            if (color != null) {
+                paint.color = color!!
+            } else {
+                return false
+            }
+        } else {
+            val bitmapShader = BitmapShader(bgBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+            val scaledMatrix = Matrix()
+            scaledMatrix.setScale(w / bgBitmap.width, h / bgBitmap.height)
+            bitmapShader.setLocalMatrix(scaledMatrix)
+            paint.reset()
+            paint.shader = bitmapShader
+        }
+        return true
     }
 
     override fun toString(): String = "{color: $color, bgResId: $bgResId, bgDrawable: $bgDrawable}"
@@ -413,6 +434,8 @@ open class ChartTransform {
     open var skewY: Float = 0f
     open var sequence: String = ""  // "translate;scale;rotate;skew"
     open var transform: Transform? = null
+
+    // TODO: px, py
 
     interface Transform {
         fun doTransform(canvas: Canvas)
@@ -649,6 +672,35 @@ open class ChartTextStyle(open var text: String? = null) {
 
     override fun toString(): String = "{text: $text, color: $color, size: $size, weight: $weight, align: $align, decoration: $decoration, " +
             "isItalic: $isItalic}"
+
+    open fun set(paint: Paint): ChartTextStyle {
+        paint.reset()
+        paint.color = color
+        paint.textSize = size
+        paint.isFakeBoldText = isBold()
+        paint.textAlign = toPaintAlign()
+        when (decoration) {
+            Decoration.THROUGH -> paint.isStrikeThruText = true
+            Decoration.BELOW -> paint.isUnderlineText = true
+            else -> Unit  // TODO: above
+        }
+        if (isItalic) {
+            paint.flags = Paint.UNDERLINE_TEXT_FLAG.or(paint.flags)
+        }
+        return this
+    }
+
+    open fun bounds(paint: Paint): Rect {
+        set(paint)
+        val bounds = Rect()
+        val text = this.text ?: return bounds
+        paint.getTextBounds(text, 0, text.length, bounds)
+        return bounds
+    }
+
+    companion object {
+        val WIDTH_PAINT = Paint()
+    }
 }
 
 open class ChartPadding() {
@@ -710,10 +762,11 @@ open class ChartPadding() {
 }
 
 open class ChartUnitStyle {
-    open var zIndex: Int = 0
+    open var zIndex: Int = 0  // TODO: zIndex
     open var position: ChartPosition? = null
     open var border: ChartBorder? = null
-    open var background: ChartBackground? = null
+    open var contentColor: ChartColor? = null
+    open var background: ChartColor? = null  // TODO: background
     open var transform: ChartTransform? = null
     open var textStyle: ChartTextStyle? = null
     open var pathStyle: ChartPathStyle? = null
@@ -737,7 +790,12 @@ open class ChartUnitStyle {
         return this
     }
 
-    open fun bg(background: ChartBackground?): ChartUnitStyle {
+    open fun c(color: ChartColor?): ChartUnitStyle {
+        this.contentColor = color
+        return this
+    }
+
+    open fun bg(background: ChartColor?): ChartUnitStyle {
         this.background = background
         return this
     }
@@ -776,6 +834,7 @@ open class ChartUnitStyle {
         this.zIndex = this@ChartUnitStyle.zIndex
         this.position = this@ChartUnitStyle.position
         this.border = this@ChartUnitStyle.border
+        this.contentColor = this@ChartUnitStyle.contentColor
         this.background = this@ChartUnitStyle.background
         this.transform = this@ChartUnitStyle.transform
         this.textStyle = this@ChartUnitStyle.textStyle
@@ -789,6 +848,7 @@ open class ChartUnitStyle {
         this.zIndex = this@ChartUnitStyle.zIndex
         this.position = this@ChartUnitStyle.position?.copy()
         this.border = this@ChartUnitStyle.border?.copy()
+        this.contentColor = this@ChartUnitStyle.contentColor?.copy()
         this.background = this@ChartUnitStyle.background?.copy()
         this.transform = this@ChartUnitStyle.transform?.copy()
         this.textStyle = this@ChartUnitStyle.textStyle?.copy()
@@ -811,7 +871,7 @@ open class ChartUnitStyle {
     }
 
     override fun toString(): String = "{zIndex: $zIndex, shape: $shape, roundRadius: $roundRadius\n\tposition: $position\n\tborder: $border\n\t" +
-            "background: $background\n\ttransform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding}"
+            "background: $contentColor\n\ttransform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding}"
 }
 
 /* base unit */
@@ -848,6 +908,37 @@ open class ChartUnit {
             setStatedStyle(state, value)
         }
 
+    open fun copy(): ChartUnit = ChartUnit().setOther(this)
+
+    open fun setOther(other: ChartUnit): ChartUnit {
+        this.extras = other.extras
+        this.children = other.children
+        this.parent = other.parent
+        this.chartView = other.chartView
+        this.state = other.state
+        this.styles = other.styles
+        return this
+    }
+
+    open fun deepCopy(): ChartUnit = ChartUnit().apply {}
+
+    open fun setDeepOther(other: ChartUnit): ChartUnit {
+        if (other.extras != null) {
+            this.extras = mutableMapOf()
+            other.extras!!.forEach {
+                this.extras!![it.key] = it.value
+            }
+        }
+        this.children = other.children?.map { it.deepCopy() }?.toMutableList()
+        this.parent = other.parent
+        this.chartView = other.chartView
+        this.state = other.state
+        this.styles = other.styles?.map { it.key to it.value.deepCopy() }?.toMap()?.toMutableMap()
+        return this
+    }
+
+    open fun string(depth: Int = 0): String = "style: $style" + children?.joinToString { "\n" + "\t".repeat(depth) + it.string(depth + 1) }
+
     open fun updatePos(): ChartUnit {
         val position = this.style?.position ?: return this
         val pWidth: Float
@@ -876,6 +967,8 @@ open class ChartUnit {
             position.trueLeft = pLeft + trueSize(left, pWidth)
         } else if (right != null) {
             position.trueLeft = pLeft + trueSize2(right, pWidth, position.trueWidth)
+        } else {
+            position.trueLeft = 0f
         }
         if (padding != null) {
             padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, position.trueWidth)
@@ -889,6 +982,8 @@ open class ChartUnit {
             position.trueTop = pTop + trueSize(top, pHeight)
         } else if (bottom != null) {
             position.trueTop = pTop + trueSize2(bottom, pHeight, position.trueHeight)
+        } else {
+            position.trueTop = 0f
         }
         if (padding != null) {
             padding.truePT = trueSize(padding.paddingTop ?: padding.padding, position.trueHeight)
@@ -899,6 +994,7 @@ open class ChartUnit {
         children?.forEach {
             it.updatePos()
         }
+        // TODO: transform 对这里造成的影响
         return this
     }
 
@@ -987,11 +1083,12 @@ open class ChartUnit {
     }
 }
 
-open class ChartArea(open var xys: MutableList<Float>) : ChartUnit() {
+open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : ChartUnit() {
     open var close: Boolean = true
-    open var stroke: Boolean = false
+    open var isLine: Boolean = false
+    open var lineStyle: ChartBorder? = null
 
-    open fun addXY(x: Float, y: Float): ChartArea {
+    open fun xy(x: Float, y: Float): ChartArea {
         xys.add(x)
         xys.add(y)
         return this
@@ -1002,15 +1099,52 @@ open class ChartArea(open var xys: MutableList<Float>) : ChartUnit() {
         return this
     }
 
-    open fun s(stroke: Boolean): ChartArea {
-        this.stroke = stroke
+    open fun l(isLine: Boolean): ChartArea {
+        this.isLine = isLine
         return this
     }
+
+    open fun ls(lineStyle: ChartBorder?): ChartArea {
+        this.lineStyle = lineStyle
+        isLine = lineStyle != null
+        return this
+    }
+
+    override fun copy(): ChartUnit = ChartArea(xys.toMutableList()).setOther(this)
+
+    override fun setOther(other: ChartUnit): ChartUnit {
+        if (other is ChartArea) {
+            this.close = other.close
+            this.isLine = other.isLine
+            this.lineStyle = other.lineStyle
+        }
+        return super.setOther(other)
+    }
+
+    override fun deepCopy(): ChartUnit = ChartArea(xys.toMutableList()).setDeepOther(this)
+
+    override fun setDeepOther(other: ChartUnit): ChartUnit {
+        if (other is ChartArea) {
+            this.close = other.close
+            this.isLine = other.isLine
+            this.lineStyle = other.lineStyle?.copy()
+        }
+        return super.setDeepOther(other)
+    }
+
+    // TODO: 计算不规则图形的 trueWidth / trueHeight / trueLeft / trueTop，运用 trueSize / trueSize2 等等。
+    //  min(x), min(y) -- max(x), max(y)
 }
 
 /* high-level unit */
 
-open class ChartAxis
+open class ChartAxis() {
+    open var line: ChartArea? = null
+    open var symbols: MutableMap<Float, ChartUnit>? = null
+    open var max: Float? = null
+    open var min: Float? = null
+    open var title: ChartUnit? = null
+}
 
 open class ChartLegend
 

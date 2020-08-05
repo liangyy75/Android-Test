@@ -7,6 +7,5 @@
     <com.liang.example.viewtest_kt.chart2.ChartView
         android:id="@+id/chart"
         android:layout_width="@dimen/dimen300"
-        android:layout_height="@dimen/dimen400"
-        android:background="@color/colorcccccc" />
+        android:layout_height="@dimen/dimen400" />
 </LinearLayout>
