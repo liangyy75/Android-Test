@@ -23,7 +23,10 @@ fun sp2Px(spValue: Float): Int = (spValue * scaledDensity + 0.5f).toInt()
 fun sp2Px(spValue: Float, context: Context): Int = (spValue * context.resources.displayMetrics.scaledDensity + 0.5f).toInt()
 
 fun getColor(id: Int) = ContextApi.app.resources.getColor(id)
-fun getDrawable(id: Int) = ContextApi.app.resources.getDrawable(id)
+fun getDrawable(id: Int) = when (id) {
+    0 -> null
+    else ->ContextApi.app.resources.getDrawable(id)
+}
 fun getString(id: Int) = ContextApi.app.resources.getString(id)
 fun getBoolean(id: Int) = ContextApi.app.resources.getBoolean(id)
 fun getDimension(id: Int) = ContextApi.app.resources.getDimension(id)

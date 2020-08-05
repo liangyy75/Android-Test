@@ -1,4 +1,4 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "LeakingThis")
 
 package com.liang.example.viewtest_kt.chart2
 
@@ -17,10 +17,15 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import com.liang.example.androidtest.R
 import com.liang.example.basic_ktx.EnumHelper
 import com.liang.example.utils.r.dp2px
+import com.liang.example.utils.r.getColor
 import com.liang.example.utils.r.getDrawable
+import com.liang.example.utils.r.sp2Px
 import kotlin.math.min
+
+val dp5 = dp2px(5f).toFloat()
 
 /**
  * @author liangyuying
@@ -36,32 +41,72 @@ open class ChartView : View {
     open val mainPaint = Paint()
     open val strokePaint = Paint()
     open val textPaint = Paint()
-    open val unit = ChartUnit().apply {
-        this.styles = mutableMapOf(ChartUnit.State.NORMAL to ChartUnitStyle().apply {
-            this.position = ChartPosition().apply {
-                this.left = dp2px(100f).toFloat()
-                this.top = dp2px(200f).toFloat()
-                this.width = dp2px(200f).toFloat()
-                this.height = dp2px(100f).toFloat()
-            }
-            this.background = ChartBackground().apply {
-                this.color = Color.RED
-            }
-        })
-        updatePos()
+    open val zIndexedUnits = mutableMapOf<Int, MutableList<ChartUnit>>()
+    open val unit = ChartUnit().setStyle(ChartUnitStyle()
+            .p(ChartPosition().m(ChartPosition.PosMode.ALIGN_ROOT))
+            .bg(ChartBackground().c(Color.WHITE)))
+            .cv(this)
+
+    init {
+        val dp50 = dp5 * 10
+        val position = ChartPosition().w(dp50).h(dp50)
+        val style = ChartUnitStyle()
+                .p(position)
+                .pd(ChartPadding(dp5))
+                .b(ChartBorder().bw(dp5).bc(getColor(R.color.green100)))
+                .bg(ChartBackground().c(getColor(R.color.red100)))
+                .setShape(ChartUnitStyle.ShapeType.CIRCLE)
+                .ts(ChartTextStyle("test-text"))
+        unit.addChild(ChartUnit().setStyle(style))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50))
+                        .setShape(ChartUnitStyle.ShapeType.SQUARE)))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50 * 2))
+                        .setShape(ChartUnitStyle.ShapeType.RECANTAGE)))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50 * 3))
+                        .setShape(ChartUnitStyle.ShapeType.ROUND_RECTANGLE).rR(dp5)))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50 * 4))
+                        .setShape(ChartUnitStyle.ShapeType.DIAMOND)))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50 * 5))
+                        .setShape(ChartUnitStyle.ShapeType.TRIANGLE)))
+                .addChild(ChartUnit().setStyle(style.copy()
+                        .p(position.copy().l(dp50 * 6))
+                        .setShape(ChartUnitStyle.ShapeType.TRIANGLEDOWN)))
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas ?: return
-        drawItem(canvas, unit)
+        unit.updatePos()
+        handleUnit(unit)
+        zIndexedUnits.keys.sorted().forEach { zIndex ->
+            zIndexedUnits[zIndex]?.forEach { unit ->
+                drawItem(canvas, unit)
+            }
+        }
+    }
+
+    open fun handleUnit(unit: ChartUnit) {
+        val zIndex = unit.style?.zIndex ?: 0
+        val units = zIndexedUnits[zIndex]
+        if (units == null) {
+            zIndexedUnits[zIndex] = mutableListOf(unit)
+        } else {
+            units.add(unit)
+        }
+        unit.children?.forEach {
+            handleUnit(it)
+        }
     }
 
     open fun drawItem(canvas: Canvas, unit: ChartUnit) {
-        val style = unit.styles?.get(unit.state)
+        val style = unit.style
                 ?: return returnLog("style is null while state is ${unit.state}", Unit)
         val position = style.position ?: return returnLog("position is null", Unit)
-        mainPaint.reset()
         val transform = style.transform
         if (transform != null) {
             canvas.save()
@@ -93,9 +138,17 @@ open class ChartView : View {
         if (border != null || background != null) {
             val path = Path()
             val bgBitmap = background?.getBgBitmap()
+            val bgColor = background?.color
+            var useMainPaint = true
             if (bgBitmap == null) {
-                mainPaint.color = background?.color ?: Color.WHITE
+                if (bgColor != null) {
+                    mainPaint.reset()
+                    mainPaint.color = bgColor
+                } else {
+                    useMainPaint = false
+                }
             } else {
+                mainPaint.reset()
                 val bitmapShader = BitmapShader(bgBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
                 val scaledMatrix = Matrix()
                 scaledMatrix.setScale(width / bgBitmap.width, height / bgBitmap.height)
@@ -103,6 +156,7 @@ open class ChartView : View {
                 mainPaint.shader = bitmapShader
             }
             if (border != null) {
+                strokePaint.style = Paint.Style.STROKE
                 strokePaint.strokeWidth = border.borderWidth
                 strokePaint.color = border.borderColor
             }
@@ -151,7 +205,9 @@ open class ChartView : View {
                     else -> Unit
                 }
             }
-            canvas.drawPath(path, mainPaint)
+            if (useMainPaint) {
+                canvas.drawPath(path, mainPaint)
+            }
             if (border != null) {
                 canvas.drawPath(path, strokePaint)
             }
@@ -195,7 +251,7 @@ open class ChartView : View {
 /* unit's style */
 
 open class ChartPosition {
-    open var width: Float = -1f  /* -1~0是相对于parent的百分比，-3~-2是相对于chartView的百分比，0~是正常数值 */
+    open var width: Float = -1f  /* -1~0是相对于parent的百分比，0~是正常数值 */
     open var height: Float = -1f
     open var left: Float? = null
     open var top: Float? = null
@@ -210,25 +266,118 @@ open class ChartPosition {
     open var trueLeft: Float = 0f
     open var trueTop: Float = 0f
 
+    open fun l(left: Float?): ChartPosition {
+        this.left = left
+        return this
+    }
+
+    open fun t(top: Float?): ChartPosition {
+        this.top = top
+        return this
+    }
+
+    open fun r(right: Float?): ChartPosition {
+        this.right = right
+        return this
+    }
+
+    open fun b(bottom: Float?): ChartPosition {
+        this.bottom = bottom
+        return this
+    }
+
+    open fun w(width: Float): ChartPosition {
+        this.width = width
+        return this
+    }
+
+    open fun h(height: Float): ChartPosition {
+        this.height = height
+        return this
+    }
+
+    open fun m(mode: Int): ChartPosition {
+        this.mode = mode
+        return this
+    }
+
+    open fun copy(): ChartPosition = ChartPosition().apply {
+        this.width = this@ChartPosition.width
+        this.height = this@ChartPosition.height
+        this.left = this@ChartPosition.left
+        this.top = this@ChartPosition.top
+        this.right = this@ChartPosition.right
+        this.bottom = this@ChartPosition.bottom
+        this.mode = this@ChartPosition.mode
+    }
+
     object PosMode {
         const val POS_MODE = "chartItemPosMode"
         val ALIGN_PARENT = EnumHelper[POS_MODE]
         val ALIGN_ROOT = EnumHelper[POS_MODE]
     }
+
+    override fun toString(): String = "{width: $width, height: $height, left: $left, top: $top, right: $right, bottom: $bottom, mode: $mode, " +
+            "trueWidth: $trueWidth, trueHeight: $trueHeight, trueLeft: $trueLeft, trueTop: $trueTop}"
 }
 
 open class ChartBorder {
     open var borderWidth: Float = 0f
     open var borderColor: Int = Color.WHITE
+    // open var inner: Boolean = false  // 表示border是占用width还是不占用，对ChartArea无效
+    // TODO: box: content-box, padding-box, border-box
+
+    open fun bw(borderWidth: Float): ChartBorder {
+        this.borderWidth = borderWidth
+        return this
+    }
+
+    open fun bc(borderColor: Int): ChartBorder {
+        this.borderColor = borderColor
+        return this
+    }
+
+    // open fun inner(inner: Boolean): ChartBorder {
+    //     this.inner = inner
+    //     return this
+    // }
+
+    open fun copy() = ChartBorder().apply {
+        this.borderColor = this@ChartBorder.borderColor
+        this.borderWidth = this@ChartBorder.borderWidth
+    }
+
+    override fun toString(): String = "{borderWidth: $borderWidth, borderColor: $borderColor}"
 }
 
-open class ChartBackground {
-    open var color: Int = Color.WHITE
+open class ChartBackground() {
+    open var color: Int? = null
     open var bgResId: Int = 0
     open var bgDrawable: Drawable? = null
 
+    constructor(color: Int?) : this() {
+        this.color = color
+    }
+
+    // TODO: 将color与bg-color分开
     // TODO: bgPos
     // TODO: 渐变色
+    // TODO: bg-box: content-box, padding-box, border-box
+
+    open fun c(color: Int?): ChartBackground {
+        this.color = color
+        return this
+    }
+
+    open fun bg(id: Int): ChartBackground {
+        this.bgResId = id
+        return this
+    }
+
+    open fun bg(drawable: Drawable?): ChartBackground {
+        this.bgDrawable = drawable
+        return this
+    }
 
     open fun getBgBitmap(): Bitmap? {
         val bgDrawable = this.bgDrawable ?: getDrawable(bgResId) ?: return null
@@ -244,6 +393,14 @@ open class ChartBackground {
         bgDrawable.draw(canvas)
         return bitmap
     }
+
+    open fun copy(): ChartBackground = ChartBackground().apply {
+        this.color = this@ChartBackground.color
+        this.bgResId = this@ChartBackground.bgResId
+        this.bgDrawable = this@ChartBackground.bgDrawable
+    }
+
+    override fun toString(): String = "{color: $color, bgResId: $bgResId, bgDrawable: $bgDrawable}"
 }
 
 open class ChartTransform {
@@ -260,6 +417,84 @@ open class ChartTransform {
     interface Transform {
         fun doTransform(canvas: Canvas)
     }
+
+    open fun r(rotation: Float): ChartTransform {
+        this.rotation = rotation
+        return this
+    }
+
+    open fun sx(scaleX: Float): ChartTransform {
+        this.scaleX = scaleX
+        return this
+    }
+
+    open fun sy(scaleY: Float): ChartTransform {
+        this.scaleY = scaleY
+        return this
+    }
+
+    open fun s(scaleX: Float, scaleY: Float): ChartTransform {
+        this.scaleX = scaleX
+        this.scaleY = scaleY
+        return this
+    }
+
+    open fun tx(translateX: Float): ChartTransform {
+        this.translateX = translateX
+        return this
+    }
+
+    open fun ty(translateY: Float): ChartTransform {
+        this.translateY = translateY
+        return this
+    }
+
+    open fun t(translateX: Float, translateY: Float): ChartTransform {
+        this.translateX = translateX
+        this.translateY = translateY
+        return this
+    }
+
+    open fun skx(skewX: Float): ChartTransform {
+        this.skewX = skewX
+        return this
+    }
+
+    open fun sky(skewY: Float): ChartTransform {
+        this.skewY = skewY
+        return this
+    }
+
+    open fun sk(skewX: Float, skewY: Float): ChartTransform {
+        this.skewX = skewX
+        this.skewY = skewY
+        return this
+    }
+
+    open fun seq(sequence: String): ChartTransform {
+        this.sequence = sequence
+        return this
+    }
+
+    open fun tf(transform: Transform?): ChartTransform {
+        this.transform = transform
+        return this
+    }
+
+    open fun copy(): ChartTransform = ChartTransform().apply {
+        this.rotation = this@ChartTransform.rotation
+        this.scaleX = this@ChartTransform.scaleX
+        this.scaleY = this@ChartTransform.scaleY
+        this.translateX = this@ChartTransform.translateX
+        this.translateY = this@ChartTransform.translateY
+        this.skewX = this@ChartTransform.skewX
+        this.skewY = this@ChartTransform.skewY
+        this.sequence = this@ChartTransform.sequence
+        this.transform = this@ChartTransform.transform
+    }
+
+    override fun toString(): String = "{rotation: $rotation, scaleX: $scaleX, scaleY: $scaleY, translateX: $translateX, translateY: $translateY, " +
+            "skewX: $skewX, skewY: $skewY, sequence: $sequence, transform: $transform}"
 }
 
 open class ChartPathStyle {
@@ -267,6 +502,26 @@ open class ChartPathStyle {
     open var cap: Int = Cap.BUTT
     open var effect: PathEffect? = null
     open var ccwDirection: Boolean = true
+
+    open fun j(join: Int): ChartPathStyle {
+        this.join = join
+        return this
+    }
+
+    open fun c(cap: Int): ChartPathStyle {
+        this.cap = cap
+        return this
+    }
+
+    open fun e(effect: PathEffect?): ChartPathStyle {
+        this.effect = effect
+        return this
+    }
+
+    open fun d(ccwDirection: Boolean): ChartPathStyle {
+        this.ccwDirection = ccwDirection
+        return this
+    }
 
     object Cap {
         const val LINE_CAP = "chartLineCap"
@@ -298,16 +553,69 @@ open class ChartPathStyle {
         true -> Path.Direction.CCW
         else -> Path.Direction.CW
     }
+
+    open fun copy(): ChartPathStyle = ChartPathStyle().apply {
+        this.join = this@ChartPathStyle.join
+        this.cap = this@ChartPathStyle.cap
+        this.effect = this@ChartPathStyle.effect
+        this.ccwDirection = this@ChartPathStyle.ccwDirection
+    }
+
+    override fun toString(): String = "{join: $join, cap: $cap, effect: $effect, direction: $ccwDirection}"
 }
 
-open class ChartTextStyle {
+open class ChartTextStyle(open var text: String? = null) {
     open var color: Int = Color.BLACK
-    open var size: Float = 12f
+    open var size: Float = sp2Px(12f).toFloat()
     open var weight: Int = Weight.NORMAL
     open var align: Int = Align.CENTER
     open var decoration: Int = Decoration.NONE
     open var isItalic: Boolean = false
-    open var text: String? = null
+
+    open fun c(color: Int): ChartTextStyle {
+        this.color = color
+        return this
+    }
+
+    open fun s(size: Float): ChartTextStyle {
+        this.size = size
+        return this
+    }
+
+    open fun w(weight: Int): ChartTextStyle {
+        this.weight = weight
+        return this
+    }
+
+    open fun a(align: Int): ChartTextStyle {
+        this.align = align
+        return this
+    }
+
+    open fun d(decoration: Int): ChartTextStyle {
+        this.decoration = decoration
+        return this
+    }
+
+    open fun i(isItalic: Boolean): ChartTextStyle {
+        this.isItalic = isItalic
+        return this
+    }
+
+    open fun t(text: String?): ChartTextStyle {
+        this.text = text
+        return this
+    }
+
+    open fun copy(): ChartTextStyle = ChartTextStyle().apply {
+        this.text = this@ChartTextStyle.text
+        this.color = this@ChartTextStyle.color
+        this.size = this@ChartTextStyle.size
+        this.weight = this@ChartTextStyle.weight
+        this.align = this@ChartTextStyle.align
+        this.decoration = this@ChartTextStyle.decoration
+        this.isItalic = this@ChartTextStyle.isItalic
+    }
 
     object Align {
         const val TEXT_ALIGN = "textAlign"
@@ -338,6 +646,67 @@ open class ChartTextStyle {
         val THROUGH = EnumHelper[DECORATION]
         val BELOW = EnumHelper[DECORATION]
     }
+
+    override fun toString(): String = "{text: $text, color: $color, size: $size, weight: $weight, align: $align, decoration: $decoration, " +
+            "isItalic: $isItalic}"
+}
+
+open class ChartPadding() {
+    constructor(padding: Float) : this() {
+        this.padding = padding
+    }
+
+    open var padding: Float = 0f  // -1~0是parent百分比，0～是正常数值
+    open var paddingLeft: Float? = null
+    open var paddingTop: Float? = null
+    open var paddingRight: Float? = null
+    open var paddingBottom: Float? = null
+
+    open var truePL = 0f
+    open var truePT = 0f
+    open var truePR = 0f
+    open var truePB = 0f
+
+    open fun p(padding: Float): ChartPadding {
+        this.padding = padding
+        return this
+    }
+
+    open fun pl(padding: Float): ChartPadding {
+        this.padding = padding
+        return this
+    }
+
+    open fun pt(padding: Float): ChartPadding {
+        this.padding = padding
+        return this
+    }
+
+    open fun pr(padding: Float): ChartPadding {
+        this.padding = padding
+        return this
+    }
+
+    open fun pb(padding: Float): ChartPadding {
+        this.padding = padding
+        return this
+    }
+
+    open fun getPL() = paddingLeft ?: padding
+    open fun getPT() = paddingTop ?: padding
+    open fun getPR() = paddingRight ?: padding
+    open fun getPB() = paddingBottom ?: padding
+
+    open fun copy(): ChartPadding = ChartPadding().apply {
+        this.padding = this@ChartPadding.padding
+        this.paddingLeft = this@ChartPadding.paddingLeft
+        this.paddingTop = this@ChartPadding.paddingTop
+        this.paddingRight = this@ChartPadding.paddingRight
+        this.paddingBottom = this@ChartPadding.paddingBottom
+    }
+
+    override fun toString(): String = "{padding: $padding, pl: $paddingLeft, pt: $paddingTop, pr: $paddingRight, pb: $paddingBottom, " +
+            "truePL: $truePL, truePT: $truePT, truePR: $truePR, truePB: $truePB}"
 }
 
 open class ChartUnitStyle {
@@ -348,9 +717,86 @@ open class ChartUnitStyle {
     open var transform: ChartTransform? = null
     open var textStyle: ChartTextStyle? = null
     open var pathStyle: ChartPathStyle? = null
+    open var padding: ChartPadding? = null
 
     open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
     open var roundRadius: Float = 0f
+
+    open fun z(zIndex: Int): ChartUnitStyle {
+        this.zIndex = zIndex
+        return this
+    }
+
+    open fun p(position: ChartPosition?): ChartUnitStyle {
+        this.position = position
+        return this
+    }
+
+    open fun b(border: ChartBorder?): ChartUnitStyle {
+        this.border = border
+        return this
+    }
+
+    open fun bg(background: ChartBackground?): ChartUnitStyle {
+        this.background = background
+        return this
+    }
+
+    open fun t(transform: ChartTransform?): ChartUnitStyle {
+        this.transform = transform
+        return this
+    }
+
+    open fun ts(textStyle: ChartTextStyle?): ChartUnitStyle {
+        this.textStyle = textStyle
+        return this
+    }
+
+    open fun ps(pathStyle: ChartPathStyle?): ChartUnitStyle {
+        this.pathStyle = pathStyle
+        return this
+    }
+
+    open fun pd(padding: ChartPadding?): ChartUnitStyle {
+        this.padding = padding
+        return this
+    }
+
+    open fun setShape(shape: Int): ChartUnitStyle {
+        this.shape = shape
+        return this
+    }
+
+    open fun rR(roundRadius: Float): ChartUnitStyle {
+        this.roundRadius = roundRadius
+        return this
+    }
+
+    open fun copy(): ChartUnitStyle = ChartUnitStyle().apply {
+        this.zIndex = this@ChartUnitStyle.zIndex
+        this.position = this@ChartUnitStyle.position
+        this.border = this@ChartUnitStyle.border
+        this.background = this@ChartUnitStyle.background
+        this.transform = this@ChartUnitStyle.transform
+        this.textStyle = this@ChartUnitStyle.textStyle
+        this.pathStyle = this@ChartUnitStyle.pathStyle
+        this.padding = this@ChartUnitStyle.padding
+        this.shape = this@ChartUnitStyle.shape
+        this.roundRadius = this@ChartUnitStyle.roundRadius
+    }
+
+    open fun deepCopy(): ChartUnitStyle = ChartUnitStyle().apply {
+        this.zIndex = this@ChartUnitStyle.zIndex
+        this.position = this@ChartUnitStyle.position?.copy()
+        this.border = this@ChartUnitStyle.border?.copy()
+        this.background = this@ChartUnitStyle.background?.copy()
+        this.transform = this@ChartUnitStyle.transform?.copy()
+        this.textStyle = this@ChartUnitStyle.textStyle?.copy()
+        this.pathStyle = this@ChartUnitStyle.pathStyle?.copy()
+        this.padding = this@ChartUnitStyle.padding?.copy()
+        this.shape = this@ChartUnitStyle.shape
+        this.roundRadius = this@ChartUnitStyle.roundRadius
+    }
 
     object ShapeType {
         const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
@@ -363,6 +809,9 @@ open class ChartUnitStyle {
         val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
         val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
     }
+
+    override fun toString(): String = "{zIndex: $zIndex, shape: $shape, roundRadius: $roundRadius\n\tposition: $position\n\tborder: $border\n\t" +
+            "background: $background\n\ttransform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding}"
 }
 
 /* base unit */
@@ -396,19 +845,16 @@ open class ChartUnit {
     open var style: ChartUnitStyle?
         get() = styles?.get(state)
         set(value) {
-            when {
-                value != null -> styles?.put(state, value)
-                else -> styles?.remove(state)
-            }
+            setStatedStyle(state, value)
         }
 
-    open fun updatePos() {
-        val position = this.style?.position ?: return
+    open fun updatePos(): ChartUnit {
+        val position = this.style?.position ?: return this
         val pWidth: Float
         val pHeight: Float
         val pTop: Float
         val pLeft: Float = if (position.mode == ChartPosition.PosMode.ALIGN_PARENT && parent != null) {
-            val pPosition = parent!!.style?.position ?: return
+            val pPosition = parent!!.style?.position ?: return this
             pWidth = pPosition.trueWidth
             pHeight = pPosition.trueHeight
             pTop = pPosition.trueTop
@@ -419,29 +865,41 @@ open class ChartUnit {
             pTop = 0f
             0f
         } else {
-            return
+            return this
         }
         position.trueWidth = trueSize(position.width, pWidth)
         position.trueHeight = trueSize(position.height, pHeight)
+        val padding = style?.padding
         val left = position.left
+        val right = position.right
         if (left != null) {
             position.trueLeft = pLeft + trueSize(left, pWidth)
-        }
-        val right = position.right
-        if (right != null) {
+        } else if (right != null) {
             position.trueLeft = pLeft + trueSize2(right, pWidth, position.trueWidth)
         }
+        if (padding != null) {
+            padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, position.trueWidth)
+            padding.truePR = trueSize(padding.paddingRight ?: padding.padding, position.trueWidth)
+            position.trueWidth = position.trueWidth - padding.truePL - padding.truePR
+            position.trueLeft += padding.truePL
+        }
         val top = position.top
+        val bottom = position.bottom
         if (top != null) {
             position.trueTop = pTop + trueSize(top, pHeight)
-        }
-        val bottom = position.bottom
-        if (bottom != null) {
+        } else if (bottom != null) {
             position.trueTop = pTop + trueSize2(bottom, pHeight, position.trueHeight)
+        }
+        if (padding != null) {
+            padding.truePT = trueSize(padding.paddingTop ?: padding.padding, position.trueHeight)
+            padding.truePB = trueSize(padding.paddingBottom ?: padding.padding, position.trueHeight)
+            position.trueHeight = position.trueHeight - padding.truePT - padding.truePB
+            position.trueTop += padding.truePT
         }
         children?.forEach {
             it.updatePos()
         }
+        return this
     }
 
     protected open fun trueSize(flag: Float, pFlag: Float): Float = when {
@@ -454,6 +912,68 @@ open class ChartUnit {
         flag >= 0f -> pFlag - tFlag - flag
         flag < -1f -> pFlag - tFlag - flag - 1
         else -> pFlag * (flag + 1) - tFlag
+    }
+
+    open fun setExtra(key: String, value: Any?): ChartUnit {
+        if (extras == null && value != null) {
+            extras = mutableMapOf(key to value)
+        } else if (extras != null && value != null) {
+            extras!![key] = value
+        } else if (extras != null && value == null) {
+            extras!!.remove(key)
+        }
+        return this
+    }
+
+    open fun addChild(child: ChartUnit): ChartUnit {
+        if (children == null) {
+            children = mutableListOf(child)
+        } else if (!children!!.contains(child)) {
+            children!!.add(child)
+            child.parent = this
+            child.chartView = this.chartView
+        }
+        return this
+    }
+
+    open fun removeChild(child: ChartUnit): ChartUnit {
+        if (children?.contains(child) == true) {
+            children!!.remove(child)
+            child.parent = null
+            child.chartView = null
+        }
+        return this
+    }
+
+    open fun p(parent: ChartUnit?): ChartUnit {
+        this.parent = parent
+        return this
+    }
+
+    open fun cv(chartView: ChartView?): ChartUnit {
+        this.chartView = chartView
+        return this
+    }
+
+    open fun s(state: Int): ChartUnit {
+        this.state = state
+        return this
+    }
+
+    open fun setStatedStyle(state: Int, style: ChartUnitStyle?): ChartUnit {
+        if (styles != null && style == null) {
+            styles!!.remove(state)
+        } else if (styles == null && style != null) {
+            styles = mutableMapOf(state to style)
+        } else if (styles != null && style != null) {
+            styles!![state] = style
+        }
+        return this
+    }
+
+    open fun setStyle(style: ChartUnitStyle?): ChartUnit {
+        this.style = style
+        return this
     }
 
     object State {
@@ -470,6 +990,22 @@ open class ChartUnit {
 open class ChartArea(open var xys: MutableList<Float>) : ChartUnit() {
     open var close: Boolean = true
     open var stroke: Boolean = false
+
+    open fun addXY(x: Float, y: Float): ChartArea {
+        xys.add(x)
+        xys.add(y)
+        return this
+    }
+
+    open fun c(close: Boolean): ChartArea {
+        this.close = close
+        return this
+    }
+
+    open fun s(stroke: Boolean): ChartArea {
+        this.stroke = stroke
+        return this
+    }
 }
 
 /* high-level unit */
@@ -477,3 +1013,5 @@ open class ChartArea(open var xys: MutableList<Float>) : ChartUnit() {
 open class ChartAxis
 
 open class ChartLegend
+
+open class Chart
