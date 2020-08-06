@@ -24,9 +24,12 @@ import com.liang.example.utils.r.dp2px
 import com.liang.example.utils.r.getColor
 import com.liang.example.utils.r.getDrawable
 import com.liang.example.utils.r.sp2Px
+import kotlin.math.max
 import kotlin.math.min
 
 val dp5 = dp2px(5f).toFloat()
+
+// 【canvas/paint/matrix快速上手/复习】https://blog.csdn.net/huaxun66/article/details/52222643
 
 /**
  * @author liangyuying
@@ -80,22 +83,6 @@ open class ChartView : View {
 
     init {
         // testSymbol()
-        unit.addChild(ChartArea()
-                .xy(dp5, dp5)
-                .xy(dp5 * 11, dp5)
-                .xy(dp5 * 16, dp5 * 11)
-                .xy(dp5 * 6, dp5 * 11)
-                .xy(dp5, dp5)
-                .setStyle(ChartUnitStyle()
-                        .p(ChartPosition()
-                                .t(dp5)
-                                .l(dp5)
-                                .w(dp5 * 15)
-                                .h(dp5 * 10))
-                        .c(ChartColor(getColor(R.color.red100)))
-                        .t(ChartTransform()
-                                .r(90f)
-                                .seq("rotate"))))
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -140,16 +127,18 @@ open class ChartView : View {
             strokePaint.strokeJoin = toPaintJoin()
             strokePaint.pathEffect = effect
         }
-        val lineFlag = unit is ChartArea && unit.isLine && unit.lineStyle != null
+        val lineFlag = unit is ChartArea && unit.isLine && unit.lineContentStyle != null
         if (border != null || contentColor != null || lineFlag) {
             val path = Path()
             if (unit is ChartArea) {
                 val xys = unit.xys
                 (0 until xys.size step 2).forEach { i ->
                     if (i == 0) {
-                        path.moveTo(xys[i] + left, xys[i + 1] + top)
+                        path.moveTo(xys[i] + left, (xys.getOrNull(i + 1)
+                                ?: return returnLog("xys.size should be even", Unit)) + top)
                     } else {
-                        path.lineTo(xys[i] + left, xys[i + 1] + top)
+                        path.lineTo(xys[i] + left, (xys.getOrNull(i + 1)
+                                ?: return returnLog("xys.size should be even", Unit)) + top)
                     }
                 }
                 if (unit.close) {
@@ -200,7 +189,7 @@ open class ChartView : View {
                 canvas.drawPath(path, strokePaint)
             }
             if (lineFlag) {
-                (unit as ChartArea).lineStyle!!.set(strokePaint)
+                (unit as ChartArea).lineContentStyle!!.set(strokePaint)
                 canvas.drawPath(path, strokePaint)
             }
         }
@@ -595,6 +584,9 @@ open class ChartTextStyle(open var text: String? = null) {
     open var decoration: Int = Decoration.NONE
     open var isItalic: Boolean = false
 
+    open var x: Float = -0.5f
+    open var y: Float = -0.5f
+
     open fun c(color: Int): ChartTextStyle {
         this.color = color
         return this
@@ -630,6 +622,16 @@ open class ChartTextStyle(open var text: String? = null) {
         return this
     }
 
+    open fun x(x: Float): ChartTextStyle {
+        this.x = x
+        return this
+    }
+
+    open fun y(y: Float): ChartTextStyle {
+        this.y = y
+        return this
+    }
+
     open fun copy(): ChartTextStyle = ChartTextStyle().apply {
         this.text = this@ChartTextStyle.text
         this.color = this@ChartTextStyle.color
@@ -638,40 +640,12 @@ open class ChartTextStyle(open var text: String? = null) {
         this.align = this@ChartTextStyle.align
         this.decoration = this@ChartTextStyle.decoration
         this.isItalic = this@ChartTextStyle.isItalic
-    }
-
-    object Align {
-        const val TEXT_ALIGN = "textAlign"
-        val START = EnumHelper.get2(TEXT_ALIGN)
-        val END = EnumHelper.get2(TEXT_ALIGN)
-        val CENTER = EnumHelper.get2(TEXT_ALIGN)
-    }
-
-    open fun toPaintAlign(): Paint.Align = when (this.align) {
-        Align.END -> Paint.Align.RIGHT
-        Align.CENTER -> Paint.Align.CENTER
-        else -> Paint.Align.LEFT
-    }
-
-    object Weight {
-        const val FONT_WEIGHT = "fontWeight"
-        val THIN = EnumHelper[FONT_WEIGHT]
-        val NORMAL = EnumHelper[FONT_WEIGHT]
-        val BOLD = EnumHelper[FONT_WEIGHT]
-    }
-
-    open fun isBold() = weight == Weight.BOLD
-
-    object Decoration {
-        const val DECORATION = "decoration"
-        val NONE = EnumHelper[DECORATION]
-        val ABOVE = EnumHelper[DECORATION]
-        val THROUGH = EnumHelper[DECORATION]
-        val BELOW = EnumHelper[DECORATION]
+        this.x = this@ChartTextStyle.x
+        this.y = this@ChartTextStyle.y
     }
 
     override fun toString(): String = "{text: $text, color: $color, size: $size, weight: $weight, align: $align, decoration: $decoration, " +
-            "isItalic: $isItalic}"
+            "isItalic: $isItalic, x: $x, y: $y}"
 
     open fun set(paint: Paint): ChartTextStyle {
         paint.reset()
@@ -696,6 +670,36 @@ open class ChartTextStyle(open var text: String? = null) {
         val text = this.text ?: return bounds
         paint.getTextBounds(text, 0, text.length, bounds)
         return bounds
+    }
+
+    open fun toPaintAlign(): Paint.Align = when (this.align) {
+        Align.END -> Paint.Align.RIGHT
+        Align.CENTER -> Paint.Align.CENTER
+        else -> Paint.Align.LEFT
+    }
+
+    open fun isBold() = weight == Weight.BOLD
+
+    object Align {
+        const val TEXT_ALIGN = "textAlign"
+        val START = EnumHelper.get2(TEXT_ALIGN)
+        val END = EnumHelper.get2(TEXT_ALIGN)
+        val CENTER = EnumHelper.get2(TEXT_ALIGN)
+    }
+
+    object Weight {
+        const val FONT_WEIGHT = "fontWeight"
+        val THIN = EnumHelper[FONT_WEIGHT]
+        val NORMAL = EnumHelper[FONT_WEIGHT]
+        val BOLD = EnumHelper[FONT_WEIGHT]
+    }
+
+    object Decoration {
+        const val DECORATION = "decoration"
+        val NONE = EnumHelper[DECORATION]
+        val ABOVE = EnumHelper[DECORATION]
+        val THROUGH = EnumHelper[DECORATION]
+        val BELOW = EnumHelper[DECORATION]
     }
 
     companion object {
@@ -880,6 +884,10 @@ open class ChartUnit {
     open var extras: MutableMap<String, Any>? = null
     open var children: MutableList<ChartUnit>? = null
         set(value) {
+            field?.forEach {
+                it.parent = null
+                it.chartView = null
+            }
             field = value
             field?.forEach {
                 it.parent = this
@@ -960,42 +968,40 @@ open class ChartUnit {
         }
         position.trueWidth = trueSize(position.width, pWidth)
         position.trueHeight = trueSize(position.height, pHeight)
-        val padding = style?.padding
         val left = position.left
         val right = position.right
-        if (left != null) {
-            position.trueLeft = pLeft + trueSize(left, pWidth)
-        } else if (right != null) {
-            position.trueLeft = pLeft + trueSize2(right, pWidth, position.trueWidth)
-        } else {
-            position.trueLeft = 0f
-        }
-        if (padding != null) {
-            padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, position.trueWidth)
-            padding.truePR = trueSize(padding.paddingRight ?: padding.padding, position.trueWidth)
-            position.trueWidth = position.trueWidth - padding.truePL - padding.truePR
-            position.trueLeft += padding.truePL
+        position.trueLeft = when {
+            left != null -> pLeft + trueSize(left, pWidth)
+            right != null -> pLeft + trueSize2(right, pWidth, position.trueWidth)
+            else -> 0f
         }
         val top = position.top
         val bottom = position.bottom
-        if (top != null) {
-            position.trueTop = pTop + trueSize(top, pHeight)
-        } else if (bottom != null) {
-            position.trueTop = pTop + trueSize2(bottom, pHeight, position.trueHeight)
-        } else {
-            position.trueTop = 0f
+        position.trueTop = when {
+            top != null -> pTop + trueSize(top, pHeight)
+            bottom != null -> pTop + trueSize2(bottom, pHeight, position.trueHeight)
+            else -> 0f
         }
-        if (padding != null) {
-            padding.truePT = trueSize(padding.paddingTop ?: padding.padding, position.trueHeight)
-            padding.truePB = trueSize(padding.paddingBottom ?: padding.padding, position.trueHeight)
-            position.trueHeight = position.trueHeight - padding.truePT - padding.truePB
-            position.trueTop += padding.truePT
-        }
+        handlePadding(position)
         children?.forEach {
             it.updatePos()
         }
         // TODO: transform 对这里造成的影响
         return this
+    }
+
+    protected open fun handlePadding(position: ChartPosition) {
+        val padding = style?.padding
+        if (padding != null) {
+            padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, position.trueWidth)
+            padding.truePR = trueSize(padding.paddingRight ?: padding.padding, position.trueWidth)
+            position.trueWidth = position.trueWidth - padding.truePL - padding.truePR
+            position.trueLeft += padding.truePL
+            padding.truePT = trueSize(padding.paddingTop ?: padding.padding, position.trueHeight)
+            padding.truePB = trueSize(padding.paddingBottom ?: padding.padding, position.trueHeight)
+            position.trueHeight = position.trueHeight - padding.truePT - padding.truePB
+            position.trueTop += padding.truePT
+        }
     }
 
     protected open fun trueSize(flag: Float, pFlag: Float): Float = when {
@@ -1021,7 +1027,10 @@ open class ChartUnit {
         return this
     }
 
-    open fun addChild(child: ChartUnit): ChartUnit {
+    open fun addChild(child: ChartUnit?): ChartUnit {
+        if (child == null) {
+            return this
+        }
         if (children == null) {
             children = mutableListOf(child)
         } else if (!children!!.contains(child)) {
@@ -1032,8 +1041,8 @@ open class ChartUnit {
         return this
     }
 
-    open fun removeChild(child: ChartUnit): ChartUnit {
-        if (children?.contains(child) == true) {
+    open fun removeChild(child: ChartUnit?): ChartUnit {
+        if (child != null && children?.contains(child) == true) {
             children!!.remove(child)
             child.parent = null
             child.chartView = null
@@ -1083,10 +1092,13 @@ open class ChartUnit {
     }
 }
 
+// ChartPadding 无效
 open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : ChartUnit() {
     open var close: Boolean = true
     open var isLine: Boolean = false
-    open var lineStyle: ChartBorder? = null
+    open var lineContentStyle: ChartBorder? = null
+    open var lineShapeStyle: Int = LineShapeStyle.SOLID
+    open var trueXys: MutableList<Float> = mutableListOf()
 
     open fun xy(x: Float, y: Float): ChartArea {
         xys.add(x)
@@ -1104,9 +1116,15 @@ open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : Chart
         return this
     }
 
-    open fun ls(lineStyle: ChartBorder?): ChartArea {
-        this.lineStyle = lineStyle
+    open fun lcs(lineStyle: ChartBorder?): ChartArea {
+        this.lineContentStyle = lineStyle
         isLine = lineStyle != null
+        return this
+    }
+
+    open fun lss(lineShapeStyle: Int): ChartArea {
+        this.lineShapeStyle = lineShapeStyle
+        isLine = true
         return this
     }
 
@@ -1116,7 +1134,8 @@ open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : Chart
         if (other is ChartArea) {
             this.close = other.close
             this.isLine = other.isLine
-            this.lineStyle = other.lineStyle
+            this.lineContentStyle = other.lineContentStyle
+            this.lineShapeStyle = other.lineShapeStyle
         }
         return super.setOther(other)
     }
@@ -1127,23 +1146,136 @@ open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : Chart
         if (other is ChartArea) {
             this.close = other.close
             this.isLine = other.isLine
-            this.lineStyle = other.lineStyle?.copy()
+            this.lineContentStyle = other.lineContentStyle?.copy()
+            this.lineShapeStyle = other.lineShapeStyle
         }
         return super.setDeepOther(other)
     }
 
-    // TODO: 计算不规则图形的 trueWidth / trueHeight / trueLeft / trueTop，运用 trueSize / trueSize2 等等。
-    //  min(x), min(y) -- max(x), max(y)
+    override fun updatePos(): ChartUnit {
+        if (xys.size < 4) {
+            return this
+        }
+        val position = this.style?.position ?: ChartPosition()
+        this.style?.p(position) ?: return this
+        val pWidth: Float
+        val pHeight: Float
+        val pTop: Float
+        val pLeft: Float = if (position.mode == ChartPosition.PosMode.ALIGN_PARENT && parent != null) {
+            val pPosition = parent!!.style?.position ?: return this
+            pWidth = pPosition.trueWidth
+            pHeight = pPosition.trueHeight
+            pTop = pPosition.trueTop
+            pPosition.trueLeft
+        } else if (position.mode == ChartPosition.PosMode.ALIGN_ROOT && chartView != null) {
+            pWidth = chartView!!.measuredWidth.toFloat()
+            pHeight = chartView!!.measuredHeight.toFloat()
+            pTop = 0f
+            0f
+        } else {
+            return this
+        }
+        trueXys.clear()
+        var minX = xys[0]
+        var maxX = xys[0]
+        var minY = xys[1]
+        var maxY = xys[1]
+        xys.forEachIndexed { index, xy ->
+            val flag = index % 2 == 0
+            val temp = trueSize(xy, when {
+                flag -> pWidth
+                else -> pHeight
+            })
+            trueXys.add(temp)
+            if (flag) {
+                minX = min(minX, temp)
+                maxX = max(maxX, temp)
+            } else {
+                minY = min(minY, temp)
+                maxY = max(maxY, temp)
+            }
+        }
+        position.trueWidth = maxX - minX
+        position.trueHeight = maxY - minY
+        position.trueLeft = minX + pLeft
+        position.trueTop = minY + pTop
+        if (lineContentStyle != null) {
+            position.trueWidth += lineContentStyle!!.borderWidth
+            position.trueHeight += lineContentStyle!!.borderWidth
+        }
+        handlePadding(position)
+        children?.forEach {
+            it.updatePos()
+        }
+        return this
+    }
+
+    object LineShapeStyle {
+        const val LINE_STYLE = "chartLineShapeStyle"
+        val SOLID = EnumHelper[LINE_STYLE]
+        val DASH = EnumHelper[LINE_STYLE]
+        val DOUBLE = EnumHelper[LINE_STYLE]
+    }
 }
 
 /* high-level unit */
 
-open class ChartAxis() {
-    open var line: ChartArea? = null
+open class ChartAxis : ChartArea() {
     open var symbols: MutableMap<Float, ChartUnit>? = null
+        set(value) {
+            field?.forEach { removeChild(it.value) }
+            field = value
+            field?.forEach { addChild(it.value) }
+        }
     open var max: Float? = null
     open var min: Float? = null
-    open var title: ChartUnit? = null
+
+    open fun setSymbol(position: Float, symbol: ChartUnit?): ChartAxis {
+        if (symbol != null) {
+            if (symbols == null) {
+                symbols = mutableMapOf(position to symbol)
+            } else {
+                symbols!![position] = symbol
+            }
+        } else if (symbols != null && symbols!!.containsKey(position)) {
+            symbols!!.remove(position)
+        }
+        return this
+    }
+
+    open fun max(max: Float?): ChartAxis {
+        this.max = max
+        return this
+    }
+
+    open fun min(max: Float?): ChartAxis {
+        this.max = max
+        return this
+    }
+
+    override fun copy(): ChartUnit = ChartAxis().setOther(this)
+
+    override fun setOther(other: ChartUnit): ChartUnit {
+        if (other is ChartAxis) {
+            this.symbols = other.symbols
+            this.max = other.max
+            this.min = other.min
+            this.xys = other.xys
+        }
+        return super.setOther(other)
+    }
+
+    override fun deepCopy(): ChartUnit = ChartAxis().setDeepOther(this)
+
+    override fun setDeepOther(other: ChartUnit): ChartUnit {
+        if (other is ChartAxis) {
+            this.symbols = other.symbols?.toMutableMap()
+            this.max = other.max
+            this.min = other.min
+            this.xys = other.xys.toMutableList()
+        }
+        return super.setDeepOther(other)
+    }
 }
 
 open class ChartLegend
