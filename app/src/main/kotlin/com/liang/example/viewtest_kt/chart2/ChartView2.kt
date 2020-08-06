@@ -765,6 +765,107 @@ open class ChartPadding() {
             "truePL: $truePL, truePT: $truePT, truePR: $truePR, truePB: $truePB}"
 }
 
+open class ChartShapeStyle {
+    open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
+    open var roundRadius: Float = 0f
+    open var close: Boolean = true
+    open var isLine: Boolean = false
+    open var lineContentStyle: ChartBorder? = null
+    open var lineShapeStyle: Int = LineShapeStyle.SOLID
+    open var xys: MutableList<Float>? = null
+    open var trueXys: MutableList<Float>? = null
+
+    open fun xy(x: Float, y: Float): ChartShapeStyle {
+        if (xys != null) {
+            xys!!.add(x)
+            xys!!.add(y)
+        } else {
+            xys = mutableListOf(x, y)
+        }
+        return this
+    }
+
+    open fun c(close: Boolean): ChartShapeStyle {
+        this.close = close
+        return this
+    }
+
+    open fun l(isLine: Boolean): ChartShapeStyle {
+        this.isLine = isLine
+        return this
+    }
+
+    open fun lcs(lineStyle: ChartBorder?): ChartShapeStyle {
+        this.lineContentStyle = lineStyle
+        isLine = lineStyle != null
+        return this
+    }
+
+    open fun lss(lineShapeStyle: Int): ChartShapeStyle {
+        this.lineShapeStyle = lineShapeStyle
+        isLine = true
+        return this
+    }
+
+    open fun setShape(shape: Int): ChartShapeStyle {
+        this.shape = shape
+        return this
+    }
+
+    open fun rR(roundRadius: Float): ChartShapeStyle {
+        this.roundRadius = roundRadius
+        return this
+    }
+
+    open fun copy(): ChartShapeStyle = ChartShapeStyle().setOther(this)
+
+    open fun setOther(other: ChartShapeStyle): ChartShapeStyle {
+        this.shape = other.shape
+        this.roundRadius = other.roundRadius
+        this.close = other.close
+        this.isLine = other.isLine
+        this.lineContentStyle = other.lineContentStyle
+        this.lineShapeStyle = other.lineShapeStyle
+        this.xys = other.xys
+        return this
+    }
+
+    open fun deepCopy(): ChartShapeStyle = ChartShapeStyle().setDeepOther(this)
+
+    open fun setDeepOther(other: ChartShapeStyle): ChartShapeStyle {
+        this.shape = other.shape
+        this.roundRadius = other.roundRadius
+        this.close = other.close
+        this.isLine = other.isLine
+        this.lineContentStyle = other.lineContentStyle?.copy()
+        this.lineShapeStyle = other.lineShapeStyle
+        this.xys = other.xys?.toMutableList()
+        return this
+    }
+
+    override fun toString(): String = "{shape: $shape, roundRadius: $roundRadius, close: $close, isLine: $isLine, lineContentStyle: " +
+            "$lineContentStyle, lineShapeStyle: $lineShapeStyle, xys: ${xys?.joinToString("-")}, trueXys: ${trueXys?.joinToString("-")}}"
+
+    object ShapeType {
+        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
+        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
+        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
+        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
+        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val ROUND_RECTANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长，roundRadius是边角的半径
+        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+    }
+
+    object LineShapeStyle {
+        const val LINE_STYLE = "chartLineShapeStyle"
+        val SOLID = EnumHelper[LINE_STYLE]
+        val DASH = EnumHelper[LINE_STYLE]
+        val DOUBLE = EnumHelper[LINE_STYLE]
+    }
+}
+
 open class ChartUnitStyle {
     open var zIndex: Int = 0  // TODO: zIndex
     open var position: ChartPosition? = null
@@ -775,9 +876,7 @@ open class ChartUnitStyle {
     open var textStyle: ChartTextStyle? = null
     open var pathStyle: ChartPathStyle? = null
     open var padding: ChartPadding? = null
-
-    open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
-    open var roundRadius: Float = 0f
+    open var shapeStyle: ChartShapeStyle? = null
 
     open fun z(zIndex: Int): ChartUnitStyle {
         this.zIndex = zIndex
@@ -824,13 +923,8 @@ open class ChartUnitStyle {
         return this
     }
 
-    open fun setShape(shape: Int): ChartUnitStyle {
-        this.shape = shape
-        return this
-    }
-
-    open fun rR(roundRadius: Float): ChartUnitStyle {
-        this.roundRadius = roundRadius
+    open fun ss(shapeStyle: ChartShapeStyle?): ChartUnitStyle {
+        this.shapeStyle = shapeStyle
         return this
     }
 
@@ -844,8 +938,7 @@ open class ChartUnitStyle {
         this.textStyle = this@ChartUnitStyle.textStyle
         this.pathStyle = this@ChartUnitStyle.pathStyle
         this.padding = this@ChartUnitStyle.padding
-        this.shape = this@ChartUnitStyle.shape
-        this.roundRadius = this@ChartUnitStyle.roundRadius
+        this.shapeStyle = this@ChartUnitStyle.shapeStyle
     }
 
     open fun deepCopy(): ChartUnitStyle = ChartUnitStyle().apply {
@@ -858,24 +951,11 @@ open class ChartUnitStyle {
         this.textStyle = this@ChartUnitStyle.textStyle?.copy()
         this.pathStyle = this@ChartUnitStyle.pathStyle?.copy()
         this.padding = this@ChartUnitStyle.padding?.copy()
-        this.shape = this@ChartUnitStyle.shape
-        this.roundRadius = this@ChartUnitStyle.roundRadius
+        this.shapeStyle = this@ChartUnitStyle.shapeStyle?.deepCopy()
     }
 
-    object ShapeType {
-        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
-        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
-        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
-        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val ROUND_RECTANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长，roundRadius是边角的半径
-        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-    }
-
-    override fun toString(): String = "{zIndex: $zIndex, shape: $shape, roundRadius: $roundRadius\n\tposition: $position\n\tborder: $border\n\t" +
-            "background: $contentColor\n\ttransform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding}"
+    override fun toString(): String = "{zIndex: $zIndex\n\tposition: $position\n\tborder: $border\n\tbackground: $contentColor\n\t" +
+            "transform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding\n\tshapeStyle: $shapeStyle}"
 }
 
 /* base unit */
@@ -928,7 +1008,7 @@ open class ChartUnit {
         return this
     }
 
-    open fun deepCopy(): ChartUnit = ChartUnit().apply {}
+    open fun deepCopy(): ChartUnit = ChartUnit().setDeepOther(this)
 
     open fun setDeepOther(other: ChartUnit): ChartUnit {
         if (other.extras != null) {
@@ -1093,65 +1173,7 @@ open class ChartUnit {
 }
 
 // ChartPadding 无效
-open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : ChartUnit() {
-    open var close: Boolean = true
-    open var isLine: Boolean = false
-    open var lineContentStyle: ChartBorder? = null
-    open var lineShapeStyle: Int = LineShapeStyle.SOLID
-    open var trueXys: MutableList<Float> = mutableListOf()
-
-    open fun xy(x: Float, y: Float): ChartArea {
-        xys.add(x)
-        xys.add(y)
-        return this
-    }
-
-    open fun c(close: Boolean): ChartArea {
-        this.close = close
-        return this
-    }
-
-    open fun l(isLine: Boolean): ChartArea {
-        this.isLine = isLine
-        return this
-    }
-
-    open fun lcs(lineStyle: ChartBorder?): ChartArea {
-        this.lineContentStyle = lineStyle
-        isLine = lineStyle != null
-        return this
-    }
-
-    open fun lss(lineShapeStyle: Int): ChartArea {
-        this.lineShapeStyle = lineShapeStyle
-        isLine = true
-        return this
-    }
-
-    override fun copy(): ChartUnit = ChartArea(xys.toMutableList()).setOther(this)
-
-    override fun setOther(other: ChartUnit): ChartUnit {
-        if (other is ChartArea) {
-            this.close = other.close
-            this.isLine = other.isLine
-            this.lineContentStyle = other.lineContentStyle
-            this.lineShapeStyle = other.lineShapeStyle
-        }
-        return super.setOther(other)
-    }
-
-    override fun deepCopy(): ChartUnit = ChartArea(xys.toMutableList()).setDeepOther(this)
-
-    override fun setDeepOther(other: ChartUnit): ChartUnit {
-        if (other is ChartArea) {
-            this.close = other.close
-            this.isLine = other.isLine
-            this.lineContentStyle = other.lineContentStyle?.copy()
-            this.lineShapeStyle = other.lineShapeStyle
-        }
-        return super.setDeepOther(other)
-    }
-
+open class ChartArea() : ChartUnit() {
     override fun updatePos(): ChartUnit {
         if (xys.size < 4) {
             return this
@@ -1209,18 +1231,11 @@ open class ChartArea(open var xys: MutableList<Float> = mutableListOf()) : Chart
         }
         return this
     }
-
-    object LineShapeStyle {
-        const val LINE_STYLE = "chartLineShapeStyle"
-        val SOLID = EnumHelper[LINE_STYLE]
-        val DASH = EnumHelper[LINE_STYLE]
-        val DOUBLE = EnumHelper[LINE_STYLE]
-    }
 }
 
 /* high-level unit */
 
-open class ChartAxis : ChartArea() {
+open class ChartAxis : ChartUnit() {
     open var symbols: MutableMap<Float, ChartUnit>? = null
         set(value) {
             field?.forEach { removeChild(it.value) }
@@ -1260,7 +1275,6 @@ open class ChartAxis : ChartArea() {
             this.symbols = other.symbols
             this.max = other.max
             this.min = other.min
-            this.xys = other.xys
         }
         return super.setOther(other)
     }
@@ -1272,7 +1286,6 @@ open class ChartAxis : ChartArea() {
             this.symbols = other.symbols?.toMutableMap()
             this.max = other.max
             this.min = other.min
-            this.xys = other.xys.toMutableList()
         }
         return super.setDeepOther(other)
     }
