@@ -45,6 +45,7 @@ open class ChartView : View {
     open val mainPaint = Paint()
     open val strokePaint = Paint()
     open val textPaint = Paint()
+    protected open val path = Path()
     open val unit = ChartUnit().setStyle(ChartUnitStyle()
             .p(ChartPosition().m(ChartPosition.PosMode.ALIGN_ROOT))
             .c(ChartColor().c(Color.WHITE)))
@@ -58,37 +59,37 @@ open class ChartView : View {
                 .pd(ChartPadding(dp5))
                 .b(ChartBorder().bw(dp5).bc(getColor(R.color.green100)))
                 .c(ChartColor().c(getColor(R.color.red100)))
-                .setShape(ChartUnitStyle.ShapeType.CIRCLE)
+                .s(ChartUnitStyle.ShapeType.CIRCLE)
                 .ts(ChartTextStyle("test-text"))
         unit.addChild(ChartUnit().setStyle(style))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(dp50))
-                        .setShape(ChartUnitStyle.ShapeType.SQUARE)))
+                        .s(ChartUnitStyle.ShapeType.SQUARE)))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(dp50 * 2))
-                        .setShape(ChartUnitStyle.ShapeType.RECANTAGE)))
+                        .s(ChartUnitStyle.ShapeType.RECANTAGE)))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(dp50 * 3))
-                        .setShape(ChartUnitStyle.ShapeType.ROUND_RECTANGLE).rR(dp5)))
+                        .s(ChartUnitStyle.ShapeType.ROUND_RECTANGLE).rR(dp5)))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(dp50 * 4))
-                        .setShape(ChartUnitStyle.ShapeType.DIAMOND)))
+                        .s(ChartUnitStyle.ShapeType.DIAMOND)))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(dp50 * 5))
-                        .setShape(ChartUnitStyle.ShapeType.TRIANGLE)))
+                        .s(ChartUnitStyle.ShapeType.TRIANGLE)))
                 .addChild(ChartUnit().setStyle(style.copy()
                         .p(position.copy().l(0f).t(dp50))
-                        .setShape(ChartUnitStyle.ShapeType.TRIANGLEDOWN)))
+                        .s(ChartUnitStyle.ShapeType.TRIANGLEDOWN)))
     }
 
     init {
-        // testSymbol()
+        testSymbol()
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas ?: return
-        unit.updatePos()
+        unit.update()
         // ApiManager.LOGGER.d(TAG, unit.string())
         drawItem(canvas, unit)
     }
@@ -96,12 +97,11 @@ open class ChartView : View {
     open fun drawItem(canvas: Canvas, unit: ChartUnit) {
         val style = unit.style
                 ?: return returnLog("style is null while state is ${unit.state}", Unit)
-        val position = style.position ?: return returnLog("position is null", Unit)
         val transform = style.transform
-        val left = position.trueLeft
-        val top = position.trueTop
-        val width = position.trueWidth
-        val height = position.trueHeight
+        val left = unit.trueLeft
+        val top = unit.trueTop
+        val width = unit.trueWidth
+        val height = unit.trueHeight
         if (transform != null) {
             canvas.save()
             val px = left + width / 2
@@ -119,100 +119,51 @@ open class ChartView : View {
             }
             transform.transform?.doTransform(canvas)
         }
-        val border = style.border
-        val contentColor = style.contentColor
         style.pathStyle?.apply {
             strokePaint.reset()
             strokePaint.strokeCap = toPaintCap()
             strokePaint.strokeJoin = toPaintJoin()
             strokePaint.pathEffect = effect
         }
-        val lineFlag = unit is ChartArea && unit.isLine && unit.lineContentStyle != null
-        if (border != null || contentColor != null || lineFlag) {
-            val path = Path()
-            if (unit is ChartArea) {
-                val xys = unit.xys
-                (0 until xys.size step 2).forEach { i ->
-                    if (i == 0) {
-                        path.moveTo(xys[i] + left, (xys.getOrNull(i + 1)
-                                ?: return returnLog("xys.size should be even", Unit)) + top)
-                    } else {
-                        path.lineTo(xys[i] + left, (xys.getOrNull(i + 1)
-                                ?: return returnLog("xys.size should be even", Unit)) + top)
-                    }
+        // TODO: draw
+        path.reset()
+        val pathDir = style.pathStyle?.toPathDirection() ?: Path.Direction.CCW
+        when (style.shape) {
+            ChartUnitStyle.ShapeType.NONE -> Unit
+            ChartUnitStyle.ShapeType.CIRCLE -> path.addCircle(unit.trueXys[0], unit.trueXys[1], unit.trueXys[2], pathDir)
+            ChartUnitStyle.ShapeType.ROUND_RECTANGLE -> path.addRoundRect(left, top, left + width, top + height, unit.style!!.roundRadius, pathDir)
+            else -> {
+                val xys = unit.trueXys
+                path.moveTo(xys[0], xys[1])
+                (3 until xys.size step 2).forEach { i ->
+                    path.lineTo(xys[i - 1], xys[i])
                 }
-                if (unit.close) {
-                    path.close()
-                }
-            } else {
-                val dir = style.pathStyle?.toPathDirection() ?: Path.Direction.CCW
-                val size = min(width, height)
-                when (style.shape) {
-                    ChartUnitStyle.ShapeType.NONE -> Unit
-                    ChartUnitStyle.ShapeType.CIRCLE -> path.addCircle(left + width / 2, top + height / 2, size / 2, dir)
-                    ChartUnitStyle.ShapeType.SQUARE -> path.addRect(left + (width - size) / 2, top + (height - size) / 2, left + (width + size) / 2,
-                            top + (height + size) / 2, dir)
-                    ChartUnitStyle.ShapeType.RECANTAGE -> path.addRect(left, top, left + width, top + height, dir)
-                    ChartUnitStyle.ShapeType.ROUND_RECTANGLE -> path.addRoundRect(left, top, left + width, top + height, style.roundRadius,
-                            style.roundRadius, dir)
-                    ChartUnitStyle.ShapeType.DIAMOND -> path.apply {
-                        moveTo(left + width / 2, top)
-                        lineTo(left + width, top + height / 2)
-                        lineTo(left + width / 2, top + height)
-                        lineTo(left, top + height / 2)
-                        close()
-                    }
-                    ChartUnitStyle.ShapeType.TRIANGLE -> path.apply {
-                        moveTo(left, top + height)
-                        lineTo(left + width / 2, top)
-                        lineTo(left + width, top + height)
-                        close()
-                    }
-                    ChartUnitStyle.ShapeType.TRIANGLEDOWN -> path.apply {
-                        moveTo(left + width / 2, top + height)
-                        lineTo(left, top)
-                        lineTo(left + width, top)
-                        close()
-                    }
-                    else -> Unit
-                }
-            }
-            if (contentColor != null) {
-                mainPaint.reset()
-                if (contentColor.set(mainPaint, width, height)) {
-                    mainPaint.style = Paint.Style.FILL
-                    canvas.drawPath(path, mainPaint)
-                }
-            }
-            if (border != null) {
-                border.set(strokePaint)
-                canvas.drawPath(path, strokePaint)
-            }
-            if (lineFlag) {
-                (unit as ChartArea).lineContentStyle!!.set(strokePaint)
-                canvas.drawPath(path, strokePaint)
             }
         }
+        if (style.shape != ChartUnitStyle.ShapeType.NONE) {
+        }
+        style.contentColor?.set(mainPaint, width, height)
+        style.background?.set(mainPaint, width, height)
+        style.shapeStyle?.lineContentStyle?.set(mainPaint)
+        style.border?.set(strokePaint)
         val textStyle = style.textStyle
         if (textStyle?.text != null) {
-            textStyle.apply {
-                val text = this.text!!
-                textPaint.reset()
-                textPaint.color = color
-                textPaint.textSize = size
-                textPaint.isFakeBoldText = isBold()
-                textPaint.textAlign = toPaintAlign()
-                when (decoration) {
-                    ChartTextStyle.Decoration.THROUGH -> textPaint.isStrikeThruText = true
-                    ChartTextStyle.Decoration.BELOW -> textPaint.isUnderlineText = true
-                    else -> Unit  // TODO: above
-                }
-                if (isItalic) {
-                    textPaint.flags = Paint.UNDERLINE_TEXT_FLAG.or(textPaint.flags)
-                }
-                val fm = textPaint.fontMetrics
-                canvas.drawText(text, left + width / 2, top + height / 2 - (fm.bottom + fm.top) / 2, textPaint)
+            val text = textStyle.text!!
+            textPaint.reset()
+            textPaint.color = textStyle.color
+            textPaint.textSize = textStyle.size
+            textPaint.isFakeBoldText = textStyle.isBold()
+            textPaint.textAlign = textStyle.toPaintAlign()
+            when (textStyle.decoration) {
+                ChartTextStyle.Decoration.THROUGH -> textPaint.isStrikeThruText = true
+                ChartTextStyle.Decoration.BELOW -> textPaint.isUnderlineText = true
+                else -> Unit  // TODO: above
             }
+            if (textStyle.isItalic) {
+                textPaint.flags = Paint.UNDERLINE_TEXT_FLAG.or(textPaint.flags)
+            }
+            val fm = textPaint.fontMetrics
+            canvas.drawText(text, unit.trueTextX, unit.trueTextY - (fm.bottom + fm.top) / 2, textPaint)
         }
         unit.children?.forEach {
             drawItem(canvas, it)
@@ -244,11 +195,6 @@ open class ChartPosition {
     open var mode: Int = PosMode.ALIGN_PARENT
 
     // TODO: left / top / right/ bottom 各自有单独的mode
-
-    open var trueWidth: Float = 0f
-    open var trueHeight: Float = 0f
-    open var trueLeft: Float = 0f
-    open var trueTop: Float = 0f
 
     open fun l(left: Float?): ChartPosition {
         this.left = left
@@ -301,8 +247,7 @@ open class ChartPosition {
         val ALIGN_ROOT = EnumHelper[POS_MODE]
     }
 
-    override fun toString(): String = "{width: $width, height: $height, left: $left, top: $top, right: $right, bottom: $bottom, mode: $mode, " +
-            "trueWidth: $trueWidth, trueHeight: $trueHeight, trueLeft: $trueLeft, trueTop: $trueTop}"
+    override fun toString(): String = "{width: $width, height: $height, left: $left, top: $top, right: $right, bottom: $bottom, mode: $mode}"
 }
 
 open class ChartBorder {
@@ -766,64 +711,35 @@ open class ChartPadding() {
 }
 
 open class ChartShapeStyle {
-    open var shape: Int = ShapeType.RECANTAGE  // 在ChartArea中无效
-    open var roundRadius: Float = 0f
-    open var close: Boolean = true
-    open var isLine: Boolean = false
     open var lineContentStyle: ChartBorder? = null
     open var lineShapeStyle: Int = LineShapeStyle.SOLID
-    open var xys: MutableList<Float>? = null
-    open var trueXys: MutableList<Float>? = null
+    open var xys: MutableList<Float> = mutableListOf()
+    open var mode: Int = ChartPosition.PosMode.ALIGN_PARENT
 
     open fun xy(x: Float, y: Float): ChartShapeStyle {
-        if (xys != null) {
-            xys!!.add(x)
-            xys!!.add(y)
-        } else {
-            xys = mutableListOf(x, y)
-        }
-        return this
-    }
-
-    open fun c(close: Boolean): ChartShapeStyle {
-        this.close = close
-        return this
-    }
-
-    open fun l(isLine: Boolean): ChartShapeStyle {
-        this.isLine = isLine
+        xys.add(x)
+        xys.add(y)
         return this
     }
 
     open fun lcs(lineStyle: ChartBorder?): ChartShapeStyle {
         this.lineContentStyle = lineStyle
-        isLine = lineStyle != null
         return this
     }
 
     open fun lss(lineShapeStyle: Int): ChartShapeStyle {
         this.lineShapeStyle = lineShapeStyle
-        isLine = true
         return this
     }
 
-    open fun setShape(shape: Int): ChartShapeStyle {
-        this.shape = shape
-        return this
-    }
-
-    open fun rR(roundRadius: Float): ChartShapeStyle {
-        this.roundRadius = roundRadius
+    open fun m(mode: Int): ChartShapeStyle {
+        this.mode = mode
         return this
     }
 
     open fun copy(): ChartShapeStyle = ChartShapeStyle().setOther(this)
 
     open fun setOther(other: ChartShapeStyle): ChartShapeStyle {
-        this.shape = other.shape
-        this.roundRadius = other.roundRadius
-        this.close = other.close
-        this.isLine = other.isLine
         this.lineContentStyle = other.lineContentStyle
         this.lineShapeStyle = other.lineShapeStyle
         this.xys = other.xys
@@ -833,30 +749,14 @@ open class ChartShapeStyle {
     open fun deepCopy(): ChartShapeStyle = ChartShapeStyle().setDeepOther(this)
 
     open fun setDeepOther(other: ChartShapeStyle): ChartShapeStyle {
-        this.shape = other.shape
-        this.roundRadius = other.roundRadius
-        this.close = other.close
-        this.isLine = other.isLine
         this.lineContentStyle = other.lineContentStyle?.copy()
         this.lineShapeStyle = other.lineShapeStyle
-        this.xys = other.xys?.toMutableList()
+        this.xys = other.xys.toMutableList()
         return this
     }
 
-    override fun toString(): String = "{shape: $shape, roundRadius: $roundRadius, close: $close, isLine: $isLine, lineContentStyle: " +
-            "$lineContentStyle, lineShapeStyle: $lineShapeStyle, xys: ${xys?.joinToString("-")}, trueXys: ${trueXys?.joinToString("-")}}"
-
-    object ShapeType {
-        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
-        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
-        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
-        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
-        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val ROUND_RECTANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长，roundRadius是边角的半径
-        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
-        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
-    }
+    override fun toString(): String = "{mode: $mode, lineContentStyle: $lineContentStyle, lineShapeStyle: $lineShapeStyle, " +
+            "xys: ${xys.joinToString("-")}}"
 
     object LineShapeStyle {
         const val LINE_STYLE = "chartLineShapeStyle"
@@ -877,6 +777,10 @@ open class ChartUnitStyle {
     open var pathStyle: ChartPathStyle? = null
     open var padding: ChartPadding? = null
     open var shapeStyle: ChartShapeStyle? = null
+
+    open var shape: Int = ShapeType.RECANTAGE
+    open var roundRadius: FloatArray = floatArrayOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
+    open var close: Boolean = false
 
     open fun z(zIndex: Int): ChartUnitStyle {
         this.zIndex = zIndex
@@ -928,6 +832,21 @@ open class ChartUnitStyle {
         return this
     }
 
+    open fun s(shape: Int): ChartUnitStyle {
+        this.shape = shape
+        return this
+    }
+
+    open fun rR(roundRadius: FloatArray): ChartUnitStyle {
+        this.roundRadius = roundRadius
+        return this
+    }
+
+    open fun rR(roundRadius: Float): ChartUnitStyle {
+        this.roundRadius = floatArrayOf(roundRadius, roundRadius, roundRadius, roundRadius, roundRadius, roundRadius, roundRadius, roundRadius)
+        return this
+    }
+
     open fun copy(): ChartUnitStyle = ChartUnitStyle().apply {
         this.zIndex = this@ChartUnitStyle.zIndex
         this.position = this@ChartUnitStyle.position
@@ -954,8 +873,23 @@ open class ChartUnitStyle {
         this.shapeStyle = this@ChartUnitStyle.shapeStyle?.deepCopy()
     }
 
-    override fun toString(): String = "{zIndex: $zIndex\n\tposition: $position\n\tborder: $border\n\tbackground: $contentColor\n\t" +
-            "transform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding\n\tshapeStyle: $shapeStyle}"
+    override fun toString(): String = "{zIndex: $zIndex, shape: $shape, roundRadius: $roundRadius\n\tposition: $position\n\tborder: $border\n\t" +
+            "background: $contentColor\n\ttransform: $transform\n\ttextStyle: $textStyle\n\tpathStyle: $pathStyle\n\tpadding: $padding\n\t" +
+            "shapeStyle: $shapeStyle}"
+
+    object ShapeType {
+        const val SYMBOL_SHAPE_TYPE = "symbolShapeType"
+        val NONE = EnumHelper[SYMBOL_SHAPE_TYPE]
+        val CIRCLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是直径
+        val SQUARE = EnumHelper[SYMBOL_SHAPE_TYPE]  // min(width,height)是边长
+        val RECANTAGE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val ROUND_RECTANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长，roundRadius是边角的半径
+        val DIAMOND = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是边长
+        val TRIANGLE = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+        val TRIANGLEDOWN = EnumHelper[SYMBOL_SHAPE_TYPE]  // width/height是底边长/高
+        val LINE = EnumHelper[SYMBOL_SHAPE_TYPE]  // xys -> 曲线、波浪线
+        val POLYGON = EnumHelper[SYMBOL_SHAPE_TYPE]  // 多边形
+    }
 }
 
 /* base unit */
@@ -996,6 +930,14 @@ open class ChartUnit {
             setStatedStyle(state, value)
         }
 
+    open var trueWidth: Float = 0f
+    open var trueHeight: Float = 0f
+    open var trueLeft: Float = 0f
+    open var trueTop: Float = 0f
+    open var trueXys: MutableList<Float> = mutableListOf()
+    open var trueTextX: Float = 0f
+    open var trueTextY: Float = 0f
+
     open fun copy(): ChartUnit = ChartUnit().setOther(this)
 
     open fun setOther(other: ChartUnit): ChartUnit {
@@ -1027,18 +969,21 @@ open class ChartUnit {
 
     open fun string(depth: Int = 0): String = "style: $style" + children?.joinToString { "\n" + "\t".repeat(depth) + it.string(depth + 1) }
 
-    open fun updatePos(): ChartUnit {
-        val position = this.style?.position ?: return this
+    open fun update(): ChartUnit {
+        val style = this.style ?: return this
+        val shapeStyle = style.shapeStyle
+        val position = style.position
+        val mode = shapeStyle?.mode ?: position?.mode ?: return this
         val pWidth: Float
         val pHeight: Float
         val pTop: Float
-        val pLeft: Float = if (position.mode == ChartPosition.PosMode.ALIGN_PARENT && parent != null) {
-            val pPosition = parent!!.style?.position ?: return this
-            pWidth = pPosition.trueWidth
-            pHeight = pPosition.trueHeight
-            pTop = pPosition.trueTop
-            pPosition.trueLeft
-        } else if (position.mode == ChartPosition.PosMode.ALIGN_ROOT && chartView != null) {
+        val pLeft: Float = if (mode == ChartPosition.PosMode.ALIGN_PARENT && parent != null) {
+            val parent = this.parent ?: return this
+            pWidth = parent.trueWidth
+            pHeight = parent.trueHeight
+            pTop = parent.trueTop
+            parent.trueLeft
+        } else if (mode == ChartPosition.PosMode.ALIGN_ROOT && chartView != null) {
             pWidth = chartView!!.measuredWidth.toFloat()
             pHeight = chartView!!.measuredHeight.toFloat()
             pTop = 0f
@@ -1046,41 +991,138 @@ open class ChartUnit {
         } else {
             return this
         }
-        position.trueWidth = trueSize(position.width, pWidth)
-        position.trueHeight = trueSize(position.height, pHeight)
-        val left = position.left
-        val right = position.right
-        position.trueLeft = when {
-            left != null -> pLeft + trueSize(left, pWidth)
-            right != null -> pLeft + trueSize2(right, pWidth, position.trueWidth)
-            else -> 0f
+        val shape = style.shape
+        if (shape == ChartUnitStyle.ShapeType.NONE) {
+            return this
+        } else if ((shape == ChartUnitStyle.ShapeType.LINE || shape == ChartUnitStyle.ShapeType.POLYGON) && shapeStyle != null) {
+            calTruePosByShapeConfig(shapeStyle, pWidth, pHeight, pLeft, pTop)
+        } else if (position != null) {
+            calcTruePosByPosConfig(position, pWidth, pHeight, pLeft, pTop, shape)
+        } else {
+            return this
         }
-        val top = position.top
-        val bottom = position.bottom
-        position.trueTop = when {
-            top != null -> pTop + trueSize(top, pHeight)
-            bottom != null -> pTop + trueSize2(bottom, pHeight, position.trueHeight)
-            else -> 0f
+        val textStyle = style.textStyle
+        if (textStyle != null) {
+            trueTextX = trueLeft + trueSize(textStyle.x, trueWidth)
+            trueTextY = trueTop + trueSize(textStyle.y, trueHeight)
         }
-        handlePadding(position)
+        handlePadding()
         children?.forEach {
-            it.updatePos()
+            it.update()
         }
         // TODO: transform 对这里造成的影响
         return this
     }
 
-    protected open fun handlePadding(position: ChartPosition) {
+    protected open fun calTruePosByShapeConfig(shapeStyle: ChartShapeStyle, pWidth: Float, pHeight: Float, pLeft: Float, pTop: Float) {
+        trueXys.clear()
+        val xys = shapeStyle.xys
+        var minX = xys[0]
+        var maxX = xys[0]
+        var minY = xys[1]
+        var maxY = xys[1]
+        xys.forEachIndexed { index, xy ->
+            val flag = index % 2 == 0
+            val temp = trueSize(xy, when {
+                flag -> pWidth
+                else -> pHeight
+            })
+            trueXys.add(temp)
+            if (flag) {
+                minX = min(minX, temp)
+                maxX = max(maxX, temp)
+            } else {
+                minY = min(minY, temp)
+                maxY = max(maxY, temp)
+            }
+        }
+        trueWidth = maxX - minX
+        trueHeight = maxY - minY
+        trueLeft = minX + pLeft
+        trueTop = minY + pTop
+        val lineContentStyle = shapeStyle.lineContentStyle
+        if (lineContentStyle != null) {
+            trueWidth += lineContentStyle.borderWidth
+            trueHeight += lineContentStyle.borderWidth
+        }
+    }
+
+    protected open fun calcTruePosByPosConfig(position: ChartPosition, pWidth: Float, pHeight: Float, pLeft: Float, pTop: Float, shape: Int) {
+        this.trueWidth = trueSize(position.width, pWidth)
+        this.trueHeight = trueSize(position.height, pHeight)
+        val left = position.left
+        val right = position.right
+        this.trueLeft = when {
+            left != null -> pLeft + trueSize(left, pWidth)
+            right != null -> pLeft + trueSize2(right, pWidth, this.trueWidth)
+            else -> 0f
+        }
+        val top = position.top
+        val bottom = position.bottom
+        this.trueTop = when {
+            top != null -> pTop + trueSize(top, pHeight)
+            bottom != null -> pTop + trueSize2(bottom, pHeight, this.trueHeight)
+            else -> 0f
+        }
+
+        trueXys.clear()
+        val size = min(trueWidth, trueHeight)
+        when (shape) {
+            ChartUnitStyle.ShapeType.CIRCLE -> this.addTrueXY(trueLeft + trueWidth / 2, trueTop + trueHeight / 2).trueXys.add(size / 2)
+            ChartUnitStyle.ShapeType.ROUND_RECTANGLE -> {}  // 这里做不了什么
+            ChartUnitStyle.ShapeType.SQUARE -> {
+                val wSpace = (trueWidth - size) / 2
+                val hSpace = (trueHeight - size) / 2
+                addTrueXY(trueLeft + wSpace, trueTop + hSpace)
+                addTrueXY(trueLeft + wSpace, trueTop + hSpace + trueHeight)
+                addTrueXY(trueLeft + wSpace + trueWidth, trueTop + hSpace + trueHeight)
+                addTrueXY(trueLeft + wSpace + trueWidth, trueTop + hSpace)
+            }
+            ChartUnitStyle.ShapeType.RECANTAGE -> {
+                addTrueXY(trueLeft, trueTop)
+                addTrueXY(trueLeft, trueTop + trueHeight)
+                addTrueXY(trueLeft + trueWidth, trueTop + trueHeight)
+                addTrueXY(trueLeft + trueWidth, trueTop)
+            }
+            ChartUnitStyle.ShapeType.DIAMOND -> {
+                addTrueXY(trueLeft + trueWidth / 2, trueTop)
+                addTrueXY(trueLeft, trueTop + trueHeight / 2)
+                addTrueXY(trueLeft + trueWidth / 2, trueTop + trueHeight)
+                addTrueXY(trueLeft + trueWidth, trueTop + trueHeight / 2)
+                style!!.close = true
+            }
+            ChartUnitStyle.ShapeType.TRIANGLE -> {
+                addTrueXY(trueLeft, trueTop + trueHeight)
+                addTrueXY(trueLeft + trueWidth / 2, trueTop)
+                addTrueXY(trueLeft + trueWidth, trueTop + trueHeight)
+                style!!.close = true
+            }
+            ChartUnitStyle.ShapeType.TRIANGLEDOWN -> {
+                addTrueXY(trueLeft, trueTop)
+                addTrueXY(trueLeft + trueWidth / 2, trueTop + trueHeight)
+                addTrueXY(trueLeft + trueWidth, trueTop)
+                style!!.close = true
+            }
+        }
+    }
+
+    protected open fun addTrueXY(x: Float, y: Float): ChartUnit {
+        this.trueXys.add(x)
+        this.trueXys.add(y)
+        return this
+    }
+
+    protected open fun handlePadding() {
         val padding = style?.padding
         if (padding != null) {
-            padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, position.trueWidth)
-            padding.truePR = trueSize(padding.paddingRight ?: padding.padding, position.trueWidth)
-            position.trueWidth = position.trueWidth - padding.truePL - padding.truePR
-            position.trueLeft += padding.truePL
-            padding.truePT = trueSize(padding.paddingTop ?: padding.padding, position.trueHeight)
-            padding.truePB = trueSize(padding.paddingBottom ?: padding.padding, position.trueHeight)
-            position.trueHeight = position.trueHeight - padding.truePT - padding.truePB
-            position.trueTop += padding.truePT
+            padding.truePL = trueSize(padding.paddingLeft ?: padding.padding, this.trueWidth)
+            padding.truePR = trueSize(padding.paddingRight ?: padding.padding, this.trueWidth)
+            this.trueWidth = this.trueWidth - padding.truePL - padding.truePR
+            this.trueLeft += padding.truePL
+            padding.truePT = trueSize(padding.paddingTop ?: padding.padding, this.trueHeight)
+            padding.truePB = trueSize(padding.paddingBottom ?: padding.padding, this.trueHeight)
+            this.trueHeight = this.trueHeight - padding.truePT - padding.truePB
+            this.trueTop += padding.truePT
         }
     }
 
@@ -1169,67 +1211,6 @@ open class ChartUnit {
         val UNSELECTED = EnumHelper[STATE]
         val ENABLED = EnumHelper[STATE]
         val DISABLED = EnumHelper[STATE]
-    }
-}
-
-// ChartPadding 无效
-open class ChartArea() : ChartUnit() {
-    override fun updatePos(): ChartUnit {
-        if (xys.size < 4) {
-            return this
-        }
-        val position = this.style?.position ?: ChartPosition()
-        this.style?.p(position) ?: return this
-        val pWidth: Float
-        val pHeight: Float
-        val pTop: Float
-        val pLeft: Float = if (position.mode == ChartPosition.PosMode.ALIGN_PARENT && parent != null) {
-            val pPosition = parent!!.style?.position ?: return this
-            pWidth = pPosition.trueWidth
-            pHeight = pPosition.trueHeight
-            pTop = pPosition.trueTop
-            pPosition.trueLeft
-        } else if (position.mode == ChartPosition.PosMode.ALIGN_ROOT && chartView != null) {
-            pWidth = chartView!!.measuredWidth.toFloat()
-            pHeight = chartView!!.measuredHeight.toFloat()
-            pTop = 0f
-            0f
-        } else {
-            return this
-        }
-        trueXys.clear()
-        var minX = xys[0]
-        var maxX = xys[0]
-        var minY = xys[1]
-        var maxY = xys[1]
-        xys.forEachIndexed { index, xy ->
-            val flag = index % 2 == 0
-            val temp = trueSize(xy, when {
-                flag -> pWidth
-                else -> pHeight
-            })
-            trueXys.add(temp)
-            if (flag) {
-                minX = min(minX, temp)
-                maxX = max(maxX, temp)
-            } else {
-                minY = min(minY, temp)
-                maxY = max(maxY, temp)
-            }
-        }
-        position.trueWidth = maxX - minX
-        position.trueHeight = maxY - minY
-        position.trueLeft = minX + pLeft
-        position.trueTop = minY + pTop
-        if (lineContentStyle != null) {
-            position.trueWidth += lineContentStyle!!.borderWidth
-            position.trueHeight += lineContentStyle!!.borderWidth
-        }
-        handlePadding(position)
-        children?.forEach {
-            it.updatePos()
-        }
-        return this
     }
 }
 
