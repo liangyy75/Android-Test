@@ -12,6 +12,7 @@ import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.Writer
 import kotlin.collections.ArrayList
+import kotlin.math.min
 
 enum class LoggerLevel {
     VERBOSE, DEBUG, INFO, WARN, ERROR, FATAL, NONE;
@@ -132,14 +133,34 @@ interface NamedLoggerInter : LoggerInter {
 }
 
 class AndroidLogLogger(override var logLevel: LoggerLevel = DEFAULT_LEVEL) : LoggerInter {
+    companion object {
+        const val SEGMENT_SIZE = 3 * 1024
+    }
+
     @SuppressLint("CI_ByteDanceKotlinRules_Method_Lambda")
-    private inline fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
-                           method2: (String, String, Throwable) -> Int, level: LoggerLevel, vararg args: Any?): Int =
-            when {
-                logLevel > level -> 0
-                t == null -> method1.invoke(tag, if (args.isNotEmpty()) String.format(msg, *args) else msg)
-                else -> method2.invoke(tag, if (args.isNotEmpty()) String.format(msg, *args) else msg, t)
+    private fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
+                           method2: (String, String, Throwable) -> Int, level: LoggerLevel, vararg args: Any?): Int {
+        val msg2 = if (args.isNotEmpty()) String.format(msg, *args) else msg
+        val length = msg2.length
+        return if (length <= SEGMENT_SIZE) {
+            innerLog(tag, msg2, t, method1, method2, level)
+        } else {
+            var index = 0
+            var result = 0
+            while (index < length) {
+                result += innerLog(tag, msg2.substring(index, min(index + SEGMENT_SIZE, length)), t, method1, method2, level)
+                index += SEGMENT_SIZE
             }
+            return result
+        }
+    }
+
+    private fun innerLog(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
+                         method2: (String, String, Throwable) -> Int, level: LoggerLevel) = when {
+        logLevel > level -> 0
+        t == null -> method1.invoke(tag, msg)
+        else -> method2.invoke(tag, msg, t)
+    }
 
     override fun v(tag: Any, msg: String, t: Throwable?, vararg args: Any?, depth: Int): Int =
             log(tag.toString(), msg, t, { t2, m2 -> Log.v(t2, m2) }, { t2, m2, t3 -> Log.v(t2, m2, t3) }, LoggerLevel.VERBOSE, *args)
@@ -165,6 +186,10 @@ class FormatAndroidLogLogger(override var logLevel: LoggerLevel = DEFAULT_LEVEL)
     val loggerFormatter = AndroidLoggerFormatter()
     var path = 7
 
+    companion object {
+        const val SEGMENT_SIZE = 3 * 1024
+    }
+
     /**
      * format ==>
      * 0 -- VMStack.java/-2 dalvik.system.VMStack/getThreadStackTrace
@@ -177,10 +202,25 @@ class FormatAndroidLogLogger(override var logLevel: LoggerLevel = DEFAULT_LEVEL)
      * 7 -- ...
      */
     @SuppressLint("CI_ByteDanceKotlinRules_Method_Lambda")
-    private inline fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
+    private fun log(tag: String, msg: String, t: Throwable?, method1: (String, String) -> Int,
                            method2: (String, String, Throwable) -> Int, level: LoggerLevel, vararg args: Any?): Int {
         val msgStr = if (args.isNotEmpty()) java.lang.String.format(msg, *args) else msg
         val formatMsg = loggerFormatter.formatMsg(name, "", null, level, msgStr, path)
+        val msgLen = formatMsg.length
+        return if (msgLen <= SEGMENT_SIZE) {
+            innerLog(level, t, method1, tag, formatMsg, method2)
+        } else {
+            var index = 0
+            var result = 0
+            while (index < msgLen) {
+                result += innerLog(level, t, method1, tag, formatMsg.substring(index, min(index + SEGMENT_SIZE, msgLen)), method2)
+                index += SEGMENT_SIZE
+            }
+            return result
+        }
+    }
+
+    private fun innerLog(level: LoggerLevel, t: Throwable?, method1: (String, String) -> Int, tag: String, formatMsg: String, method2: (String, String, Throwable) -> Int): Int {
         return when {
             logLevel > level -> 0
             t == null -> method1.invoke(tag, formatMsg)

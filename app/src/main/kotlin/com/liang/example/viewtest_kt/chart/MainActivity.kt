@@ -1,8 +1,10 @@
 package com.liang.example.viewtest_kt.chart
 
+import android.animation.ValueAnimator
 import android.os.Bundle
 import com.liang.example.androidtest.R
 import com.liang.example.context_ktx.SimpleActivity
+import kotlinx.android.synthetic.main.activity_test_chart.*
 
 /**
  * @author liangyuying.lyy75@bytedance.com
@@ -15,4 +17,19 @@ class MainActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_test_chart)
     }
+
+    // override fun onResume() {
+    //     super.onResume()
+    //     ValueAnimator.ofFloat(0f, 1f).apply {
+    //         duration = 5000
+    //         addUpdateListener {
+    //             val value = it.animatedValue as Float
+    //             chart.children3?.forEach {
+    //                 it.xRange(0f, -value)
+    //             }
+    //             chart.invalidate()
+    //         }
+    //         start()
+    //     }
+    // }
 }
