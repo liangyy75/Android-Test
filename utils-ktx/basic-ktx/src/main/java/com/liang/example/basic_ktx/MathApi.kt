@@ -48,3 +48,14 @@ fun skewPoints(xys: MutableList<Float>, sk1: Float, sk2: Float): MutableList<Flo
     }
     return result
 }
+
+fun getXYByLimitedX(x1: Float, y1: Float, x2: Float, y2: Float, x: Float): Float = (y1 - y2) * (x - x1) / (x1 - x2) + y1
+fun getXYByLimitedY(x1: Float, y1: Float, x2: Float, y2: Float, y: Float): Float = (y - y1) * (x1 - x2) / (y1 - y2) + x1
+
+fun getXYByLimitedUpperXY(x1: Float, y1: Float, x2: Float, y2: Float, x: Float, y: Float): MutableList<Float> {
+    TODO("")
+}
+
+fun getXYByLimitedLowerXY(x1: Float, y1: Float, x2: Float, y2: Float, x: Float, y: Float): MutableList<Float> {
+    TODO("")
+}
