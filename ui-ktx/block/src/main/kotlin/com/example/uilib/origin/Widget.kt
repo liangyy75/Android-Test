@@ -1,6 +1,6 @@
 @file:Suppress("UNCHECKED_CAST", "unused", "DEPRECATION", "LeakingThis")
 
-package com.example.uilib.widget
+package com.example.uilib.origin
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -9,7 +9,6 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -61,7 +60,7 @@ open class DataCenter : ViewModel() {
         }
     }
 
-    open fun put(bundle: Bundle?): DataCenter? {
+    open fun put(bundle: Bundle?): DataCenter {
         if (notMainThread()) {
             handler.post { put(bundle) }
             return this
@@ -79,7 +78,7 @@ open class DataCenter : ViewModel() {
         return this
     }
 
-    open fun put(key: String, data: Any?): DataCenter? {
+    open fun put(key: String, data: Any?): DataCenter {
         if (notMainThread()) {
             handler.post { put(key, data) }
             return this
@@ -90,13 +89,7 @@ open class DataCenter : ViewModel() {
     }
 
     @Deprecated("")
-    open operator fun <T> get(key: String?): T? {
-        val `object`: Any? = dataStore[key]
-        return when {
-            `object` != null -> `object` as? T
-            else -> null
-        }
-    }
+    open operator fun <T> get(key: String?): T? = dataStore[key] as? T
 
     /**
      * default 被使用的场景：
@@ -108,32 +101,22 @@ open class DataCenter : ViewModel() {
         else -> get(dataStore[key], defaultValue)
     }
 
-    open fun has(key: String?): Boolean {
-        return dataStore.containsKey(key)
-    }
+    open fun has(key: String?): Boolean = dataStore.containsKey(key)
 
+    @JvmOverloads
     @MainThread
-    open fun observe(key: String, observer: Observer<KVData?>?): DataCenter? {
-        return observe(key, observer, false)
-    }
-
-    @MainThread
-    open fun observe(key: String, observer: Observer<KVData?>?, notifyWhenObserve: Boolean): DataCenter? {
-        if (TextUtils.isEmpty(key) || observer == null) {
+    open fun observe(key: String?, observer: Observer<KVData?>?, notifyWhenObserve: Boolean = false): DataCenter {
+        if (key.isNullOrEmpty() || observer == null) {
             return this
         }
         lifecycleOwner?.let { getLiveData(key)?.observe(it, observer, notifyWhenObserve) }
         return this
     }
 
+    @JvmOverloads
     @MainThread
-    open fun observeForever(key: String, observer: Observer<KVData?>?): DataCenter? {
-        return observeForever(key, observer, false)
-    }
-
-    @MainThread
-    open fun observeForever(key: String, observer: Observer<KVData?>?, notifyWhenObserve: Boolean): DataCenter? {
-        if (TextUtils.isEmpty(key) || observer == null) {
+    open fun observeForever(key: String?, observer: Observer<KVData?>?, notifyWhenObserve: Boolean = false): DataCenter {
+        if (key.isNullOrEmpty() || observer == null) {
             return this
         }
         getLiveData(key)?.observeForever(observer, notifyWhenObserve)
@@ -153,8 +136,8 @@ open class DataCenter : ViewModel() {
     }
 
     @MainThread
-    open fun removeObserver(key: String?, observer: Observer<KVData?>?): DataCenter? {
-        if (TextUtils.isEmpty(key) || observer == null) {
+    open fun removeObserver(key: String?, observer: Observer<KVData?>?): DataCenter {
+        if (key.isNullOrEmpty() || observer == null) {
             return this
         }
         liveDataMap[key]?.removeObserver(observer)
@@ -162,7 +145,7 @@ open class DataCenter : ViewModel() {
     }
 
     @MainThread
-    open fun removeObserver(observer: Observer<KVData?>?): DataCenter? {
+    open fun removeObserver(observer: Observer<KVData?>?): DataCenter {
         if (observer == null) {
             return this
         }
@@ -270,10 +253,6 @@ open class NextLiveData<T> : MutableLiveData<T?>() {
             observer?.onChanged(t)
         }
     }
-}
-
-interface NonNullObserver<T> : Observer<T> {
-    override fun onChanged(t: T)
 }
 
 abstract class Widget : LifecycleObserver, LifecycleOwner {
@@ -423,6 +402,7 @@ open class WidgetManager : Fragment() {
             }
         }
     }
+    open var widgetConfigHandler: IWidgetConfigHandler? = null
 
     // 某些情况下，业务方需要继承 WidgetManager 来拓展功能，但是原有的 create() 方法是 static 的，无法返回子类
     // 这里将 static create() 改为 非 static 的 config()
@@ -451,8 +431,13 @@ open class WidgetManager : Fragment() {
         return this
     }
 
+    open fun setWidgetConfigHandler(handler: IWidgetConfigHandler?): WidgetManager? {
+        widgetConfigHandler = handler
+        return this
+    }
+
     @JvmOverloads
-    fun load(@IdRes containerId: Int, widget: Widget?, async: Boolean = true): WidgetManager {
+    open fun load(@IdRes containerId: Int, widget: Widget?, async: Boolean = true): WidgetManager {
         if (widget == null) {
             return this
         }
@@ -462,6 +447,7 @@ open class WidgetManager : Fragment() {
         val container = contentView!!.findViewById<ViewGroup>(containerId)
         widget.containerView = container
         widgetViewGroupHashMap[widget] = container
+        widgetConfigHandler?.onLoad(widget)
         if (widget.layoutId == 0) {
             continueLoad(widget, container, null)
             return this
@@ -507,6 +493,7 @@ open class WidgetManager : Fragment() {
         widget.dataCenter = dataCenter
         widgets.add(widget)
         lifecycle.addObserver(widget)
+        widgetConfigHandler?.onLoad(widget)
         return this
     }
 
@@ -540,6 +527,7 @@ open class WidgetManager : Fragment() {
         widget.context = null
         widget.widgetCallback = null
         widget.dataCenter = null
+        widgetConfigHandler?.onUnload(widget)
         widgets.remove(widget)
         if (widgetViewGroupHashMap.containsKey(widget)) {
             val container = widgetViewGroupHashMap[widget]
@@ -552,6 +540,11 @@ open class WidgetManager : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         parentFragment2 = null
+        if (widgetConfigHandler != null) {
+            for (widget in widgets) {
+                widgetConfigHandler!!.onDestroy(widget)
+            }
+        }
         widgets.clear()
         widgetViewGroupHashMap.clear()
         dataCenter = null
@@ -569,6 +562,18 @@ open class WidgetManager : Fragment() {
         for (widget in widgets) {
             widget.onConfigurationChanged(newConfig)
         }
+    }
+
+    // 提供在 Widget 创建或销毁的过程中进行额外配置的接口
+    interface IWidgetConfigHandler {
+        // 显式调用 load 时
+        fun onLoad(@NonNull widget: Widget?)
+
+        // 显式调用 unload 时
+        fun onUnload(@NonNull widget: Widget?)
+
+        // 跟随 WidgetManager 被销毁时
+        fun onDestroy(@NonNull widget: Widget?)
     }
 
     companion object {

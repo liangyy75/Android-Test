@@ -53,6 +53,7 @@ open class ChartView : View {
             .color(ChartColor().color(Color.WHITE)))
             .chartView(this)
     open var children3: List<ChartUnit>? = null
+    open var testFlag = 1
 
     protected open fun testSymbol() {
         val dp50 = dp5 * 10
@@ -89,10 +90,10 @@ open class ChartView : View {
                         .shapeStyle(ChartShapeStyle()
                                 .mode(ChartPosition.PosMode.ALIGN_SELF)
                                 .xy(-0.5f, 0f)
-                                .xy(0f, -0.4f)
-                                .xy(-0.2f, -1f)
-                                .xy(-0.8f, -1f)
-                                .xy(-1f, -0.4f))
+                                .xy(0f, -1.4f)
+                                .xy(-0.2f, -2f)
+                                .xy(-0.8f, -2f)
+                                .xy(-1f, -1.4f))
                         .close(true)))
                 .addChild(ChartUnit().style(style.copy()
                         .position(position.copy().left(dp50 * 2).top(dp50).width(dp50 * 4))
@@ -100,23 +101,24 @@ open class ChartView : View {
                         .border(null)
                         .padding(null)
                         .shapeStyle(ChartShapeStyle().mode(ChartPosition.PosMode.ALIGN_SELF)
-                                .xy(0f, -0.3f)
-                                .xy(-0.1f, -0.2f)
+                                .xy(0f, -1.3f)
+                                .xy(-0.1f, -1.2f)
                                 .xy(-0.13f, 0f)
-                                .xy(-0.2f, -0.4f)
-                                .xy(-0.3f, -0.25f)
-                                .xy(-0.36f, -0.45f)
-                                .xy(-0.45f, -0.65f)
-                                .xy(-0.56f, -0.95f)
-                                .xy(-0.6f, -0.75f)
-                                .xy(-0.74f, -0.8f)
-                                .xy(-0.79f, -0.85f)
-                                .xy(-0.84f, -0.77f)
-                                .xy(-0.9f, -0.82f)
-                                .xy(-1f, -0.8f)
+                                .xy(-0.2f, -1.4f)
+                                .xy(-0.3f, -1.25f)
+                                .xy(-0.36f, -1.45f)
+                                .xy(-0.45f, -1.65f)
+                                .xy(-0.56f, -1.95f)
+                                .xy(-0.6f, -1.75f)
+                                .xy(-0.74f, -1.8f)
+                                .xy(-0.79f, -1.85f)
+                                .xy(-0.84f, -1.77f)
+                                .xy(-0.9f, -1.82f)
+                                .xy(-1f, -1.8f)
                                 .lineStyle(ChartBorder(getColor(R.color.green100), dp5 / 2.5f)))))
         val children2 = unit.children!!.map {
             val child = it.deepCopy()
+            child.style!!.border(null)
             child.style!!.position!!.top((child.style!!.position!!.top ?: 0f) + dp50 * 2)
             child.xRange(-0.2f, -0.8f)
         }
@@ -132,8 +134,10 @@ open class ChartView : View {
     protected open fun testBarChart() {}
 
     init {
-        // testSymbol()
-        testBarChart()
+        when (testFlag) {
+            0 -> testSymbol()
+            else -> testBarChart()
+        }
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -259,7 +263,7 @@ open class ChartView : View {
 /* unit's style */
 
 open class ChartPosition {
-    open var width: Float = -1f  /* -1~0是相对于parent的百分比，0~是正常数值 */
+    open var width: Float = -1f  /* -1~0是相对于parent-width的百分比，-2～-1是相对于parent-height的百分比，0~是正常数值 */
     open var height: Float = -1f
     open var left: Float? = null
     open var top: Float? = null
@@ -639,8 +643,8 @@ open class ChartTextStyle(open var text: String? = null) {
     open var decoration: Int = Decoration.NONE
     open var isItalic: Boolean = false
 
-    open var x: Float = -0.5f
-    open var y: Float = -0.5f
+    open var x: Float = -0.5f  /* -1~0是相对于self-width的百分比，-2～-1是相对于self-height的百分比，0~是正常数值，-2~也是正常数值 */
+    open var y: Float = -1.5f
 
     open fun color(color: Int): ChartTextStyle {
         this.color = color
@@ -767,7 +771,7 @@ open class ChartPadding() {
         this.padding = padding
     }
 
-    open var padding: Float = 0f  // -1~0是parent百分比，0～是正常数值
+    open var padding: Float = 0f  /* -1~0是相对于self-width的百分比，-2～-1是相对于self-height的百分比，0~是正常数值，-2~也是正常数值 */
     open var paddingLeft: Float? = null
     open var paddingTop: Float? = null
     open var paddingRight: Float? = null
@@ -1207,8 +1211,8 @@ open class ChartUnit {
         }
         val textStyle = style.textStyle
         if (textStyle != null) {
-            trueTextX = trueLeft + trueSize(textStyle.x, trueWidth)
-            trueTextY = trueTop + trueSize(textStyle.y, trueHeight)
+            trueTextX = trueLeft + trueSize(textStyle.x, trueWidth, trueHeight)
+            trueTextY = trueTop + trueSize(textStyle.y, trueWidth, trueHeight)
         }
         return this
     }
@@ -1219,8 +1223,8 @@ open class ChartUnit {
         trueXys.clear()
         trueXys.addAll(shapeStyle.xys.mapIndexed { index, xy ->
             when {
-                index % 2 == 0 -> trueSize(xy, trueWidth) + trueLeft
-                else -> trueSize(xy, trueHeight) + trueTop
+                index % 2 == 0 -> trueSize(xy, trueWidth, trueHeight) + trueLeft
+                else -> trueSize(xy, trueWidth, trueHeight) + trueTop
             }
         })
         val lineContentStyle = shapeStyle.lineContentStyle
@@ -1239,10 +1243,7 @@ open class ChartUnit {
         var maxY = xys[1]
         trueXys.addAll(xys.mapIndexed { index, xy ->
             val flag = index % 2 == 0
-            val temp = trueSize(xy, when {
-                flag -> pWidth
-                else -> pHeight
-            })
+            val temp = trueSize(xy, pWidth, pHeight)
             if (flag) {
                 minX = min(minX, temp)
                 maxX = max(maxX, temp)
@@ -1264,20 +1265,20 @@ open class ChartUnit {
     }
 
     protected open fun calcTruePosByPosConfig(position: ChartPosition, pWidth: Float, pHeight: Float, pLeft: Float, pTop: Float, shape: Int) {
-        this.trueWidth = trueSize(position.width, pWidth)
-        this.trueHeight = trueSize(position.height, pHeight)
+        this.trueWidth = trueSize(position.width, pWidth, pHeight)
+        this.trueHeight = trueSize(position.height, pWidth, pHeight)
         val left = position.left
         val right = position.right
         this.trueLeft = when {
-            left != null -> pLeft + trueSize(left, pWidth)
-            right != null -> pLeft + trueSize2(right, pWidth, this.trueWidth)
+            left != null -> pLeft + trueSize(left, pWidth, pHeight)
+            right != null -> pLeft + trueSize2(right, pWidth, pHeight, this.trueWidth)
             else -> 0f
         }
         val top = position.top
         val bottom = position.bottom
         this.trueTop = when {
-            top != null -> pTop + trueSize(top, pHeight)
-            bottom != null -> pTop + trueSize2(bottom, pHeight, this.trueHeight)
+            top != null -> pTop + trueSize(top, pWidth, pHeight)
+            bottom != null -> pTop + trueSize2(bottom, pWidth, pHeight, this.trueHeight)
             else -> 0f
         }
 
@@ -1330,27 +1331,32 @@ open class ChartUnit {
     protected open fun handlePadding() {
         val padding = style?.padding
         if (padding != null) {
-            truePL = trueSize(padding.paddingLeft ?: padding.padding, this.trueWidth)
-            truePR = trueSize(padding.paddingRight ?: padding.padding, this.trueWidth)
+            truePL = trueSize(padding.paddingLeft
+                    ?: padding.padding, this.trueWidth, this.trueHeight)
+            truePR = trueSize(padding.paddingRight
+                    ?: padding.padding, this.trueWidth, this.trueHeight)
             this.trueWidth = this.trueWidth - truePL - truePR
             this.trueLeft += truePL
-            truePT = trueSize(padding.paddingTop ?: padding.padding, this.trueHeight)
-            truePB = trueSize(padding.paddingBottom ?: padding.padding, this.trueHeight)
+            truePT = trueSize(padding.paddingTop
+                    ?: padding.padding, this.trueWidth, this.trueHeight)
+            truePB = trueSize(padding.paddingBottom
+                    ?: padding.padding, this.trueWidth, this.trueHeight)
             this.trueHeight = this.trueHeight - truePT - truePB
             this.trueTop += truePT
         }
     }
 
-    protected open fun trueSize(flag: Float, pFlag: Float): Float = when {
-        flag < -1f -> flag + 1
+    protected open fun trueSize(flag: Float, width: Float, height: Float): Float = when {
+        flag < -2f -> flag + 2
         flag >= 0f -> flag
-        else -> pFlag * -flag
+        flag < -1f && flag >= -2f -> height * (-flag - 1)
+        else -> width * -flag
     }
 
-    protected open fun trueSize2(flag: Float, pFlag: Float, tFlag: Float): Float = when {
-        flag >= 0f -> pFlag - tFlag - flag
-        flag < -1f -> pFlag - tFlag - flag - 1
-        else -> pFlag * (flag + 1) - tFlag
+    protected open fun trueSize2(flag: Float, width: Float, height: Float, mime: Float): Float = when {
+        flag >= 0f -> width - mime - flag
+        flag < -1f -> width - mime - flag - 1
+        else -> width * (flag + 1) - mime
     }
 
     // anim2
@@ -1365,18 +1371,18 @@ open class ChartUnit {
                 initTrueOpXys()
                 trueOpXys!!.addAll(this.mapIndexed { index, xy ->
                     when {
-                        index % 2 == 0 -> trueSize(xy, trueWidth) + trueLeft
-                        else -> trueSize(xy, trueHeight) + trueTop
+                        index % 2 == 0 -> trueSize(xy, trueWidth, trueHeight) + trueLeft
+                        else -> trueSize(xy, trueWidth, trueHeight) + trueTop
                     }
                 })
             }
         } else if (animChanged2) {
             animChanged2 = false
             initTrueOpXys()
-            trueFromX = trueSize(fromX, trueWidth) + trueLeft
-            trueFromY = trueSize(fromY, trueHeight) + trueTop
-            trueToX = trueSize(toX, trueWidth) + trueLeft
-            trueToY = trueSize(toY, trueHeight) + trueTop
+            trueFromX = trueSize(fromX, trueWidth, trueHeight) + trueLeft
+            trueFromY = trueSize(fromY, trueWidth, trueHeight) + trueTop
+            trueToX = trueSize(toX, trueWidth, trueHeight) + trueLeft
+            trueToY = trueSize(toY, trueWidth, trueHeight) + trueTop
             trueOpXys!!.addAll(listOf(trueFromX, trueFromY, trueFromX, trueToY, trueToX, trueToY, trueToX, trueFromY, trueFromX, trueFromY))
         }
     }
@@ -1427,10 +1433,10 @@ open class ChartUnit {
             return this
         }
         animChanged = false
-        trueFromX = trueSize(fromX, trueWidth) + trueLeft
-        trueFromY = trueSize(fromY, trueHeight) + trueTop
-        trueToX = trueSize(toX, trueWidth) + trueLeft
-        trueToY = trueSize(toY, trueHeight) + trueTop
+        trueFromX = trueSize(fromX, trueWidth, trueHeight) + trueLeft
+        trueFromY = trueSize(fromY, trueWidth, trueHeight) + trueTop
+        trueToX = trueSize(toX, trueWidth, trueHeight) + trueLeft
+        trueToY = trueSize(toY, trueWidth, trueHeight) + trueTop
         this.animXys.clear()
         when (shape) {
             ChartUnitStyle.ShapeType.NONE -> Unit
@@ -1577,6 +1583,33 @@ open class ChartAxis : ChartUnit() {
         }
     open var max: Float? = null
     open var min: Float? = null
+    open var horizontal: Boolean = true
+        set(value) {
+            field = value
+            if (field) {
+                defaultSymbolStyle.textStyle!!.x(-0.5f).y(-2f)
+            } else {
+                defaultSymbolStyle.textStyle!!.x(0f).y(-1.5f)
+            }
+        }
+    open var defaultSymbolStyle: ChartUnitStyle = ChartUnitStyle()
+            .position(ChartPosition()
+                    .width(dp5 / 5f)
+                    .height(-0.05f))
+            .color(ChartColor(Color.BLACK))
+            .textStyle(ChartTextStyle()
+                    .x(-0.5f)
+                    .y(-2f))
+
+    override fun update(): ChartUnit {
+        super.update()
+        val textStyle = style?.textStyle
+        if (textStyle != null) {
+            trueTextX = trueLeft + trueSize(textStyle.x, trueWidth, trueHeight)
+            trueTextY = trueTop + trueSize(textStyle.y, trueWidth, trueHeight)
+        }
+        return this
+    }
 
     open fun setSymbol(position: Float, symbol: ChartUnit?): ChartAxis {
         if (symbol != null) {
@@ -1591,10 +1624,15 @@ open class ChartAxis : ChartUnit() {
         return this
     }
 
-    open fun getSymbol(position: Float): ChartUnit {
+    open fun getSymbol(position: Float, copyFlag: Int = 0): ChartUnit {
         var result = symbols?.get(position)
         if (result == null) {
             result = ChartUnit()
+                    .style(when (copyFlag) {
+                        0 -> defaultSymbolStyle
+                        1 -> defaultSymbolStyle.copy()
+                        else -> defaultSymbolStyle.deepCopy()
+                    })
             setSymbol(position, result)
         }
         return result
@@ -1607,6 +1645,22 @@ open class ChartAxis : ChartUnit() {
 
     open fun min(min: Float?): ChartAxis {
         this.max = max
+        return this
+    }
+
+    open fun horizontal(horizontal: Boolean): ChartAxis {
+        this.horizontal = horizontal
+        return this
+    }
+
+    open fun defaultSymbolStyle(defaultSymbolStyle: ChartUnitStyle): ChartAxis {
+        val old = this.defaultSymbolStyle
+        this.defaultSymbolStyle = defaultSymbolStyle
+        symbols?.forEach { (_, symbol) ->
+            if (symbol.style == old) {
+                TODO("")
+            }
+        }
         return this
     }
 
