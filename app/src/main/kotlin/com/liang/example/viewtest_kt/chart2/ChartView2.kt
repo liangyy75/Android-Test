@@ -1650,6 +1650,16 @@ open class ChartUnit {
 /* high-level unit */
 
 open class ChartAxis : ChartUnit() {
+    companion object {
+        private val DEFAULT_SYMBOL_LONG_EDGE = dp2px(10f).toFloat()
+        private val DEFAULT_SYMBOL_SHORT_EDGE = dp2px(1f).toFloat()
+        private val color = ChartColor(Color.BLACK)
+    }
+
+    open var line: ChartUnit = ChartUnit().style(ChartUnitStyle()
+            .position(ChartPosition().width(DEFAULT_SYMBOL_SHORT_EDGE).right(0f))
+            .color(color))
+    open var title: ChartUnit = ChartUnit()
     open var symbols: MutableMap<Float, ChartUnit>? = null
         set(value) {
             field?.forEach { removeChild(it.value) }
@@ -1658,21 +1668,20 @@ open class ChartAxis : ChartUnit() {
         }
     open var max: Float? = null
     open var min: Float? = null
-    open var horizontal: Boolean = true
+    open var horizontal: Boolean = false
         set(value) {
             field = value
             if (field) {
-                defaultSymbolStyle.textStyle!!.x(.5f).y(1f)
+                defaultSymbolStyle.position!!.width(DEFAULT_SYMBOL_SHORT_EDGE).height(DEFAULT_SYMBOL_LONG_EDGE).top(1f, p = true)
+                line.style!!.position!!.height(DEFAULT_SYMBOL_SHORT_EDGE).right = null
             } else {
-                defaultSymbolStyle.textStyle!!.x(0f).y(.5f)
+                defaultSymbolStyle.position!!.width(DEFAULT_SYMBOL_LONG_EDGE).height(DEFAULT_SYMBOL_SHORT_EDGE).right(DEFAULT_SYMBOL_SHORT_EDGE)
+                line.style!!.position!!.width(DEFAULT_SYMBOL_SHORT_EDGE).right(0f).left = null
             }
         }
     open var defaultSymbolStyle: ChartUnitStyle = ChartUnitStyle()
-            .position(ChartPosition()
-                    .width(dp5 / 5f)
-                    .height(dp5 * 2)
-                    .right(0f))
-            .color(ChartColor(Color.BLACK))
+            .position(ChartPosition().width(DEFAULT_SYMBOL_LONG_EDGE).height(DEFAULT_SYMBOL_SHORT_EDGE).right(DEFAULT_SYMBOL_SHORT_EDGE))
+            .color(color)
 
     // todo: title - width|height / titleLeftMargin / titleRightMargin / symbolText - width|height / symbolTextRightMargin / symbol - width|height / line - width|height
 
