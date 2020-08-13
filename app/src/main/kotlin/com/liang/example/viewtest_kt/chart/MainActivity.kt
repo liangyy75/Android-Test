@@ -26,7 +26,7 @@ class MainActivity : SimpleActivity() {
                 addUpdateListener {
                     val value = it.animatedValue as Float
                     chart.children3?.forEach {
-                        it.xRange(0f, -value)
+                        it.xRange(0f, value)
                     }
                     chart.invalidate()
                 }

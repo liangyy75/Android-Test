@@ -1,4 +1,4 @@
-@file:Suppress("unused", "LeakingThis")
+@file:Suppress("unused", "LeakingThis", "BooleanLiteralArgument")
 
 package com.liang.example.viewtest_kt.chart2
 
@@ -89,11 +89,11 @@ open class ChartView : View {
                         .shape(ChartUnitStyle.ShapeType.POLYGON)
                         .shapeStyle(ChartShapeStyle()
                                 .mode(ChartPosition.PosMode.ALIGN_SELF)
-                                .xy(-0.5f, 0f)
-                                .xy(0f, -1.4f)
-                                .xy(-0.2f, -2f)
-                                .xy(-0.8f, -2f)
-                                .xy(-1f, -1.4f))
+                                .xy(0.5f, 0f)
+                                .xy(0f, 0.4f)
+                                .xy(0.2f, 1f)
+                                .xy(0.8f, 1f)
+                                .xy(1f, 0.4f))
                         .close(true)))
                 .addChild(ChartUnit().style(style.copy()
                         .position(position.copy().left(dp50 * 2).top(dp50).width(dp50 * 4))
@@ -101,37 +101,88 @@ open class ChartView : View {
                         .border(null)
                         .padding(null)
                         .shapeStyle(ChartShapeStyle().mode(ChartPosition.PosMode.ALIGN_SELF)
-                                .xy(0f, -1.3f)
-                                .xy(-0.1f, -1.2f)
-                                .xy(-0.13f, 0f)
-                                .xy(-0.2f, -1.4f)
-                                .xy(-0.3f, -1.25f)
-                                .xy(-0.36f, -1.45f)
-                                .xy(-0.45f, -1.65f)
-                                .xy(-0.56f, -1.95f)
-                                .xy(-0.6f, -1.75f)
-                                .xy(-0.74f, -1.8f)
-                                .xy(-0.79f, -1.85f)
-                                .xy(-0.84f, -1.77f)
-                                .xy(-0.9f, -1.82f)
-                                .xy(-1f, -1.8f)
+                                .xy(0f, 0.3f)
+                                .xy(0.1f, 0.2f)
+                                .xy(0.13f, 0f)
+                                .xy(0.2f, 0.4f)
+                                .xy(0.3f, 0.25f)
+                                .xy(0.36f, 0.45f)
+                                .xy(0.45f, 0.65f)
+                                .xy(0.56f, 0.95f)
+                                .xy(0.6f, 0.75f)
+                                .xy(0.74f, 0.8f)
+                                .xy(0.79f, 0.85f)
+                                .xy(0.84f, 0.77f)
+                                .xy(0.9f, 0.82f)
+                                .xy(1f, 0.8f)
                                 .lineStyle(ChartBorder(getColor(R.color.green100), dp5 / 2.5f)))))
         val children2 = unit.children!!.map {
             val child = it.deepCopy()
             child.style!!.border(null)
             child.style!!.position!!.top((child.style!!.position!!.top ?: 0f) + dp50 * 2)
-            child.xRange(-0.2f, -0.8f)
+            child.xRange(0.2f, 0.8f)
         }
         children3 = unit.children!!.map {
             val child = it.deepCopy()
             child.style!!.position!!.top((child.style!!.position!!.top ?: 0f) + dp50 * 4)
-            child.xRange(0f, -1f)
+            child.xRange(0f, 1f)
         }
         unit.children!!.addAll(children2)
         unit.children!!.addAll(children3!!)
     }
 
-    protected open fun testBarChart() {}
+    protected open fun testBarChart() {
+        val yAxis = ChartUnit()
+        val color = ChartColor.ofColor(Color.BLACK)
+
+        val childBounds = ChartTextStyle("0.00f").bounds(mainPaint)
+
+        val childStyle = ChartUnitStyle().color(color)
+        val childPos = ChartPosition()
+                .width(dp5 * 2)
+                .height(dp5 / 5f)
+                .right(0f)
+        listOf(0.1f, 0.25f, 0.36f, 0.51f, 0.63f, 0.78f, 0.9f).forEach {
+            yAxis.addChild(ChartUnit().style(childStyle.copy()
+                    .position(childPos.copy().top(it, p = true))
+                    .textStyle(ChartTextStyle(it.toString()).x(-childBounds.width() / 2f, p = false))))
+        }
+
+        val textStyle = ChartTextStyle("y axis")
+        val bounds = textStyle.bounds(mainPaint)
+        val left = bounds.width() + dp5 * 4f + childBounds.width()
+        val height = dp5 * 80 - bounds.height() * 2 - dp5 * 3.5f
+        textStyle.x(bounds.width() / 2 - left)
+        val position = ChartPosition()
+                .width(dp5 / 5)
+                .height(height)
+                .left(left)
+        yAxis.style(ChartUnitStyle()
+                .textStyle(textStyle)
+                .position(position)
+                .color(color))
+
+        val xAxis = ChartUnit()
+
+        childPos.width(dp5 / 5f).height(dp5 * 2).top(1f, p = true)
+        listOf(0.1f, 0.3f, 0.45f, 0.7f, 0.8f, 0.95f).forEach {
+            xAxis.addChild(ChartUnit().style(childStyle.copy()
+                    .position(childPos.copy().left(it, p = true))
+                    .textStyle(ChartTextStyle(it.toString()).y(dp5 * 2.5f + childBounds.height() / 2, p = false))))
+        }
+
+        xAxis.style(ChartUnitStyle()
+                .position(ChartPosition()
+                        .width(dp5 * 60 - left)
+                        .height(dp5 / 5)
+                        .left(left)
+                        .top(height))
+                .textStyle(ChartTextStyle("x axis")
+                        .y(dp5 * 3.5f + childBounds.height() * 1.5f, p = false))
+                .color(color))
+
+        unit.addChild(xAxis).addChild(yAxis)
+    }
 
     init {
         when (testFlag) {
@@ -262,8 +313,31 @@ open class ChartView : View {
 
 /* unit's style */
 
+/* -20~0是相对于parent-width的-1000%~+1000%，-40～-20是相对于parent-height的-1000%~+1000%，0~是正常数值，-40~也是正常数值 */
+// position.*
+// padding.*
+// text.x|y
+// shape.xys|opPathXys
+// TODO: border.width  transform
+
+const val START_PERCENT_WIDTH = -0
+const val MIDDLE_PERCENT_WIDTH = -10
+const val END_PERCENT_WIDTH = -20
+
+const val START_PERCENT_HEIGHT = -20
+const val MIDDLE_PERCENT_HEIGHT = -30
+const val END_PERCENT_HEIGHT = -40
+
+@JvmOverloads
+fun posVal(value: Float, width: Boolean = true, percent: Boolean = true): Float = when {
+    percent && width -> value + MIDDLE_PERCENT_WIDTH
+    percent && !width -> value + MIDDLE_PERCENT_HEIGHT
+    !percent && value < 0f -> value + END_PERCENT_HEIGHT
+    else -> value
+}
+
 open class ChartPosition {
-    open var width: Float = -1f  /* -1~0是相对于parent-width的百分比，-2～-1是相对于parent-height的百分比，0~是正常数值 */
+    open var width: Float = -1f
     open var height: Float = -1f
     open var left: Float? = null
     open var top: Float? = null
@@ -273,33 +347,33 @@ open class ChartPosition {
 
     // TODO: left / top / right/ bottom 各自有单独的mode
 
-    open fun left(left: Float?): ChartPosition {
-        this.left = left
+    open fun left(left: Float, w: Boolean = true, p: Boolean = false): ChartPosition {
+        this.left = posVal(left, w, p)
         return this
     }
 
-    open fun top(top: Float?): ChartPosition {
-        this.top = top
+    open fun top(top: Float, w: Boolean = false, p: Boolean = false): ChartPosition {
+        this.top = posVal(top, w, p)
         return this
     }
 
-    open fun right(right: Float?): ChartPosition {
-        this.right = right
+    open fun right(right: Float, w: Boolean = true, p: Boolean = false): ChartPosition {
+        this.right = posVal(right, w, p)
         return this
     }
 
-    open fun bottom(bottom: Float?): ChartPosition {
-        this.bottom = bottom
+    open fun bottom(bottom: Float, w: Boolean = false, p: Boolean = false): ChartPosition {
+        this.bottom = posVal(bottom, w, p)
         return this
     }
 
-    open fun width(width: Float): ChartPosition {
-        this.width = width
+    open fun width(width: Float, w: Boolean = true, p: Boolean = false): ChartPosition {
+        this.width = posVal(width, w, p)
         return this
     }
 
-    open fun height(height: Float): ChartPosition {
-        this.height = height
+    open fun height(height: Float, w: Boolean = false, p: Boolean = false): ChartPosition {
+        this.height = posVal(height, w, p)
         return this
     }
 
@@ -559,7 +633,7 @@ open class ChartPathStyle {
     open var cap: Int = Cap.BUTT
     open var effect: PathEffect? = null
     open var ccwDirection: Boolean = true
-    open var opPath: Path? = null
+    open var opPath: Path? = null  // TODO
 
     open fun join(join: Int): ChartPathStyle {
         this.join = join
@@ -643,8 +717,8 @@ open class ChartTextStyle(open var text: String? = null) {
     open var decoration: Int = Decoration.NONE
     open var isItalic: Boolean = false
 
-    open var x: Float = -0.5f  /* -1~0是相对于self-width的百分比，-2～-1是相对于self-height的百分比，0~是正常数值，-2~也是正常数值 */
-    open var y: Float = -1.5f
+    open var x: Float = posVal(0.5f, true)
+    open var y: Float = posVal(0.5f, false)
 
     open fun color(color: Int): ChartTextStyle {
         this.color = color
@@ -681,13 +755,13 @@ open class ChartTextStyle(open var text: String? = null) {
         return this
     }
 
-    open fun x(x: Float): ChartTextStyle {
-        this.x = x
+    open fun x(x: Float, w: Boolean = true, p: Boolean = true): ChartTextStyle {
+        this.x = posVal(x, w, p)
         return this
     }
 
-    open fun y(y: Float): ChartTextStyle {
-        this.y = y
+    open fun y(y: Float, w: Boolean = false, p: Boolean = true): ChartTextStyle {
+        this.y = posVal(y, w, p)
         return this
     }
 
@@ -777,28 +851,28 @@ open class ChartPadding() {
     open var paddingRight: Float? = null
     open var paddingBottom: Float? = null
 
-    open fun padding(padding: Float): ChartPadding {
-        this.padding = padding
+    open fun padding(padding: Float, w: Boolean = true, p: Boolean = false): ChartPadding {
+        this.padding = posVal(padding, w, p)
         return this
     }
 
-    open fun paddingLeft(paddingLeft: Float): ChartPadding {
-        this.paddingLeft = paddingLeft
+    open fun paddingLeft(paddingLeft: Float, w: Boolean = true, p: Boolean = false): ChartPadding {
+        this.paddingLeft = posVal(paddingLeft, w, p)
         return this
     }
 
-    open fun paddingTop(paddingTop: Float): ChartPadding {
-        this.paddingTop = paddingTop
+    open fun paddingTop(paddingTop: Float, w: Boolean = false, p: Boolean = false): ChartPadding {
+        this.paddingTop = posVal(paddingTop, w, p)
         return this
     }
 
-    open fun paddingRight(paddingRight: Float): ChartPadding {
-        this.paddingRight = paddingRight
+    open fun paddingRight(paddingRight: Float, w: Boolean = true, p: Boolean = false): ChartPadding {
+        this.paddingRight = posVal(paddingRight, w, p)
         return this
     }
 
-    open fun paddingBottom(paddingBottom: Float): ChartPadding {
-        this.paddingBottom = paddingBottom
+    open fun paddingBottom(paddingBottom: Float, w: Boolean = false, p: Boolean = false): ChartPadding {
+        this.paddingBottom = posVal(paddingBottom, w, p)
         return this
     }
 
@@ -820,15 +894,15 @@ open class ChartPadding() {
 
 open class ChartShapeStyle {
     open var lineContentStyle: ChartBorder? = null
-    open var lineShapeStyle: Int = LineShapeStyle.SOLID
+    open var lineShapeStyle: Int = LineShapeStyle.SOLID  // TODO
     open var xys: MutableList<Float> = mutableListOf()
     open var mode: Int = ChartPosition.PosMode.ALIGN_PARENT
     open var opPathXys: MutableList<Float>? = null
     open var pathOp: Path.Op = Path.Op.INTERSECT
 
-    open fun xy(x: Float, y: Float): ChartShapeStyle {
-        xys.add(x)
-        xys.add(y)
+    open fun xy(x: Float, y: Float, xP: Boolean = true, yP: Boolean = true, xw: Boolean = true, yw: Boolean = false): ChartShapeStyle {
+        xys.add(posVal(x, xw, xP))
+        xys.add(posVal(y, yw, yP))
         return this
     }
 
@@ -847,12 +921,12 @@ open class ChartShapeStyle {
         return this
     }
 
-    open fun opXY(x: Float, y: Float): ChartShapeStyle {
+    open fun opXY(x: Float, y: Float, xP: Boolean = true, yP: Boolean = true, xw: Boolean = true, yw: Boolean = false): ChartShapeStyle {
         if (opPathXys == null) {
-            opPathXys = mutableListOf(x, y)
+            opPathXys = mutableListOf(posVal(x, xw, xP), posVal(y, yw, yP))
         } else {
-            opPathXys!!.add(x)
-            opPathXys!!.add(y)
+            opPathXys!!.add(posVal(x, xw, xP))
+            opPathXys!!.add(posVal(y, yw, yP))
         }
         return this
     }
@@ -1271,14 +1345,14 @@ open class ChartUnit {
         val right = position.right
         this.trueLeft = when {
             left != null -> pLeft + trueSize(left, pWidth, pHeight)
-            right != null -> pLeft + trueSize2(right, pWidth, pHeight, this.trueWidth)
+            right != null -> pLeft + pWidth - this.trueWidth - trueSize(right, pWidth, pHeight)
             else -> 0f
         }
         val top = position.top
         val bottom = position.bottom
         this.trueTop = when {
             top != null -> pTop + trueSize(top, pWidth, pHeight)
-            bottom != null -> pTop + trueSize2(bottom, pWidth, pHeight, this.trueHeight)
+            bottom != null -> pTop + pHeight - this.trueHeight - trueSize(bottom, pWidth, pHeight)
             else -> 0f
         }
 
@@ -1331,32 +1405,23 @@ open class ChartUnit {
     protected open fun handlePadding() {
         val padding = style?.padding
         if (padding != null) {
-            truePL = trueSize(padding.paddingLeft
-                    ?: padding.padding, this.trueWidth, this.trueHeight)
-            truePR = trueSize(padding.paddingRight
-                    ?: padding.padding, this.trueWidth, this.trueHeight)
+            truePL = trueSize(padding.getPL(), this.trueWidth, this.trueHeight)
+            truePR = trueSize(padding.getPR(), this.trueWidth, this.trueHeight)
             this.trueWidth = this.trueWidth - truePL - truePR
             this.trueLeft += truePL
-            truePT = trueSize(padding.paddingTop
-                    ?: padding.padding, this.trueWidth, this.trueHeight)
-            truePB = trueSize(padding.paddingBottom
-                    ?: padding.padding, this.trueWidth, this.trueHeight)
+            truePT = trueSize(padding.getPT(), this.trueWidth, this.trueHeight)
+            truePB = trueSize(padding.getPB(), this.trueWidth, this.trueHeight)
             this.trueHeight = this.trueHeight - truePT - truePB
             this.trueTop += truePT
         }
     }
 
+    // 用于 position.width|height|left|top|right|bottom, padding.*, textStyle.x|y, shapeStyle.xys|opPathXys, fromX|fromY|toX|toY
     protected open fun trueSize(flag: Float, width: Float, height: Float): Float = when {
-        flag < -2f -> flag + 2
-        flag >= 0f -> flag
-        flag < -1f && flag >= -2f -> height * (-flag - 1)
-        else -> width * -flag
-    }
-
-    protected open fun trueSize2(flag: Float, width: Float, height: Float, mime: Float): Float = when {
-        flag >= 0f -> width - mime - flag
-        flag < -1f -> width - mime - flag - 1
-        else -> width * (flag + 1) - mime
+        flag < END_PERCENT_HEIGHT -> flag - END_PERCENT_HEIGHT
+        flag >= START_PERCENT_WIDTH -> flag
+        flag < END_PERCENT_WIDTH && flag >= END_PERCENT_HEIGHT -> height * (flag - MIDDLE_PERCENT_HEIGHT)
+        else -> width * (flag - MIDDLE_PERCENT_WIDTH)
     }
 
     // anim2
@@ -1409,18 +1474,28 @@ open class ChartUnit {
     open var trueToX: Float = 0f
     open var trueToY: Float = 0f
 
-    open fun xRange(from: Float, to: Float): ChartUnit {
-        this.fromX = from
-        this.toX = to
+    open fun xRange(from: Float, to: Float, p: Boolean = true): ChartUnit {
+        if (p) {
+            this.fromX = posVal(from)
+            this.toX = posVal(to)
+        } else {
+            this.fromX = from
+            this.toX = to
+        }
         // animChanged = true  // todo: 算法错误
         animChanged = true
         animChanged2 = true
         return this
     }
 
-    open fun yRange(from: Float, to: Float): ChartUnit {
-        this.fromY = from
-        this.toY = to
+    open fun yRange(from: Float, to: Float, p: Boolean = true): ChartUnit {
+        if (p) {
+            this.fromY = posVal(from, false)
+            this.toY = posVal(to, false)
+        } else {
+            this.fromY = from
+            this.toY = to
+        }
         // animChanged = true  // todo: 算法错误
         animChanged = true
         animChanged2 = true
@@ -1587,19 +1662,19 @@ open class ChartAxis : ChartUnit() {
         set(value) {
             field = value
             if (field) {
-                defaultSymbolStyle.textStyle!!.x(-0.5f).y(-2f)
+                defaultSymbolStyle.textStyle!!.x(.5f).y(1f)
             } else {
-                defaultSymbolStyle.textStyle!!.x(0f).y(-1.5f)
+                defaultSymbolStyle.textStyle!!.x(0f).y(.5f)
             }
         }
     open var defaultSymbolStyle: ChartUnitStyle = ChartUnitStyle()
             .position(ChartPosition()
                     .width(dp5 / 5f)
-                    .height(-0.05f))
+                    .height(dp5 * 2)
+                    .right(0f))
             .color(ChartColor(Color.BLACK))
-            .textStyle(ChartTextStyle()
-                    .x(-0.5f)
-                    .y(-2f))
+
+    // todo: title - width|height / titleLeftMargin / titleRightMargin / symbolText - width|height / symbolTextRightMargin / symbol - width|height / line - width|height
 
     override fun update(): ChartUnit {
         super.update()
@@ -1658,7 +1733,7 @@ open class ChartAxis : ChartUnit() {
         this.defaultSymbolStyle = defaultSymbolStyle
         symbols?.forEach { (_, symbol) ->
             if (symbol.style == old) {
-                TODO("")
+                symbol.style(this.defaultSymbolStyle)
             }
         }
         return this
