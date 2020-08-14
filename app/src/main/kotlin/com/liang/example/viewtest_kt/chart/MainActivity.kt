@@ -7,7 +7,7 @@ import com.liang.example.context_ktx.SimpleActivity
 import kotlinx.android.synthetic.main.activity_test_chart.chart
 
 /**
- * @author liangyuying.lyy75@bytedance.com
+ * @author liangyuying.lyy75
  * @date 2020/7/30
  * <p>
  * 测试ChartView

@@ -6,7 +6,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * @author liangyuying.lyy75@bytedance.com
+ * @author liangyuying.lyy75
  * @date 2020/8/6
  * <p>
  * math util
