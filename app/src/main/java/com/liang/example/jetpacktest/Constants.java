@@ -5,15 +5,18 @@ public class Constants {
             com.liang.example.jetpacktest.lifecycletest.FirstActivity.class,
             com.liang.example.jetpacktest.viewmodeltest.FirstActivity.class,
             com.liang.example.jetpacktest.livedatatest.FirstActivity.class,
+            com.liang.example.jetpacktest.viewmodeltest.FirstActivity.class,
     };
 
     static final String[] names = new String[]{
             "Test LifeCycle",
             "Test ViewModel",
             "Test LiveData",
+            "Test Paging",
     };
 
     static final String[] descs = new String[]{
+            "...",
             "...",
             "...",
             "...",
@@ -23,17 +26,20 @@ public class Constants {
             "liangyy75",
             "liangyy75",
             "liangyy75",
+            "liangyy75",
     };
 
     static final String[] created = new String[]{
             "2019-10-23",
             "2019-10-23",
             "2019-10-23",
+            "2020-08-17",
     };
 
     static final String[] updated = new String[]{
             "2019-10-23",
             "2019-10-23",
             "2019-10-23",
+            "2020-08-17",
     };
 }

@@ -246,7 +246,7 @@ fun getFieldsFromCls(clsCache: MutableMap<Class<*>, Array<Field>>, cls: Class<*>
     return result
 }
 
-fun getDefaultCtorFromCls(ctorCache: MutableMap<Class<*>, Constructor<*>>, cls: Class<*>): Constructor<*> {
+fun getDefaultCtorFromCls(ctorCache: MutableMap<Class<*>, Constructor<*>>, cls: Class<*>): Constructor<*>? {
     var result = ctorCache[cls]
     if (result == null) {
         result = cls.getConstructor()

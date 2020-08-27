@@ -244,7 +244,7 @@ fun getFieldsFromCls(clsCache: MutableMap<Class<*>, Array<Field>>, cls: Class<*>
     return result
 }
 
-fun getDefaultCtorFromCls(ctorCache: MutableMap<Class<*>, Constructor<*>>, cls: Class<*>): Constructor<*> {
+fun getDefaultCtorFromCls(ctorCache: MutableMap<Class<*>, Constructor<*>>, cls: Class<*>): Constructor<*>? {
     var result = ctorCache[cls]
     if (result == null) {
         result = cls.getConstructor()
@@ -558,7 +558,7 @@ open class ReflectJsonApi(
                 return null
             }
             val fields = getFieldsFromCls(clsCache, cls)
-            val result = getDefaultCtorFromCls(ctorCache, cls).newInstance()
+            val result = getDefaultCtorFromCls(ctorCache, cls)?.newInstance() ?: return null
             jsonObject.value2().forEach {
                 val field = fields.find { f -> f.name == it.key } ?: return@forEach
                 val jsonValueItem = it.value ?: return@forEach

@@ -48,13 +48,15 @@ open class AdaptiveIconResProcessor : BaseDrawResProcessor<AdaptiveIconDrawable>
 open class RippleResProcessor : BaseDrawResProcessor<RippleDrawable>(
         "ripple", false, true, ResType.DRAWABLE_RIPPLE) {
     override fun innerProcess2(node: Node): RippleDrawable? {
-        val colorAttr = node[Attrs.RippleDrawable.color] ?: return makeFail("<ripple> requires a valid color attribute")
+        val colorAttr = node[Attrs.RippleDrawable.color]
+                ?: return makeFail("<ripple> requires a valid color attribute")
         val colorStateList = color2(colorAttr)?.let { ColorStateList.valueOf(it) }
                 ?: refer(colorAttr)?.let { ResStore.loadColorStateList(it, rpm.context, true) }
                 ?: return makeFail("<ripple> requires a valid color attribute")
         val result = RippleDrawable(colorStateList, null, null)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            result.radius = dimen2(node[Attrs.RippleDrawable.radius])?.toInt() ?: RippleDrawable.RADIUS_AUTO
+            result.radius = dimen2(node[Attrs.RippleDrawable.radius])?.toInt()
+                    ?: RippleDrawable.RADIUS_AUTO
         }
         LayerListResProcessor.parseLayerList(node, result, this, rpm)
         return result
@@ -73,7 +75,8 @@ open class TransitionResProcessor : BaseDrawResProcessor<TransitionDrawable>(
 open class AnimatedRotateResProcessor : BaseDrawResProcessor</*AnimatedRotateDrawable*/ Drawable>(
         "animated-rotate", false, true, ResType.DRAWABLE_ANIMATED_ROTATE) {
     override fun innerProcess2(node: Node): /*AnimatedRotateDrawable*/ Drawable? {
-        val result = ReflectHelper.newInstance<Drawable>("android.graphics.drawable.AnimatedRotateDrawable") ?: return null
+        val result = ReflectHelper.newInstance<Drawable>("android.graphics.drawable.AnimatedRotateDrawable")
+                ?: return null
         val pivotXAttr = node[Attrs.AnimatedRotateDrawable.pivotX]
         val mState = ReflectHelper.get("mState", result) ?: return null
         if (pivotXAttr != null) {
@@ -97,8 +100,10 @@ open class AnimatedRotateResProcessor : BaseDrawResProcessor</*AnimatedRotateDra
                 ReflectHelper.setFloat("mPivotY", mState, float2(pivotYAttr) ?: 0.5f)
             }
         }
-        ReflectHelper.invokeN("setFramesCount", result, int2(node[Attrs.AnimatedRotateDrawable.frameDuration]) ?: 150)
-        ReflectHelper.setInt("mFrameDuration", mState, int2(node[Attrs.AnimatedRotateDrawable.framesCount]) ?: 12)
+        ReflectHelper.invokeN("setFramesCount", result, int2(node[Attrs.AnimatedRotateDrawable.frameDuration])
+                ?: 150)
+        ReflectHelper.setInt("mFrameDuration", mState, int2(node[Attrs.AnimatedRotateDrawable.framesCount])
+                ?: 12)
         return result
     }
 }
@@ -123,7 +128,8 @@ open class AnimatedStateListResProcessor : BaseDrawResProcessor<AnimatedStateLis
                             ?: return@forEach makeFail<Unit>("<item> tag requires a 'drawable' attribute or child tag defining a drawable")!!
                     ReflectHelper.invokeN("addTransition", mState, getIntIdByStrId(it[Attrs.AnimatedStateListDrawableTransition.fromId]),
                             getIntIdByStrId(it[Attrs.AnimatedStateListDrawableTransition.toId]), drawable,
-                            bool2(it[Attrs.AnimatedStateListDrawableTransition.reversible]) ?: false)
+                            bool2(it[Attrs.AnimatedStateListDrawableTransition.reversible])
+                                    ?: false)
                 }
             }
         }
@@ -131,13 +137,15 @@ open class AnimatedStateListResProcessor : BaseDrawResProcessor<AnimatedStateLis
     }
 }
 
+// TODO: 华为手机不认同 😭
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
         "vector", true, true, ResType.DRAWABLE_VECTOR) {
     override fun innerProcess2(node: Node): VectorDrawable? {
         val result = VectorDrawable()
 
-        val mVectorState = ReflectHelper.get("mVectorState", result) ?: return makeFail("no mVectorState field in VectorDrawable, why?")
+        val mVectorState = ReflectHelper.get("mVectorState", result)
+                ?: return makeFail("no mVectorState field in VectorDrawable, why?")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val tintColor = color2(node[Attrs.VectorDrawable.tint])
             if (tintColor != null) {
@@ -175,18 +183,25 @@ open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
         // ReflectHelper.invokeN("setViewportSize", mVectorState, float2(node[Attrs.VectorDrawable.viewportWidth]) ?: 0f,
         //         float2(node[Attrs.VectorDrawable.viewportHeight]) ?: 0f)
         ReflectHelper.findMethod("setViewportSize", mVectorState::class.java, Float::class.java, Float::class.java)!!
-                .invoke(mVectorState, float2(node[Attrs.VectorDrawable.viewportWidth]) ?: 0f, float2(node[Attrs.VectorDrawable.viewportHeight]) ?: 0f)
+                .invoke(mVectorState, float2(node[Attrs.VectorDrawable.viewportWidth])
+                        ?: 0f, float2(node[Attrs.VectorDrawable.viewportHeight]) ?: 0f)
         ReflectHelper.invokeN("setAlpha", mVectorState, float2(node[Attrs.VectorDrawable.alpha])
                 ?: ReflectHelper.invoke<Float>("getAlpha", mVectorState))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ReflectHelper.set("mOpticalInsets", mVectorState, Insets.of(
-                    dimen2(node[Attrs.GradientDrawable.opticalInsetLeft])?.toInt() ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetTop])?.toInt() ?: 0,
-                    dimen2(node[Attrs.GradientDrawable.opticalInsetRight])?.toInt() ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetBottom])?.toInt()
+                    dimen2(node[Attrs.GradientDrawable.opticalInsetLeft])?.toInt()
+                            ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetTop])?.toInt()
+                    ?: 0,
+                    dimen2(node[Attrs.GradientDrawable.opticalInsetRight])?.toInt()
+                            ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetBottom])?.toInt()
                     ?: 0))
         } else {
             ReflectHelper.set("mOpticalInsets", mVectorState, ShapeResProcessor.ofInsets!!.invoke(null,
-                    dimen2(node[Attrs.GradientDrawable.opticalInsetLeft])?.toInt() ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetTop])?.toInt() ?: 0,
-                    dimen2(node[Attrs.GradientDrawable.opticalInsetRight])?.toInt() ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetBottom])?.toInt()
+                    dimen2(node[Attrs.GradientDrawable.opticalInsetLeft])?.toInt()
+                            ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetTop])?.toInt()
+                    ?: 0,
+                    dimen2(node[Attrs.GradientDrawable.opticalInsetRight])?.toInt()
+                            ?: 0, dimen2(node[Attrs.GradientDrawable.opticalInsetBottom])?.toInt()
                     ?: 0))
         }
         val name = node[Attrs.VectorDrawable.name]
@@ -196,7 +211,8 @@ open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
         }
 
         var noPathTag = true
-        val currentGroup = ReflectHelper.get("mRootGroup", mVectorState) ?: return makeFail("no field mRootGroup in VectorDrawable, why?")
+        val currentGroup = ReflectHelper.get("mRootGroup", mVectorState)
+                ?: return makeFail("no field mRootGroup in VectorDrawable, why?")
         val mVGTargetsMap = ReflectHelper.get("mVGTargetsMap", mVectorState) as? ArrayMap<String, Any?>
                 ?: return makeFail("no field mVGTargetsMap in VectorDrawable, why?")
         noPathTag = processGroupChild(node, noPathTag, currentGroup, mVGTargetsMap)
@@ -228,21 +244,33 @@ open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
 
                     val properties = ByteBuffer.wrap(mPropertyData)
                     properties.order(ByteOrder.nativeOrder())
-                    val strokeWidth = float2(it[Attrs.VectorDrawablePath.strokeWidth]) ?: properties.getFloat(0 * 4)
-                    val strokeColor = color2(it[Attrs.VectorDrawablePath.strokeColor]) ?: properties.getInt(1 * 4)
-                    val strokeAlpha = float2(it[Attrs.VectorDrawablePath.strokeAlpha]) ?: properties.getFloat(2 * 4)
+                    val strokeWidth = float2(it[Attrs.VectorDrawablePath.strokeWidth])
+                            ?: properties.getFloat(0 * 4)
+                    val strokeColor = color2(it[Attrs.VectorDrawablePath.strokeColor])
+                            ?: properties.getInt(1 * 4)
+                    val strokeAlpha = float2(it[Attrs.VectorDrawablePath.strokeAlpha])
+                            ?: properties.getFloat(2 * 4)
 
-                    val fillColor = color2(it[Attrs.VectorDrawablePath.fillColor]) ?: properties.getInt(3 * 4)
-                    val fillAlpha = float2(it[Attrs.VectorDrawablePath.fillAlpha]) ?: properties.getFloat(4 * 4)
-                    val fillType = int2(it[Attrs.VectorDrawablePath.fillType]) ?: properties.getInt(11 * 4)
+                    val fillColor = color2(it[Attrs.VectorDrawablePath.fillColor])
+                            ?: properties.getInt(3 * 4)
+                    val fillAlpha = float2(it[Attrs.VectorDrawablePath.fillAlpha])
+                            ?: properties.getFloat(4 * 4)
+                    val fillType = int2(it[Attrs.VectorDrawablePath.fillType])
+                            ?: properties.getInt(11 * 4)
 
-                    val trimPathStart = float2(it[Attrs.VectorDrawablePath.trimPathStart]) ?: properties.getFloat(5 * 4)
-                    val trimPathEnd = float2(it[Attrs.VectorDrawablePath.trimPathEnd]) ?: properties.getFloat(6 * 4)
-                    val trimPathOffset = float2(it[Attrs.VectorDrawablePath.trimPathOffset]) ?: properties.getFloat(7 * 4)
+                    val trimPathStart = float2(it[Attrs.VectorDrawablePath.trimPathStart])
+                            ?: properties.getFloat(5 * 4)
+                    val trimPathEnd = float2(it[Attrs.VectorDrawablePath.trimPathEnd])
+                            ?: properties.getFloat(6 * 4)
+                    val trimPathOffset = float2(it[Attrs.VectorDrawablePath.trimPathOffset])
+                            ?: properties.getFloat(7 * 4)
 
-                    val strokeLineCap = int2(it[Attrs.VectorDrawablePath.strokeLineCap]) ?: properties.getInt(8 * 4)
-                    val strokeLineJoin = int2(it[Attrs.VectorDrawablePath.strokeLineJoin]) ?: properties.getInt(9 * 4)
-                    val strokeMiterLimit = float2(it[Attrs.VectorDrawablePath.strokeMiterLimit]) ?: properties.getFloat(10 * 4)
+                    val strokeLineCap = int2(it[Attrs.VectorDrawablePath.strokeLineCap])
+                            ?: properties.getInt(8 * 4)
+                    val strokeLineJoin = int2(it[Attrs.VectorDrawablePath.strokeLineJoin])
+                            ?: properties.getInt(9 * 4)
+                    val strokeMiterLimit = float2(it[Attrs.VectorDrawablePath.strokeMiterLimit])
+                            ?: properties.getFloat(10 * 4)
 
                     // Shader就不考虑了
                     nUpdateFullPathFillGradient!!.invoke(null, mNativePtr, 0L)
@@ -261,7 +289,8 @@ open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
                     temp
                 }
                 "group" -> {
-                    val temp = processGroup(it, noPathTag2, mVGTargetsMap) ?: return@forEach makeFail("VGroup create failed", Unit)!!
+                    val temp = processGroup(it, noPathTag2, mVGTargetsMap)
+                            ?: return@forEach makeFail("VGroup create failed", Unit)!!
                     noPathTag2 = temp.second
                     temp.first
                 }
@@ -287,7 +316,8 @@ open class VectorResProcessor : BaseDrawResProcessor<VectorDrawable>(
     }
 
     open fun processGroup(node: Node, noPathTag: Boolean, mVGTargetsMap: ArrayMap<String, Any?>): Pair<Any, Boolean>? {
-        val temp = ReflectHelper.newInstance<Any>("android.graphics.drawable.VectorDrawable\$VGroup") ?: return makeFail("VGroup create failed")
+        val temp = ReflectHelper.newInstance<Any>("android.graphics.drawable.VectorDrawable\$VGroup")
+                ?: return makeFail("VGroup create failed")
         var mTransform = ReflectHelper.get("mTransform", temp) as? FloatArray
         if (mTransform == null) {
             mTransform = FloatArray(7)
@@ -359,7 +389,8 @@ open class AnimatedVectorResProcessor : BaseDrawResProcessor<AnimatedVectorDrawa
 
         node.children.forEach { target ->
             if (target.name == "target") {
-                val animator = ResStore.loadAnimator(refer(node[Attrs.AnimatedVectorDrawableTarget.animation]) ?: return@forEach, apm.context, true)
+                val animator = ResStore.loadAnimator(refer(node[Attrs.AnimatedVectorDrawableTarget.animation])
+                        ?: return@forEach, apm.context, true)
                 val name = str2(node[Attrs.AnimatedVectorDrawableTarget.name])
                 ReflectHelper.invokeS<Unit>("updateAnimatorProperty", AnimatedVectorResProcessor::class.java, animator,
                         name, vectorDrawable, ReflectHelper.getBoolean("mShouldIgnoreInvalidAnim", mAnimatedVectorState))

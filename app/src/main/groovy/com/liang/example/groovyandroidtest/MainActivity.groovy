@@ -3,13 +3,16 @@ package com.liang.example.groovyandroidtest
 import android.content.Intent
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import com.example.uilib.block.Block
 import com.example.uilib.block.BlockActivity
 import com.example.uilib.block.BlockManager
 import com.liang.example.androidtest.R
 import com.liang.example.utils.ApiManager
 import com.liang.example.utils.r.ResApiKt
+import groovy.io.FileType
 
 import static com.liang.example.utils.view.ToastApiKt.showToast
 
@@ -18,7 +21,7 @@ class MainActivity extends BlockActivity {
 
     @Override
     protected List<BlockManager> getBlockManagerList() {
-        int dp10 = ResApiKt.dp2Px(10f, this)
+        int dp10 = ResApiKt.dp2px(10f, this)
         BlockManager blockManager = new BlockManager(this, R.layout.layout_linear)
         blockManager.inflateBlocksAsync = false
         blockManager.setParent window.decorView.findViewById(android.R.id.content)
@@ -45,6 +48,41 @@ class MainActivity extends BlockActivity {
             null
         })
 
+        blockManager.addBlock(new Block(R.layout.view_edit).setInflatedCallback { EditText it ->
+            ApiManager.LOGGER.d(TAG, "block -- edit_view_1 afterInflater")
+            it.id = R.id.edit_view_1
+            it.layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            it.hint = "execute groovy code"
+            null
+        })
+
+        blockManager.addBlock(new Block(R.layout.view_button).setInflatedCallback { Button it ->
+            ApiManager.LOGGER.d(TAG, "block -- button_3 afterInflater")
+            it.id = R.id.button_3
+            it.layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            it.text = "execute groovy code"
+            it.setOnClickListener {
+                String shellText = it.rootView.<EditText>findViewById(R.id.edit_view_1).text.toString()
+                // Binding bind = new Binding()
+                // bind.setVariable("blockManager", blockManager)
+                // bind.setVariable("this", this)
+                // GroovyShell shell = new GroovyShell(bind)
+                // Object object = shell.evaluate(shellText)
+                it.rootView.<TextView>findViewById(R.id.text_view_1).text = object.toString()
+                // GroovyScriptEngine engine = new GroovyScriptEngine()
+                // engine.run()  // 失败了，groovy动态化失败 😭
+            }
+            null
+        })
+
+        blockManager.addBlock(new Block(R.layout.view_text).setInflatedCallback { TextView it ->
+            ApiManager.LOGGER.d(TAG, "block -- text_view_1 afterInflater")
+            it.id = R.id.text_view_1
+            it.layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            it.hint = "result"
+            null
+        })
+
         [blockManager.setInflatedCallback2({ LinearLayout it ->
             ApiManager.LOGGER.d(TAG, "blockManager -- linear_layout_1 afterInflater")
             it.id = R.id.linear_layout_1
@@ -54,6 +92,10 @@ class MainActivity extends BlockActivity {
             it.setOnClickListener { showToast("Groovy Activity is clicked") }
             null
         })]
+    }
+
+    void test() {
+        new File("").eachFileRecurse(FileType.FILES) {  }
     }
 }
 

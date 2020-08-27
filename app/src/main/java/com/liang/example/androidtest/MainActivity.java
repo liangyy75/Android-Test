@@ -2,6 +2,7 @@ package com.liang.example.androidtest;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.view.View;
@@ -99,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
         // });
         rv.setAdapter(rvAdapter);
         // activityList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        ApiManager.LOGGER.d(t, "onCreate -- finish creating Activity List");
+        ApiManager.LOGGER.d(t, "onCreate -- finish creating Activity List, ANDROID_VERSION_CODE: %d", Build.VERSION.SDK_INT);
     }
 
     @Override

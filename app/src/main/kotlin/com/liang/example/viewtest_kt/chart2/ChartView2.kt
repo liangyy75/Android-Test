@@ -37,7 +37,7 @@ val dp5 = dp2px(5f).toFloat()
  * @author liangyuying
  * @date 2020/8/3
  * <p>
- * chart view
+ * chart view version 2
  */
 open class ChartView : View {
     constructor(c: Context) : super(c)
@@ -53,7 +53,7 @@ open class ChartView : View {
             .color(ChartColor().color(Color.WHITE)))
             .chartView(this)
     open var children3: List<ChartUnit>? = null
-    open var testFlag = 1
+    open var testFlag = 0
 
     protected open fun testSymbol() {
         val dp50 = dp5 * 10
@@ -237,16 +237,13 @@ open class ChartView : View {
                 xysToPath(when (unit.animXys.size > 0) {
                     true -> unit.animXys
                     else -> unit.trueXys
-                }, this.path)
+                }, this.path, style.close)
             }
-        }
-        if (style.close) {
-            path.close()
         }
         if (style.shape != ChartUnitStyle.ShapeType.LINE) {
             unit.trueOpXys?.apply {
                 val path2 = Path()
-                xysToPath(this, path2)
+                xysToPath(this, path2, false)
                 path.op(path2, unit.pathOp)
             }
         }
@@ -294,10 +291,13 @@ open class ChartView : View {
         }
     }
 
-    protected open fun xysToPath(xys: MutableList<Float>, path: Path) {
+    protected open fun xysToPath(xys: MutableList<Float>, path: Path, close: Boolean) {
         path.moveTo(xys[0], xys[1])
         (3 until xys.size step 2).forEach { i ->
             path.lineTo(xys[i - 1], xys[i])
+        }
+        if (close) {
+            path.close()
         }
     }
 
@@ -629,8 +629,8 @@ open class ChartTransform {
 }
 
 open class ChartPathStyle {
-    open var join: Int = Join.BEVEL
-    open var cap: Int = Cap.BUTT
+    open var join: Int = Join.ROUND
+    open var cap: Int = Cap.ROUND
     open var effect: PathEffect? = null
     open var ccwDirection: Boolean = true
     open var opPath: Path? = null  // TODO
@@ -1653,45 +1653,68 @@ open class ChartAxis : ChartUnit() {
     companion object {
         private val DEFAULT_SYMBOL_LONG_EDGE = dp2px(10f).toFloat()
         private val DEFAULT_SYMBOL_SHORT_EDGE = dp2px(1f).toFloat()
+        private val DEFAULT_SYMBOL_TEXT_MARGIN = dp2px(2.5f).toFloat()
+        private val DEFAULT_TITLE_TEXT_MARGIN = dp2px(2.5f).toFloat()
         private val color = ChartColor(Color.BLACK)
+
+        private val HORIZONTAL_LINE_STYLE = ChartUnitStyle()
+                .position(ChartPosition().height(DEFAULT_SYMBOL_SHORT_EDGE))  // x/y轴联通后需要调用width
+                .color(color)
+        private val HORIZONTAL_SYMBOL_STYLE = ChartUnitStyle()
+                .position(ChartPosition().width(DEFAULT_SYMBOL_SHORT_EDGE).height(DEFAULT_SYMBOL_LONG_EDGE))  // setSymbol时需要调用left/top
+                .color(color)
+                .textStyle(ChartTextStyle().x(0.5f).y(DEFAULT_SYMBOL_LONG_EDGE + DEFAULT_SYMBOL_TEXT_MARGIN, p = false))  // setSymbol时需要调用text
+        private val HORIZONTAL_TITLE_STYLE = ChartUnitStyle()
+                .textStyle(ChartTextStyle().x(0.5f))
     }
 
-    open var line: ChartUnit = ChartUnit().style(ChartUnitStyle()
-            .position(ChartPosition().width(DEFAULT_SYMBOL_SHORT_EDGE).right(0f))
-            .color(color))
-    open var title: ChartUnit = ChartUnit()
+    open var line: ChartUnit? = ChartUnit()
+        set(value) {
+            removeChild(field)
+            field = value
+            addChild(field)
+        }
     open var symbols: MutableMap<Float, ChartUnit>? = null
         set(value) {
             field?.forEach { removeChild(it.value) }
             field = value
             field?.forEach { addChild(it.value) }
         }
+    open var title: ChartUnit? = ChartUnit()
+        set(value) {
+            removeChild(field)
+            field = value
+            addChild(field)
+        }
     open var max: Float? = null
     open var min: Float? = null
     open var horizontal: Boolean = false
         set(value) {
             field = value
-            if (field) {
-                defaultSymbolStyle.position!!.width(DEFAULT_SYMBOL_SHORT_EDGE).height(DEFAULT_SYMBOL_LONG_EDGE).top(1f, p = true)
-                line.style!!.position!!.height(DEFAULT_SYMBOL_SHORT_EDGE).right = null
-            } else {
-                defaultSymbolStyle.position!!.width(DEFAULT_SYMBOL_LONG_EDGE).height(DEFAULT_SYMBOL_SHORT_EDGE).right(DEFAULT_SYMBOL_SHORT_EDGE)
-                line.style!!.position!!.width(DEFAULT_SYMBOL_SHORT_EDGE).right(0f).left = null
-            }
         }
-    open var defaultSymbolStyle: ChartUnitStyle = ChartUnitStyle()
-            .position(ChartPosition().width(DEFAULT_SYMBOL_LONG_EDGE).height(DEFAULT_SYMBOL_SHORT_EDGE).right(DEFAULT_SYMBOL_SHORT_EDGE))
-            .color(color)
+    open var defaultSymbolStyle: ChartUnitStyle? = HORIZONTAL_SYMBOL_STYLE
 
-    // todo: title - width|height / titleLeftMargin / titleRightMargin / symbolText - width|height / symbolTextRightMargin / symbol - width|height / line - width|height
+    open fun hStyle(): ChartAxis {
+        line?.style(HORIZONTAL_LINE_STYLE)
+        defaultSymbolStyle(HORIZONTAL_SYMBOL_STYLE)
+        return this
+    }
+
+    // todo: title - width|height / titleLeftMargin|titleBottomMargin / titleRightMargin|titleTopMargin
+    //  / symbolText - width|height / symbolTextRightMargin|symbolTextTopMargin / symbol - width|height / line - width|height
 
     override fun update(): ChartUnit {
         super.update()
-        val textStyle = style?.textStyle
-        if (textStyle != null) {
-            trueTextX = trueLeft + trueSize(textStyle.x, trueWidth, trueHeight)
-            trueTextY = trueTop + trueSize(textStyle.y, trueWidth, trueHeight)
-        }
+        return this
+    }
+
+    open fun line(line: ChartUnit?): ChartAxis {
+        this.line = line
+        return this
+    }
+
+    open fun title(title: ChartUnit?): ChartAxis {
+        this.title = title
         return this
     }
 
@@ -1711,12 +1734,12 @@ open class ChartAxis : ChartUnit() {
     open fun getSymbol(position: Float, copyFlag: Int = 0): ChartUnit {
         var result = symbols?.get(position)
         if (result == null) {
-            result = ChartUnit()
-                    .style(when (copyFlag) {
-                        0 -> defaultSymbolStyle
-                        1 -> defaultSymbolStyle.copy()
-                        else -> defaultSymbolStyle.deepCopy()
-                    })
+            result = ChartUnit().style(when {
+                defaultSymbolStyle == null -> null
+                copyFlag == 0 -> defaultSymbolStyle
+                copyFlag == 1 -> defaultSymbolStyle!!.copy()
+                else -> defaultSymbolStyle!!.deepCopy()
+            })
             setSymbol(position, result)
         }
         return result
@@ -1728,7 +1751,7 @@ open class ChartAxis : ChartUnit() {
     }
 
     open fun min(min: Float?): ChartAxis {
-        this.max = max
+        this.min = min
         return this
     }
 
@@ -1749,7 +1772,6 @@ open class ChartAxis : ChartUnit() {
     }
 
     override fun copy(): ChartUnit = ChartAxis().other(this)
-
     override fun other(other: ChartUnit): ChartUnit {
         if (other is ChartAxis) {
             this.symbols = other.symbols
@@ -1760,7 +1782,6 @@ open class ChartAxis : ChartUnit() {
     }
 
     override fun deepCopy(): ChartUnit = ChartAxis().deepOther(this)
-
     override fun deepOther(other: ChartUnit): ChartUnit {
         if (other is ChartAxis) {
             this.symbols = other.symbols?.toMutableMap()
