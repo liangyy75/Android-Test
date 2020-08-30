@@ -9,6 +9,9 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
+import android.util.AttributeSet
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,7 +21,8 @@ import androidx.annotation.LayoutRes
 import androidx.annotation.MainThread
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
-import androidx.asynclayoutinflater.view.AsyncLayoutInflater
+import androidx.annotation.UiThread
+import androidx.core.util.Pools
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -32,6 +36,7 @@ import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CopyOnWriteArrayList
 
 open class DataCenter : ViewModel() {
@@ -283,6 +288,7 @@ abstract class Widget : LifecycleObserver, LifecycleOwner {
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
     open fun onCreate() {
+        Log.d(TAG_WIDGET_VIEW, "onCreate $this")
         isViewValid = true
         isDestroyed = false
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
@@ -291,30 +297,35 @@ abstract class Widget : LifecycleObserver, LifecycleOwner {
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     open fun onStart() {
+        Log.d(TAG_WIDGET_VIEW, "onStart $this")
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
     }
 
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
     open fun onResume() {
+        Log.d(TAG_WIDGET_VIEW, "onResume $this")
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     open fun onPause() {
+        Log.d(TAG_WIDGET_VIEW, "onPause $this")
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     open fun onStop() {
+        Log.d(TAG_WIDGET_VIEW, "onStop $this")
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     open fun onDestroy() {
+        Log.d(TAG_WIDGET_VIEW, "onDestroy $this")
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         if (subWidgetManager != null) {
             widgetCallback!!.fragment.childFragmentManager.beginTransaction().remove(subWidgetManager!!).commitNowAllowingStateLoss()
@@ -359,6 +370,10 @@ abstract class Widget : LifecycleObserver, LifecycleOwner {
 
     open fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {}
     open fun onConfigurationChanged(newConfig: Configuration?) {}
+
+    companion object {
+        const val TAG_WIDGET_VIEW = "TAG_WIDGET_VIEW"
+    }
 }
 
 open class WidgetManager : Fragment() {
@@ -370,14 +385,14 @@ open class WidgetManager : Fragment() {
                 this@WidgetManager.startActivityForResult(intent, requestCode, options)
 
         override fun <T : ViewModel?> getViewModel(clazz: Class<T>): T? = when {
-            parentFragment2 != null -> ViewModelProviders.of(parentFragment2!!).get<T>(clazz)
             activity != null -> ViewModelProviders.of(activity!!).get<T>(clazz)
+            parentFragment2 != null -> ViewModelProviders.of(parentFragment2!!).get<T>(clazz)
             else -> null
         }
 
         override fun <T : ViewModel?> getViewModel(clazz: Class<T>, factory: ViewModelProvider.Factory): T? = when {
-            parentFragment2 != null -> ViewModelProviders.of(parentFragment2!!, factory).get(clazz)
             activity != null -> ViewModelProviders.of(activity!!, factory).get(clazz)
+            parentFragment2 != null -> ViewModelProviders.of(parentFragment2!!, factory).get(clazz)
             else -> null
         }
 
@@ -404,9 +419,20 @@ open class WidgetManager : Fragment() {
     }
     open var widgetConfigHandler: IWidgetConfigHandler? = null
 
+    var startTime = 0L
+    private var endTime = 0L
+    private var totalTime = 0L
+    private var blockCount = 0L
+
+    open val allTime: Long
+        get() = endTime - startTime
+    open val averageTime: Long
+        get() = totalTime / blockCount
+
     // 某些情况下，业务方需要继承 WidgetManager 来拓展功能，但是原有的 create() 方法是 static 的，无法返回子类
     // 这里将 static create() 改为 非 static 的 config()
     open fun config(fragmentActivity: FragmentActivity?, fragment: Fragment?, rootView: View?, context: Context) {
+        startTime = System.currentTimeMillis()
         if (configured) {
             return
         }
@@ -437,7 +463,7 @@ open class WidgetManager : Fragment() {
     }
 
     @JvmOverloads
-    open fun load(@IdRes containerId: Int, widget: Widget?, async: Boolean = true): WidgetManager {
+    open fun load(@IdRes containerId: Int, widget: Widget?, async: Boolean = true, attachToRoot: Boolean = false): WidgetManager {
         if (widget == null) {
             return this
         }
@@ -453,18 +479,28 @@ open class WidgetManager : Fragment() {
             return this
         }
         return if (async) {
-            asyncLayoutInflater!!.inflate(widget.layoutId, container) { view, _, _ ->
-                if (isRemoving || isDetached || lifecycle.currentState == Lifecycle.State.DESTROYED) {
-                    return@inflate
+            asyncLayoutInflater!!.inflate(widget.layoutId, container, attachToRoot, object : AsyncLayoutInflater.OnInflateFinishedListener {
+                override fun onInflateFinished(view: View?, resId: Int, parent: ViewGroup?) {
+                    if (view == null || isRemoving || isDetached || lifecycle.currentState == Lifecycle.State.DESTROYED) {
+                        return
+                    }
+                    record()
+                    continueLoad(widget, container, view)
                 }
-                continueLoad(widget, container, view)
-            }
+            })
             this
         } else {
-            val contentView: View = syncLayoutInflater!!.inflate(widget.layoutId, container, false)
+            val contentView: View = syncLayoutInflater!!.inflate(widget.layoutId, container, attachToRoot)
+            record()
             continueLoad(widget, container, contentView)
             this
         }
+    }
+
+    private fun record() {
+        endTime = System.currentTimeMillis()
+        blockCount++
+        totalTime += (endTime - startTime)
     }
 
     open fun continueLoad(widget: Widget, parentView: ViewGroup?, contentView: View?) {
@@ -474,7 +510,7 @@ open class WidgetManager : Fragment() {
             return
         }
         widget.contentView = contentView
-        if (parentView != null && contentView != null) {
+        if (parentView != null && contentView != null && contentView.parent == null) {
             parentView.addView(contentView)
         }
         widgets.add(widget)
@@ -497,7 +533,7 @@ open class WidgetManager : Fragment() {
         return this
     }
 
-    open fun unload(widget: Widget?): WidgetManager {
+    open fun unload(widget: Widget?, removeAll: Boolean = true): WidgetManager {
         if (widget == null) {
             return this
         }
@@ -531,7 +567,11 @@ open class WidgetManager : Fragment() {
         widgets.remove(widget)
         if (widgetViewGroupHashMap.containsKey(widget)) {
             val container = widgetViewGroupHashMap[widget]
-            container!!.removeAllViews()
+            if (removeAll) {
+                container!!.removeAllViews()
+            } else {
+                container!!.removeView(widget.contentView)
+            }
             widgetViewGroupHashMap.remove(widget)
         }
         return this
@@ -596,5 +636,141 @@ open class WidgetManager : Fragment() {
             widgetManager.config(null, fragment, rootView, fragment.context!!)
             return widgetManager
         }
+    }
+}
+
+open class AsyncLayoutInflater(context: Context) {
+    companion object {
+        private val TAG = "AsyncLayoutInflater"
+    }
+
+    open class BasicInflater(context: Context) : LayoutInflater(context) {
+        override fun cloneInContext(newContext: Context): LayoutInflater {
+            return BasicInflater(newContext)
+        }
+
+        @Throws(ClassNotFoundException::class)
+        override fun onCreateView(name: String, attrs: AttributeSet): View {
+            for (prefix in sClassPrefixList) {
+                try {
+                    val view = createView(name, prefix, attrs)
+                    if (view != null) {
+                        return view
+                    }
+                } catch (e: ClassNotFoundException) {
+                    // In this case we want to let the base class take a crack
+                    // at it.
+                }
+            }
+            return super.onCreateView(name, attrs)
+        }
+
+        companion object {
+            private val sClassPrefixList = arrayOf("android.widget.", "android.webkit.", "android.app.")
+        }
+    }
+
+    open class InflateRequest {
+        open var inflater: AsyncLayoutInflater? = null
+        open var parent: ViewGroup? = null
+        open var resid = 0
+        open var view: View? = null
+        open var callback: OnInflateFinishedListener? = null
+        open var attachToRoot: Boolean = false
+    }
+
+    interface OnInflateFinishedListener {
+        fun onInflateFinished(view: View?, @LayoutRes resId: Int, parent: ViewGroup?)
+    }
+
+    open class InflateThread : Thread() {
+        companion object {
+            var instance: InflateThread? = null
+
+            init {
+                instance = InflateThread()
+                instance!!.start()
+            }
+        }
+
+        protected open val mQueue = ArrayBlockingQueue<InflateRequest>(10)
+        protected open val mRequestPool = Pools.SynchronizedPool<InflateRequest>(10)
+
+        // Extracted to its own method to ensure locals have a constrained liveness
+        // scope by the GC. This is needed to avoid keeping previous request references
+        // alive for an indeterminate amount of time, see b/33158143 for details
+        open fun runInner() {
+            val request: InflateRequest = try {
+                mQueue.take()
+            } catch (ex: InterruptedException) {
+                // Odd, just continue
+                Log.w(TAG, ex)
+                return
+            }
+            try {
+                request.view = request.inflater?.mInflater?.inflate(request.resid, request.parent, request.attachToRoot)
+            } catch (ex: RuntimeException) {
+                // Probably a Looper failure, retry on the UI thread
+                Log.w(TAG, "Failed to inflate resource in the background! Retrying on the UI thread", ex)
+            }
+            Message.obtain(request.inflater?.mHandler, 0, request).sendToTarget()
+        }
+
+        override fun run() {
+            while (true) {
+                runInner()
+            }
+        }
+
+        open fun obtainRequest(): InflateRequest {
+            var obj = mRequestPool.acquire()
+            if (obj == null) {
+                obj = InflateRequest()
+            }
+            return obj
+        }
+
+        open fun releaseRequest(obj: InflateRequest) {
+            obj.callback = null
+            obj.inflater = null
+            obj.parent = null
+            obj.resid = 0
+            obj.view = null
+            mRequestPool.release(obj)
+        }
+
+        open fun enqueue(request: InflateRequest) {
+            try {
+                mQueue.put(request)
+            } catch (e: InterruptedException) {
+                throw RuntimeException("Failed to enqueue async inflate request", e)
+            }
+        }
+    }
+
+    private val mHandlerCallback = Handler.Callback { msg ->
+        val request = msg.obj as InflateRequest
+        if (request.view == null) {
+            request.view = mInflater.inflate(
+                    request.resid, request.parent, false)
+        }
+        request.callback?.onInflateFinished(request.view, request.resid, request.parent)
+        mInflateThread.releaseRequest(request)
+        true
+    }
+
+    open val mInflater: LayoutInflater = BasicInflater(context)
+    open val mHandler = Handler(mHandlerCallback)
+    open val mInflateThread: InflateThread = InflateThread.instance!!
+
+    @UiThread
+    open fun inflate(@LayoutRes resid: Int, parent: ViewGroup?, attachToRoot: Boolean, callback: OnInflateFinishedListener) {
+        val request: InflateRequest = mInflateThread.obtainRequest()
+        request.inflater = this
+        request.resid = resid
+        request.parent = parent
+        request.callback = callback
+        request.attachToRoot = attachToRoot
+        mInflateThread.enqueue(request)
     }
 }

@@ -277,9 +277,13 @@
         <activity android:name="com.liang.example.jetpacktest.pagingtest.FirstActivity" />
 
         <activity android:name="com.liang.example.blocktest.MainActivity" />
+        <activity android:name="com.liang.example.blocktest.MainActivity1" />
         <activity android:name="com.liang.example.blocktest.MainActivity2" />
         <activity android:name="com.liang.example.blocktest.MainActivity3" />
         <activity android:name="com.liang.example.blocktest.MainActivity4" />
+        <activity android:name="com.liang.example.blocktest.MainActivity5" />
+        <activity android:name="com.liang.example.blocktest.MainActivity6" />
+        <activity android:name="com.liang.example.blocktest.MainActivity7" />
         <activity android:name="com.liang.example.viewtest_kt.temp.PagerPagerActivity" />
         <activity android:name="com.liang.example.viewtest_kt.chart.MainActivity" />
 

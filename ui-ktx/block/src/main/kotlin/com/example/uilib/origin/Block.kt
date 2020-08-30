@@ -30,6 +30,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.LiveData
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
@@ -246,7 +247,7 @@ abstract class Block : LifecycleOwner {
         }
         val viewProducer: Callable<View?> = object : Callable<View?> {
             override fun call(): View? {
-                Log.d(TAG_VIEW, Thread.currentThread().toString() + "create View -> " + this)
+                Log.d(TAG_BLOCK_VIEW, Thread.currentThread().toString() + "create View -> " + this)
                 if (view == null) {
                     return onCreateView(mInflater, parentView)
                 }
@@ -255,7 +256,7 @@ abstract class Block : LifecycleOwner {
         }
         val viewConsumer: Consumer<View?> = object : Consumer<View?> {
             override fun accept(view: View?) {
-                Log.d(TAG_VIEW, Thread.currentThread().toString() + "after create view-> " + this)
+                Log.d(TAG_BLOCK_VIEW, Thread.currentThread().toString() + "after create view-> " + this)
                 if (view != null) {
                     this@Block.view = view
                     if (view.parent == null && !isPendingAdd) {
@@ -356,7 +357,7 @@ abstract class Block : LifecycleOwner {
     open fun <T : Any> getObservableNotNull(@NonNull event: String, @NonNull tClass: Class<T>): Observable<T?>? {
         val compatibleClass: Class<T>? = getCompatibleClass(tClass) as Class<T>
         return mWhiteBoard!!.getObservable<T>(event)
-                ?.filter {  o: T? -> o != null && o !== WhiteBoard.sNullObject && compatibleClass!!.isAssignableFrom(o.javaClass) }
+                ?.filter { o: T? -> o != null && o !== WhiteBoard.sNullObject && compatibleClass!!.isAssignableFrom(o.javaClass) }
                 ?.doOnSubscribe { disposables.add(it) }
     }
 
@@ -550,31 +551,34 @@ abstract class Block : LifecycleOwner {
 
     @CallSuper
     open fun onStart() {
-        Log.d(TAG_VIEW, "onStart $this")
+        Log.d(TAG_BLOCK_VIEW, "onStart $this")
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
     }
 
     @TargetApi(Build.VERSION_CODES.M)
     @CallSuper
     open fun onResume() {
-        Log.d(TAG_VIEW, "onResume $this")
+        Log.d(TAG_BLOCK_VIEW, "onResume $this")
         isResumed = true
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
     @CallSuper
     open fun onPause() {
+        Log.d(TAG_BLOCK_VIEW, "onPause $this")
         isResumed = false
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
     @CallSuper
     open fun onStop() {
+        Log.d(TAG_BLOCK_VIEW, "onStop $this")
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
     @CallSuper
     open fun onDestroyView() {
+        Log.d(TAG_BLOCK_VIEW, "onDestroy $this")
         handler.removeCallbacksAndMessages(null)
         disposables.clear()
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -590,7 +594,7 @@ abstract class Block : LifecycleOwner {
         return false
     }
 
-    protected open val lifeCyclerOwner: LifecycleOwner?
+    protected open val lifeCycleOwner: LifecycleOwner?
         get() = this
 
     open fun <T : FragmentActivity> getActivity(): T? {
@@ -630,7 +634,7 @@ abstract class Block : LifecycleOwner {
     //是否添加到父block中
     @CallSuper
     open fun onCreate(): Boolean {
-        Log.d(TAG_VIEW, "onCreate $this")
+        Log.d(TAG_BLOCK_VIEW, "onCreate $this")
         return true
     }
 
@@ -684,7 +688,7 @@ abstract class Block : LifecycleOwner {
     }
 
     companion object {
-        protected const val TAG_VIEW = "TAG_VIEW"
+        protected const val TAG_BLOCK_VIEW = "TAG_BLOCK_VIEW"
     }
 }
 
@@ -1007,6 +1011,8 @@ open class BlockManager : BlockGroup {
     private var mActivity: Activity? = null
     private var lifecycleFragment: LifecycleFragment? = null
     open var state: LifecycleFragment.State = LifecycleFragment.State.Idle
+    open var asyncInflateView: Boolean = true
+    open var singleThreadExecutor: Executor? = null
 
     constructor(fragment: Fragment) {
         mFragment = fragment
@@ -1041,6 +1047,16 @@ open class BlockManager : BlockGroup {
         }
     }
 
+    var startTime = 0L
+    private var endTime = 0L
+    private var totalTime = 0L
+    private var blockCount = 0L
+
+    open val allTime: Long
+        get() = endTime - startTime
+    open val averageTime: Long
+        get() = totalTime / blockCount
+
     /**
      * 从资源获得View，并且切割
      *
@@ -1049,6 +1065,7 @@ open class BlockManager : BlockGroup {
      * [.LINEAR_LAYOUT_V],[.FRAME_LAYOUT],[.SCROLL_VIEW]
      */
     open fun build(resId: Int): View {
+        startTime = System.currentTimeMillis()
         if (view != null) {
             if (view!!.parent != null) {
                 (view!!.parent as ViewGroup).removeView(view)
@@ -1092,6 +1109,7 @@ open class BlockManager : BlockGroup {
     }
 
     open fun build(viewGroup: ViewGroup): View {
+        startTime = System.currentTimeMillis()
         if (view != null) {
             if (view!!.parent != null) {
                 (view!!.parent as ViewGroup).removeView(view)
@@ -1134,7 +1152,7 @@ open class BlockManager : BlockGroup {
         //生命周期
         val lifecycle: FragmentManager? = fragmentManager
         if (lifecycle != null) {
-            lifecycleFragment = lifecycle.findFragmentByTag(FRAGMENT_TAG_LIFECYCLE) as LifecycleFragment
+            lifecycleFragment = lifecycle.findFragmentByTag(FRAGMENT_TAG_LIFECYCLE) as? LifecycleFragment
             if (lifecycleFragment == null) {
                 lifecycleFragment = LifecycleFragment()
                 lifecycle.beginTransaction().add(lifecycleFragment!!, FRAGMENT_TAG_LIFECYCLE).commitNowAllowingStateLoss()
@@ -1176,17 +1194,28 @@ open class BlockManager : BlockGroup {
      */
     @Deprecated("", ReplaceWith("consumer.accept(supplier.call())"))
     open fun runAsync(supplier: Callable<View?>, consumer: Consumer<View?>) {
-        consumer.accept(supplier.call())
+        // consumer.accept(supplier.call())
+        if (!asyncInflateView || singleThreadExecutor == null) {
+            val view = supplier.call()
+            record()
+            consumer.accept(view)
+        } else {
+            singleThreadExecutor!!.execute {
+                val view = supplier.call()
+                handler.post {
+                    record()
+                    if (state.isAlive) {
+                        consumer.accept(view)
+                    }
+                }
+            }
+        }
     }
 
-    /**
-     * 去掉异步
-     *
-     * @param singleThreadExecutor
-     */
-    @Deprecated("")
-    open fun setSingleThreadScheduler(singleThreadExecutor: Executor?) {
-        //this.singleThreadExecutor = singleThreadExecutor;
+    private fun record() {
+        endTime = System.currentTimeMillis()
+        blockCount++
+        totalTime += (endTime - startTime)
     }
 
     @CallSuper
@@ -1324,4 +1353,24 @@ abstract class SubBlock : Block() {
     }
 
     protected abstract val viewID: Int
+}
+
+object RxStore {
+    val store = mutableMapOf<LiveData<*>, PublishSubject<Any>>()
+    val liveDatas = mutableMapOf<LifecycleOwner, MutableList<LiveData<*>>>()
+
+    fun get(key: LiveData<*>, owner: LifecycleOwner): PublishSubject<Any> {
+        var result = store[key]
+        if (result == null) {
+            result = PublishSubject.create()
+            key.observe(owner, androidx.lifecycle.Observer {
+                result.onNext(it ?: WhiteBoard.sNullObject)
+            })
+            when (liveDatas.containsKey(owner)) {
+                true -> liveDatas[owner]!!.add(key)
+                else -> liveDatas[owner] = mutableListOf(key)
+            }
+        }
+        return result
+    }
 }
