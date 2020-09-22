@@ -35,7 +35,7 @@ open class ChartView3 : View {
 }
 
 // 100% | number
-// p | r | s | a
+// p | r | s
 // w | h
 // wrap-content
 open class ChartPosition {

@@ -13,7 +13,7 @@ import android.widget.RelativeLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.setMargins
+// import androidx.core.view.setMargins
 import androidx.fragment.app.Fragment
 import com.liang.example.androidtest.R
 import com.liang.example.recyclerviewtest.ExampleItem
@@ -87,7 +87,7 @@ class MainActivity7 : AppCompatActivity() {
             this.id = id
             this.setPadding(padding)
             val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, lp_height)
-            lp.setMargins(margin)
+            lp.setMargins(margin, margin, margin, margin)
             containerView.addView(this, lp)
             this.setBackgroundResource(drawables[index % 3])
         }

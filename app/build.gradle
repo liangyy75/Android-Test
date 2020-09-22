@@ -142,7 +142,7 @@ dependencies {
     add(deps.rxjava2.get(0), deps.rxjava2.get(1))
     add(deps.rx_android.get(0), deps.rx_android.get(1))
     add(deps.rxkotlin2.get(0), deps.rxkotlin2.get(1))
-    add(deps.paging_ktx.get(0), deps.paging_ktx.get(1))
+    deps.paging.forEach { String key, Tuple t -> add(t.get(0), t.get(1)) }
 
     api "org.aspectj:aspectjrt:${versions.aspectj}"
     // compileOnly "com.google.auto.value:auto-value:${versions.auto_value}"

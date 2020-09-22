@@ -275,6 +275,7 @@
         <activity android:name="com.liang.example.jetpacktest.viewmodeltest.FirstActivity" />
         <activity android:name="com.liang.example.jetpacktest.livedatatest.FirstActivity" />
         <activity android:name="com.liang.example.jetpacktest.pagingtest.FirstActivity" />
+        <activity android:name="com.liang.example.jetpacktest.pagingtest.SecondActivity" />
 
         <activity android:name="com.liang.example.blocktest.MainActivity" />
         <activity android:name="com.liang.example.blocktest.MainActivity1" />
