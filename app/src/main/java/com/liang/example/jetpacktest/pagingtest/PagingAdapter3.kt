@@ -68,9 +68,15 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         mDiffer.submitList(pagedList, commitCallback)
     }
 
+    open val emptyCallback = object : MyContiguousPagedList2.MoreCallback<T>() {
+        override fun emptyAppend() {
+            isEnd = true
+        }
+    }
+
     open fun getDataItemCount() = mDiffer.itemCount
     open fun getCurrentList(): PagedList<T>? = mDiffer.currentList
-    protected fun getItem(position: Int): T? = mDiffer.getItem(position)
+    protected open fun getItem(position: Int): T? = mDiffer.getItem(position)
     override fun getItemCount(): Int {
         val header = when {
             hasHeader() -> 1
@@ -84,18 +90,18 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
             hasEmpty() -> 1
             else -> 0
         }
-        val loadingStatus = when {
-            hasLoad() -> 1
+        val loader = when {
+            hasLoader() -> 1
             else -> 0
         }
-        val count = header + getDataItemCount() + footer + loadingStatus + empty
-        Log.e("PagingAdapter", "getItemCount: $count = $header, $footer, $loadingStatus, $empty")
+        val count = header + getDataItemCount() + footer + loader + empty
+        Log.e("PagingAdapter", "getItemCount: $count = $header, $footer, $loader, $empty")
         return count
     }
 
     open fun onCurrentListChanged(previousList: PagedList<T>?, currentList: PagedList<T>? = null) = Unit
 
-    // 一级列表
+    // 一级列表请求
 
     protected open fun loadAround(position: Int) {
         try {
@@ -105,7 +111,7 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         }
     }
 
-    // 二级列表
+    // 二级列表请求
 
     open fun scheduleInsert(t: T) {
         try {
@@ -134,7 +140,7 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
             TYPE_EMPTY -> onBindEmptyViewHolder(holder)
             TYPE_HEADER -> onBindHeaderViewHolder(holder)
             TYPE_FOOTER -> onBindFooterViewHolder(holder)
-            TYPE_LOADING -> onBindLoadingViewHolder(holder)
+            TYPE_LOADING -> onBindLoaderViewHolder(holder)
             TYPE_INVALID -> {
                 onBindInvalidViewHolder(holder)
             }
@@ -151,7 +157,7 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
                 TYPE_EMPTY -> showEmptyNow = false
                 TYPE_HEADER -> showHeaderNow = false
                 TYPE_FOOTER -> showFooterNow = false
-                TYPE_LOADING -> showLoadNow = false
+                TYPE_LOADING -> showLoaderNow = false
             }
             (holder as? PagingViewHolder<T>)?.detach()
             (holder as? PagingViewHolder<T>)?.unBind()
@@ -162,26 +168,26 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
 
     // 请返回正数
     override fun getItemViewType(position: Int): Int {
-        val dataItemCount = itemCount - 1
+        val itemCount = itemCount
         return when {
             hasEmpty() && position == 0 -> TYPE_EMPTY
             hasHeader() && position == 0 -> {
                 showHeaderNow = true
                 TYPE_HEADER
             }
-            hasLoad() && position == dataItemCount -> {
-                showLoadNow = true
+            hasLoader() && position == itemCount - 1 -> {
+                showLoaderNow = true
                 TYPE_LOADING
             }  // if (isError()) TYPE_LOAD_ERROR else TYPE_LOADING
-            hasFooter() && position == dataItemCount -> {
+            hasFooter() && position == itemCount - 1 -> {
                 showFooterNow = true
                 TYPE_FOOTER
             }
             else -> {
+                // TODO:
                 val pos: Int = mappingAdapterPos2DataPos(position)
-                // 不明所以
                 when {
-                    pos >= getDataItemCount() -> invalidateType()
+                    pos >= getDataItemCount() -> invalidateType()  // 不明所以
                     else -> getNormalViewType(pos, getItem(pos))
                 }
             }
@@ -227,7 +233,7 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
     abstract fun onCreateInvalidViewHolder(parent: ViewGroup, viewType: Int): VH
     abstract fun onCreateEmptyViewHolder(parent: ViewGroup, viewType: Int): VH
     abstract fun onCreateNormalViewHolder(parent: ViewGroup, viewType: Int): VH
-    abstract fun getNormalViewType(position: Int, data: T?): Int
+    abstract fun getNormalViewType(position: Int, data: T?): Int  // pos 对 header / footer / load 无感知
 
     open fun onBindHeaderViewHolder(holder: VH) {
         showHeaderNow = true
@@ -239,8 +245,8 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         setFullSpan(holder)
     }
 
-    open fun onBindLoadingViewHolder(holder: VH) {
-        showLoadNow = true
+    open fun onBindLoaderViewHolder(holder: VH) {
+        showLoaderNow = true
         setFullSpan(holder)
     }
 
@@ -270,6 +276,8 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
     protected open var mInvalidCount = 0
     open fun getInvalidCount() = mInvalidCount
 
+    // header / footer / load / empty
+
     open var isEmpty = true
         set(value) {
             if (field != value) {
@@ -282,30 +290,20 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
 
     protected open var isEnd = false
 
-    open val emptyCallback = object : MyContiguousPagedList2.MoreCallback<T>() {
-        override fun emptyAppend() {
-            isEnd = true
-        }
-    }
-
     open var supportEmptyView = true
         set(value) {
             if (field != value) {
                 field = value
-                if (showEmptyNow) {
-                    notifyDataSetChanged()
-                }
+                notifyDataSetChanged()
             }
         }
 
     @Support
-    open var supportLoadView = SUPPORT_EVEN_EMPTY
+    open var supportLoader = SUPPORT_EVEN_EMPTY
         set(value) {
             if (field != value) {
                 field = value
-                if (showLoadNow) {
-                    notifyDataSetChanged()
-                }
+                notifyDataSetChanged()
             }
         }
 
@@ -314,9 +312,7 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         set(value) {
             if (field != value) {
                 field = value
-                if (showHeaderNow) {
-                    notifyDataSetChanged()
-                }
+                notifyDataSetChanged()
             }
         }
 
@@ -325,36 +321,35 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         set(value) {
             if (field != value) {
                 field = value
-                if (showFooterNow) {
-                    notifyDataSetChanged()
-                }
+                notifyDataSetChanged()
             }
         }
 
     protected open var showEmptyNow = false
     protected open var showHeaderNow = false
     protected open var showFooterNow = false
-    protected open var showLoadNow = false
+    protected open var showLoaderNow = false
 
     open fun hasEmpty(): Boolean = getDataItemCount() == 0 && supportEmptyView
-            && supportHeader != SUPPORT_EVEN_EMPTY && supportLoadView != SUPPORT_EVEN_EMPTY
+            && supportHeader != SUPPORT_EVEN_EMPTY && supportLoader != SUPPORT_EVEN_EMPTY
 
     open fun hasHeader(): Boolean = getDataItemCount() == 0 && supportHeader == SUPPORT_EVEN_EMPTY
             || getDataItemCount() > 0 && supportHeader != NOT_SUPPORT
 
-    open fun hasLoad(): Boolean = !isEnd && (getDataItemCount() == 0 && supportLoadView == SUPPORT_EVEN_EMPTY
-            || getDataItemCount() > 0 && supportLoadView != NOT_SUPPORT)
+    open fun hasLoader(): Boolean = !isEnd && (getDataItemCount() == 0 && supportLoader == SUPPORT_EVEN_EMPTY
+            || getDataItemCount() > 0 && supportLoader != NOT_SUPPORT)
 
     open fun hasFooter(): Boolean = isEnd && (getDataItemCount() == 0 && supportFooter == SUPPORT_EVEN_EMPTY
             || getDataItemCount() > 0 && supportFooter != NOT_SUPPORT)
 
-    open fun mappingAdapterPos2DataPos(position: Int) = when {
-        hasHeader() -> position - 1
-        else -> position
+    open fun mappingAdapterPos2DataPos(position: Int): Int {
+        return when {
+            hasHeader() -> position - 1
+            else -> position
+        }
     }
 
-    // 有 header 时， 通知的 position 是有问题的，所以需要转一次。
-    protected open val observable = DataObservable()
+    protected open val observable = DataObservable()  // 有 header 时， 通知的 position 是有问题的，所以需要转一次。
     protected open val mObservable: AdapterDataObservable = AdapterDataObservable()
 
     override fun registerAdapterDataObserver(observer: RecyclerView.AdapterDataObserver) = mObservable.registerObserver(observer)
@@ -435,11 +430,6 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
         const val TYPE_EMPTY = -5
         const val TYPE_INVALID = -6
 
-        const val TYPE_SECOND_HEADER = -11
-        const val TYPE_SECOND_FOOTER = -12
-        const val TYPE_SECOND_LOADING = -13
-        const val TYPE_SECOND_LOAD_ERROR = -14
-
         const val NOT_SUPPORT = 0
         const val SUPPORT = 1
         const val SUPPORT_EVEN_EMPTY = 2
@@ -455,13 +445,6 @@ abstract class PagingAdapter3<T, VH : RecyclerView.ViewHolder> : RecyclerView.Ad
             }
         }
     }
-
-    // 二级的 header / footer / loading
-
-    open val supportSecondHeader = true
-    open val supportSecondFooter = true
-    open val supportSecondLoad = true
-    open val isSecondEnds = mutableMapOf<T, Boolean>()
 }
 
 abstract class SinglePagingAdapter<T, VH : RecyclerView.ViewHolder> : PagingAdapter3<T, VH> {
@@ -553,4 +536,164 @@ abstract class SingleDefaultPagingAdapter<T> : DefaultPagingAdapter<T> {
     constructor(diffCallback: DiffUtil.ItemCallback<T>, context: Context) : super(diffCallback, context)
 
     override fun getNormalViewType(position: Int, data: T?): Int = SinglePagingAdapter.TYPE_NORMAL
+}
+
+abstract class PagingAdapterEnhance<T, VH : RecyclerView.ViewHolder> : PagingAdapter3<T, VH> {
+    constructor(config: AsyncDifferConfig<T>) : super(config)
+    constructor(diffCallback: DiffUtil.ItemCallback<T>) : super(diffCallback)
+
+    open var listWrapper: MyContiguousPagedListWrapper<K, T>? = null
+
+    // 二级的 header / footer / load
+    open var supportSecondHeader = true
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+    open var supportSecondFooter = true
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+    open var supportSecondLoad = true
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
+    // override
+
+    override fun getItemCount(): Int {
+        return super.getItemCount()
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return super.getItemViewType(position)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        return super.onCreateViewHolder(parent, viewType)
+    }
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        super.onBindViewHolder(holder, position)
+    }
+
+    companion object {
+        const val TYPE_SECOND_HEADER = -11
+        const val TYPE_SECOND_FOOTER = -12
+        const val TYPE_SECOND_LOADING = -13
+        const val TYPE_SECOND_LOAD_ERROR = -14
+    }
+}
+
+open class MyContiguousPagedListWrapper<V>(
+        open val pagedList2: MyContiguousPagedList2<Any, V>,
+        open val supportHeader: Boolean = false,
+        open val supportFooter: Boolean = false,
+        open val supportLoader: Boolean = false
+) {
+    open val items = mutableListOf<Any>()
+
+    open val isSecondEnd = mutableSetOf<V>()
+    open val isSecondNotEmpty = mutableSetOf<V>()
+    open val secondFooters = mutableSetOf<V>()
+    open val secondLoaders = mutableSetOf<V>()
+    open val secondHeaders = mutableSetOf<V>()
+
+    open val mCallback: MyContiguousPagedList2.MoreCallback<V> = object : MyContiguousPagedList2.MoreCallback<V>() {
+        override fun initialPage(leadingNulls: Int, trailingNulls: Int, count: Int) {
+            items.addAll((0..(leadingNulls + count + trailingNulls)).map { ITEM })
+        }
+
+        override fun appendPage(position: Int, changedCount: Int, count: Int) {
+            items.addAll((0..count).map { ITEM })
+        }
+
+        override fun prependPage(position: Int, changedCount: Int, count: Int) {
+            items.addAll(0, (0..count).map { ITEM })
+        }
+
+        override fun insertPage(v: V, vPos: Int, position: Int, count: Int) {
+            isSecondNotEmpty.add(v)
+            if (supportHeader && !secondHeaders.contains(v)) {
+                items.add(vPos + 1, HEADER)
+                secondHeaders.add(v)
+            }
+            if (supportFooter && !secondLoaders.contains(v) && !isSecondEnd.contains(v)) {
+                items.add(position, LOADER)
+                secondLoaders.add(v)
+            }
+            if (supportFooter && !secondFooters.contains(v) && isSecondEnd.contains(v)) {
+                items.add(position, FOOTER)
+                secondFooters.add(v)
+            }
+            items.addAll(position, (0..count).map { ITEM })
+        }
+
+        override fun emptyInsert(v: V) {
+            if (isSecondNotEmpty.contains(v)) {
+                isSecondEnd.add(v)
+            }
+        }
+
+        override fun onRemoved(position: Int, count: Int) {
+            var tempIndex = 0
+            var truePos = 0
+            for (item in items) {
+                truePos++
+                if (item != HEADER && item != FOOTER) {
+                    tempIndex++
+                    if (tempIndex >= position) {
+                        break
+                    }
+                }
+            }
+            tempIndex = 0
+            var trueEnd = truePos
+            for (index in truePos..items.size) {
+                trueEnd++
+                if (items[index] != HEADER && items[index] != FOOTER) {
+                    tempIndex++
+                    if (tempIndex >= position) {
+                        break
+                    }
+                }
+            }
+            if (items.getOrNull(trueEnd) == HEADER || items.getOrNull(trueEnd) == FOOTER || items.getOrNull(trueEnd) == LOADER) {
+                trueEnd++
+            }
+            items.subList(truePos, trueEnd).apply {
+                forEach { it ->
+                    val item = it as? V ?: return@forEach
+                    isSecondEnd.remove(item)
+                    isSecondNotEmpty.remove(item)
+                    secondHeaders.remove(item)
+                    secondFooters.remove(item)
+                    secondLoaders.remove(item)
+                }
+                clear()
+            }
+        }
+    }
+
+    init {
+        pagedList2.addWeakCallback(null, mCallback)
+    }
+
+    open val size: Int
+        get() = pagedList2.size
+
+    open fun get(index: Int): V {
+    }
+
+    // 考虑 header / footer / loading
+    open fun getOrAny(index: Int): Any = items[index]
+
+    companion object {
+        val HEADER = Any()
+        val FOOTER = Any()
+        val LOADER = Any()
+        // val ITEM = Any()
+    }
 }

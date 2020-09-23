@@ -19,7 +19,8 @@ import java.util.concurrent.Executor
 @Suppress("MemberVisibilityCanBePrivate")
 open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V>, mainThreadExecutor: Executor, backgroundThreadExecutor: Executor,
                                         boundaryCallback: BoundaryCallback<V>?, config: Config, key: K?, lastLoad: Int
-) : PagedList<V>(PagedStorage<V>(), mainThreadExecutor, backgroundThreadExecutor, boundaryCallback, config), PagedStorage.Callback {
+) : PagedList<V>(PagedStorage<V>(), mainThreadExecutor, backgroundThreadExecutor, boundaryCallback, config), PagedStorage.Callback,
+        DataSource.InvalidatedCallback {
     open val mDataSource: MyContiguousDataSource2<K, V> = dataSource
 
     @Retention(RetentionPolicy.SOURCE)
@@ -142,7 +143,8 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
         var start = 0
         for (page2 in mPages) {
             if (page2.contains(origin)) {
-                var index = page2.indexOf(origin) + 1
+                val originIndex = page2.indexOf(origin)
+                var index = originIndex + 1
                 if (insertPages.containsKey(origin)) {
                     index += insertPages[origin]!!.size
                     insertPages[origin]!!.addAll(page)
@@ -152,6 +154,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
                 page2.addAll(index, page)
                 insertSize += page.size
                 this@MyContiguousPagedList2.onPageInserted(start + index, page.size)
+                mCallbacks.forEach { it.get()?.insertPage(origin, originIndex, start + index, page.size) }
                 break
             } else {
                 start += page2.size
@@ -402,7 +405,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
     @MainThread
     override fun onInitialized(count: Int) {
         notifyInserted(0, count)
-        mCallbacks.forEach { it.get()?.initialPage(count) }
+        mCallbacks.forEach { it.get()?.initialPage(mStorage.leadingNullCount, mStorage.trailingNullCount, count) }
         mReplacePagesWithNulls = mStorage.leadingNullCount > 0 || mStorage.trailingNullCount > 0
     }
 
@@ -415,7 +418,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
             schedulePrepend()
         }
         notifyChanged(leadingNulls, changedCount)
-        mCallbacks.forEach { it.get()?.prependPage(0, changedCount, addedCount) }
+        mCallbacks.forEach { it.get()?.prependPage(leadingNulls, changedCount, addedCount) }
         notifyInserted(0, addedCount)
         offsetAccessIndices(addedCount)
     }
@@ -513,11 +516,13 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
         open fun emptyAppend() = Unit
         open fun emptyInsert(v: V) = Unit
 
-        // 下面的 position 相对于该 pagelist 绝对正确，但不一定相对于 adapter 正确，因为 adapter 中可能有 footer / header / loading / load_error
-        open fun initialPage(count: Int) = Unit
+        // 下面的 position 相对于该 pageList 绝对正确，但不一定相对于 adapter 正确，因为 adapter 中可能有 footer / header / loading / load_error
+
+        // 根据 loadInitial 决定有多少 leadingNull ，有多少 trailingNull ，这时候 mStorage.size = leadingNull + size + trailingNull
+        open fun initialPage(leadingNulls: Int, trailingNulls: Int, count: Int) = Unit
         open fun prependPage(position: Int, changedCount: Int, count: Int) = Unit
         open fun appendPage(position: Int, changedCount: Int, count: Int) = Unit
-        open fun insertPage(position: Int, count: Int) = Unit
+        open fun insertPage(v: V, vPos: Int, position: Int, count: Int) = Unit
     }
 
     protected open val mCallbacks = ArrayList<WeakReference<MoreCallback<V>>>()
@@ -545,5 +550,19 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
                 }
             }
         }
+    }
+
+    override fun onInvalidated() {
+        mPages.clear()
+        insertPages.clear()
+        insertSize = 0
+        insertWorkerStates.clear()
+    }
+
+    // TODO: init 加上 cache
+    // TODO: 对二级的增加删除改变
+
+    open fun invalidate() {
+        mDataSource.invalidate()
     }
 }

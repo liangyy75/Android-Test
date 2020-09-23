@@ -9,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.marginBottom
 import androidx.lifecycle.Observer
 import androidx.paging.DataSource
 import androidx.paging.MyLivePagedListBuilder2
@@ -30,6 +29,19 @@ import kotlinx.android.synthetic.main.item_paging_test1.view.value
 import kotlinx.android.synthetic.main.layout_default_paing_item.view.default_paging_item_root
 
 class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, Entity>() {
+    companion object {
+        const val initialSize = 10
+        const val initialKey = 4
+        const val beforeSize = 5
+        const val minBefore = 0
+        const val afterSize = 5
+        const val maxAfter = 10
+        const val insertSize = 3
+        const val maxInsert = 3
+        const val leadingNulls = 2
+        const val trailingNulls = 2
+    }
+
     override fun create(): DataSource<Int, Entity> = object : MyPageKeyedDataSource2<Int, Entity>() {
         private fun loadRangeInternal(key: Int, loadCount: Int, key2: Int = -1, origin: Entity? = null): List<Entity> {
             val articleList = mutableListOf<Entity>()
@@ -54,24 +66,43 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
         }
 
         override fun loadInitial(params: LoadInitialParams, callback: LoadInitialCallback<Int, Entity>) {
-            Log.d("loadInitial", "1")
-            val data = loadRangeInternal(0, 20)
-            handler.post { callback.onResult(data, null, 1) }
+            Log.d("loadInitial", "$initialKey")
+            val data = loadRangeInternal(initialKey, initialSize)
+            handler.post {
+                callback.onResult(data, leadingNulls * beforeSize, trailingNulls * afterSize + initialSize + leadingNulls * beforeSize,
+                        initialKey - 1, initialKey + 1)
+            }
         }
 
-        override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<Int, Entity>) = showToast("Not yet implemented")
+        override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<Int, Entity>) {
+            Log.d("loadBefore", "${params.key}")
+            if (params.key < minBefore) {
+                callback.onResult(listOf(), params.key - 1)
+                return
+            }
+            val data = loadRangeInternal(params.key, beforeSize)
+            handler.post { callback.onResult(data, params.key - 1) }
+        }
 
         override fun loadAfter(params: LoadParams<Int>, callback: LoadCallback<Int, Entity>) {
             Log.d("loadAfter", "${params.key}")
-            val data = if (params.key < 5) loadRangeInternal(params.key, 10) else listOf()
+            if (params.key >= maxAfter) {
+                callback.onResult(listOf(), params.key + 1)
+                return
+            }
+            val data = loadRangeInternal(params.key, afterSize)
             handler.post { callback.onResult(data, params.key + 1) }
         }
 
         override fun loadInsert(params: LoadInsertParams<Int>, callback: LoadCallback<Int, Entity>) {
             Log.d("loadInsert", "${params.key}")
+            if (params.key >= maxInsert) {
+                callback.onResult(listOf(), params.key + 1)
+                return
+            }
             (params.value as? Entity)?.hasChild = true
             val data = loadRangeInternal((params.value as? Entity)?.key
-                    ?: 0, 3, params.key, origin = params.value as? Entity)
+                    ?: 0, insertSize, params.key, origin = params.value as? Entity)
             handler.post { callback.onResult(data, params.key + 1) }
         }
 
@@ -89,13 +120,13 @@ class ArticleViewHolder2(itemView: View, private val adapter2: PagingAdapter3<En
                 lp.leftMargin = coverLeft
                 layoutParams = lp
             }
-            // if (origin == null && !hasChild) {
-            //     itemView.view_more.setOnClickListener { adapter2.scheduleInsert(data) }
-            // } else if (origin != null && last) {
-            //     itemView.view_more.setOnClickListener { adapter2.scheduleInsert(data.origin!!) }
-            // } else {
-            //     itemView.view_more.setOnClickListener(null)
-            // }
+            if (origin == null && !hasChild) {
+                itemView.setOnClickListener { adapter2.scheduleInsert(data) }
+            } else if (origin != null && last) {
+                itemView.setOnClickListener { adapter2.scheduleInsert(data.origin!!) }
+            } else {
+                itemView.setOnClickListener(null)
+            }
         }
     }
 }
@@ -106,8 +137,8 @@ class ArticlePageAdapter2(context: Context) : SingleDefaultPagingAdapter<Entity>
         return ArticleViewHolder2(itemView, this)
     }
 
-    override fun onBindLoadingViewHolder(holder: RecyclerView.ViewHolder) {
-        super.onBindLoadingViewHolder(holder)
+    override fun onBindLoaderViewHolder(holder: RecyclerView.ViewHolder) {
+        super.onBindLoaderViewHolder(holder)
         onBindOther(holder)
         holder.itemView.default_paging_item_root.addView(TextView(context).apply {
             gravity = Gravity.CENTER
@@ -177,8 +208,8 @@ class SecondActivity : AppCompatActivity() {
 
         val pagedListConfig = PagedList.Config.Builder()
                 .setEnablePlaceholders(true)
-                .setPageSize(10)
-                .setInitialLoadSizeHint(20)
+                .setPageSize(LocalDataSourceFactory2.afterSize)
+                .setInitialLoadSizeHint(LocalDataSourceFactory2.initialSize)
                 .build()
         val postList = MyLivePagedListBuilder2(LocalDataSourceFactory2(handler), pagedListConfig)
                 .build()

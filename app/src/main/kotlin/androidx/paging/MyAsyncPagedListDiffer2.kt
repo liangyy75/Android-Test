@@ -174,7 +174,7 @@ open class MyAsyncPagedListDiffer2<T>(open var mUpdateCallback: ListUpdateCallba
 
 open class AdapterListUpdateCallbackWrapper(open val adapter: RecyclerView.Adapter<*>, open val mUpdateCallback: ListUpdateCallback) : ListUpdateCallback {
     open fun updatePos(mAdapter: PagingAdapter3<Any, RecyclerView.ViewHolder>, position: Int): Int = when {
-        mAdapter.hasHeader() -> position + 1
+        mAdapter.hasHeader() -> position
         else -> position
     }
 
