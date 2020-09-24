@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.liang.example.androidtest.R
 import com.liang.example.utils.r.dp2px
 import kotlinx.android.synthetic.main.activity_test_recyclerview.test_recyclerview
-import kotlinx.android.synthetic.main.item_paging_test1.view.image_cover
-import kotlinx.android.synthetic.main.item_paging_test1.view.value
+import kotlinx.android.synthetic.main.item_paging_test.view.image_cover
+import kotlinx.android.synthetic.main.item_paging_test.view.value
 
 open class Entity {
     open var text: String = ""
@@ -52,6 +52,8 @@ open class Entity {
         result = 31 * result + index
         return result
     }
+
+    override fun toString(): String = text
 }
 
 open class MyLoadRangeParams2(startPosition: Int, loadSize: Int, open val type: Int) : MyPositionalDataSource.MyLoadRangeParams(startPosition, loadSize)
@@ -116,9 +118,10 @@ class ArticlePageAdapter(val context: Context) : PagingAdapter2<Entity, ArticleV
     val level2s = mutableMapOf<Long, Int>()
 
     override fun onCreateNormalViewHolder(parent: ViewGroup, viewType: Int): ArticleViewHolder {
-        val itemView = inflater.inflate(R.layout.item_paging_test1, parent, false)
+        val itemView = inflater.inflate(R.layout.item_paging_test, parent, false)
         itemView.setOnClickListener {
-            val pos = (itemView.getTag(R.id.PAGE_TAG_KEY) as? ArticleViewHolder)?.adapterPosition ?: return@setOnClickListener
+            val pos = (itemView.getTag(R.id.PAGE_TAG_KEY) as? ArticleViewHolder)?.adapterPosition
+                    ?: return@setOnClickListener
             val time = loadAround2(pos)
             if (time > 0) {
                 level2s[time] = pos

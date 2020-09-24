@@ -50,12 +50,12 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
             }
             val page = pageResult.page
             if (resultType == PageResult.INIT) {
+                if (page.isNotEmpty()) {
+                    mPages.add(page)
+                }
                 mStorage.init(pageResult.leadingNulls, page, pageResult.trailingNulls, pageResult.positionOffset, this@MyContiguousPagedList2)
                 if (mLastLoad == LAST_LOAD_UNSPECIFIED) {
                     mLastLoad = pageResult.leadingNulls + pageResult.positionOffset + page.size / 2
-                }
-                if (page.isNotEmpty()) {
-                    mPages.add(page)
                 }
             } else {
                 val trimFromFront = mLastLoad > mStorage.middleOfLoadedRange
@@ -65,20 +65,20 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
                         mAppendItemsRequested = 0
                         mAppendWorkerState = READY_TO_FETCH
                     } else {
-                        mStorage.appendPage(page, this@MyContiguousPagedList2)
                         if (page.isNotEmpty()) {
                             mPages.add(page)
                         }
+                        mStorage.appendPage(page, this@MyContiguousPagedList2)
                     }
                 } else if (resultType == PageResult.PREPEND) {
                     if (skipNewPage && trimFromFront) {
                         mPrependItemsRequested = 0
                         mPrependWorkerState = READY_TO_FETCH
                     } else {
-                        mStorage.prependPage(page, this@MyContiguousPagedList2)
                         if (page.isNotEmpty()) {
                             mPages.add(0, page)
                         }
+                        mStorage.prependPage(page, this@MyContiguousPagedList2)
                     }
                 } else if (resultType == MyPageKeyedDataSource2.INSERT) {
                     if (pageResult is GradePageResult) {
@@ -154,7 +154,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
                 page2.addAll(index, page)
                 insertSize += page.size
                 this@MyContiguousPagedList2.onPageInserted(start + index, page.size)
-                mCallbacks.forEach { it.get()?.insertPage(origin, originIndex, start + index, page.size) }
+                mCallbacks.forEach { it.get()?.insertPage(origin, start + originIndex, start + index, page.size) }
                 break
             } else {
                 start += page2.size
@@ -242,7 +242,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
             }
             mPages.subList(mPages.size - pageCount, mPages.size).clear()
         }
-        notifyChanged(startOfDrops, realCount)
+        notifyRemoved(startOfDrops, realCount)
         trimFlag = false
         Log.d(TAG, "trimPages: $startOfDrops")
     }
@@ -418,8 +418,8 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
             schedulePrepend()
         }
         notifyChanged(leadingNulls, changedCount)
-        mCallbacks.forEach { it.get()?.prependPage(leadingNulls, changedCount, addedCount) }
         notifyInserted(0, addedCount)
+        mCallbacks.forEach { it.get()?.prependPage(leadingNulls, changedCount, addedCount) }
         offsetAccessIndices(addedCount)
     }
 
@@ -440,7 +440,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
         }
         notifyChanged(endPosition + insertSize, changedCount)
         notifyInserted(endPosition + changedCount + insertSize, addedCount)
-        mCallbacks.forEach { it.get()?.appendPage(endPosition + changedCount + insertSize, changedCount, addedCount) }
+        mCallbacks.forEach { it.get()?.appendPage(endPosition + insertSize, changedCount, addedCount) }
     }
 
     override fun onPagePlaceholderInserted(pageIndex: Int) {
@@ -518,7 +518,7 @@ open class MyContiguousPagedList2<K, V>(dataSource: MyContiguousDataSource2<K, V
 
         // 下面的 position 相对于该 pageList 绝对正确，但不一定相对于 adapter 正确，因为 adapter 中可能有 footer / header / loading / load_error
 
-        // 根据 loadInitial 决定有多少 leadingNull ，有多少 trailingNull ，这时候 mStorage.size = leadingNull + size + trailingNull
+        // 根据 loadInitial 决定有多少 leadingNull ，有多少 trailingNull ，这时候 count = mStorage.size = leadingNull + size + trailingNull
         open fun initialPage(leadingNulls: Int, trailingNulls: Int, count: Int) = Unit
         open fun prependPage(position: Int, changedCount: Int, count: Int) = Unit
         open fun appendPage(position: Int, changedCount: Int, count: Int) = Unit

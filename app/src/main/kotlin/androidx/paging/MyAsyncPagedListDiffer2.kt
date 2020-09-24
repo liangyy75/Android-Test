@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import androidx.recyclerview.widget.RecyclerView
 import com.liang.example.jetpacktest.pagingtest.PagingAdapter3
+import com.liang.example.jetpacktest.pagingtest.PagingAdapterEnhance
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -173,12 +174,18 @@ open class MyAsyncPagedListDiffer2<T>(open var mUpdateCallback: ListUpdateCallba
 }
 
 open class AdapterListUpdateCallbackWrapper(open val adapter: RecyclerView.Adapter<*>, open val mUpdateCallback: ListUpdateCallback) : ListUpdateCallback {
-    open fun updatePos(mAdapter: PagingAdapter3<Any, RecyclerView.ViewHolder>, position: Int): Int = when {
-        mAdapter.hasHeader() -> position
-        else -> position
+    open fun updatePos(mAdapter: PagingAdapter3<Any, RecyclerView.ViewHolder>, position: Int): Int {
+        val header = when (mAdapter.hasHeader()) {
+            true -> 1
+            else -> 0
+        }
+        return position + header
     }
 
     override fun onInserted(position: Int, count: Int) {
+        if (adapter is PagingAdapterEnhance<*, *> && (adapter as PagingAdapterEnhance<*, *>).listWrapper != null) {
+            return
+        }
         var pos = position
         if (adapter is PagingAdapter3<*, *>) {
             val mAdapter = adapter as PagingAdapter3<Any, RecyclerView.ViewHolder>
@@ -191,6 +198,9 @@ open class AdapterListUpdateCallbackWrapper(open val adapter: RecyclerView.Adapt
     }
 
     override fun onRemoved(position: Int, count: Int) {
+        if (adapter is PagingAdapterEnhance<*, *> && (adapter as PagingAdapterEnhance<*, *>).listWrapper != null) {
+            return
+        }
         var pos = position
         if (adapter is PagingAdapter3<*, *>) {
             val mAdapter = adapter as PagingAdapter3<Any, RecyclerView.ViewHolder>
@@ -203,6 +213,9 @@ open class AdapterListUpdateCallbackWrapper(open val adapter: RecyclerView.Adapt
     }
 
     override fun onMoved(fromPosition: Int, toPosition: Int) {
+        if (adapter is PagingAdapterEnhance<*, *> && (adapter as PagingAdapterEnhance<*, *>).listWrapper != null) {
+            return
+        }
         var from = fromPosition
         var to = toPosition
         if (adapter is PagingAdapter3<*, *>) {
@@ -217,6 +230,9 @@ open class AdapterListUpdateCallbackWrapper(open val adapter: RecyclerView.Adapt
     }
 
     override fun onChanged(position: Int, count: Int, payload: Any?) {
+        if (adapter is PagingAdapterEnhance<*, *> && (adapter as PagingAdapterEnhance<*, *>).listWrapper != null) {
+            return
+        }
         var pos = position
         if (adapter is PagingAdapter3<*, *>) {
             val mAdapter = adapter as PagingAdapter3<Any, RecyclerView.ViewHolder>

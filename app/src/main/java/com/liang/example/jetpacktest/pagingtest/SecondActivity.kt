@@ -24,24 +24,27 @@ import com.liang.example.utils.view.showToast
 import com.liang.example.view_ktx.layoutHeight
 import com.liang.example.view_ktx.setMarginBottom
 import kotlinx.android.synthetic.main.activity_test_recyclerview.test_recyclerview
-import kotlinx.android.synthetic.main.item_paging_test1.view.image_cover
-import kotlinx.android.synthetic.main.item_paging_test1.view.value
+import kotlinx.android.synthetic.main.item_paging_foot.view.collapse_all
+import kotlinx.android.synthetic.main.item_paging_load.view.view_more
+import kotlinx.android.synthetic.main.item_paging_test.view.image_cover
+import kotlinx.android.synthetic.main.item_paging_test.view.value
 import kotlinx.android.synthetic.main.layout_default_paing_item.view.default_paging_item_root
 
-class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, Entity>() {
-    companion object {
-        const val initialSize = 10
-        const val initialKey = 4
-        const val beforeSize = 5
-        const val minBefore = 0
-        const val afterSize = 5
-        const val maxAfter = 10
-        const val insertSize = 3
-        const val maxInsert = 3
-        const val leadingNulls = 2
-        const val trailingNulls = 2
-    }
+const val initialSize = 10
+const val initialKey = 4
+const val beforeSize = 10
+const val minBefore = 0
+const val afterSize = 10
+const val maxAfter = 10
+const val insertSize = 3
+const val maxInsert = 3
+const val leadingNulls = 0
+const val trailingNulls = 0
+const val prefetchDistance = 5
+const val threadSleep = 1000L
+const val randomSleep = 2000L
 
+class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, Entity>() {
     override fun create(): DataSource<Int, Entity> = object : MyPageKeyedDataSource2<Int, Entity>() {
         private fun loadRangeInternal(key: Int, loadCount: Int, key2: Int = -1, origin: Entity? = null): List<Entity> {
             val articleList = mutableListOf<Entity>()
@@ -61,12 +64,16 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
                 articleList.add(articleEntity)
             }
             articleList.last().last = true
-            Thread.sleep(3000)
+            if (threadSleep > 0L || randomSleep > 0L) {
+                val totalSleep = threadSleep + (0 .. randomSleep).random()
+                Log.e("loadData", "totalSleep: $totalSleep")
+                Thread.sleep(totalSleep)
+            }
             return articleList
         }
 
         override fun loadInitial(params: LoadInitialParams, callback: LoadInitialCallback<Int, Entity>) {
-            Log.d("loadInitial", "$initialKey")
+            Log.e("loadData", "loadInitial: $initialKey")
             val data = loadRangeInternal(initialKey, initialSize)
             handler.post {
                 callback.onResult(data, leadingNulls * beforeSize, trailingNulls * afterSize + initialSize + leadingNulls * beforeSize,
@@ -75,7 +82,7 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
         }
 
         override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<Int, Entity>) {
-            Log.d("loadBefore", "${params.key}")
+            Log.e("loadData", "loadBefore: ${params.key}")
             if (params.key < minBefore) {
                 callback.onResult(listOf(), params.key - 1)
                 return
@@ -85,7 +92,7 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
         }
 
         override fun loadAfter(params: LoadParams<Int>, callback: LoadCallback<Int, Entity>) {
-            Log.d("loadAfter", "${params.key}")
+            Log.e("loadData", "loadAfter: ${params.key}")
             if (params.key >= maxAfter) {
                 callback.onResult(listOf(), params.key + 1)
                 return
@@ -95,7 +102,7 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
         }
 
         override fun loadInsert(params: LoadInsertParams<Int>, callback: LoadCallback<Int, Entity>) {
-            Log.d("loadInsert", "${params.key}")
+            Log.e("loadData", "loadInsert: ${params.key}")
             if (params.key >= maxInsert) {
                 callback.onResult(listOf(), params.key + 1)
                 return
@@ -110,73 +117,87 @@ class LocalDataSourceFactory2(val handler: Handler) : DataSource.Factory<Int, En
     }
 }
 
-class ArticleViewHolder2(itemView: View, private val adapter2: PagingAdapter3<Entity, RecyclerView.ViewHolder>) : PagingViewHolder<Entity>(itemView) {
-    override fun bind(data: Entity?, position: Int) {
-        data?.apply {
-            itemView.value.text = text
-            itemView.image_cover.apply {
+class ArticlePageAdapter2(context: Context) : DefaultPagingAdapterEnhance<Entity>(diffCallback, context) {
+    init {
+        supportEmptyView = false
+        supportHeader = SUPPORT_EVEN_EMPTY
+        supportSecondHeader = false
+        supportSecondFooter = true
+        supportSecondLoader = true
+        hasSecond = object : MyContiguousPagedListWrapper.HasSecond<Entity> {
+            override fun has(v: Entity): Boolean = v.index % 3 == 0
+        }
+        secondFlagChanged(true)
+    }
+
+    override fun getNormalLayout(): Int = R.layout.item_paging_test
+
+    override fun onBindNormalViewHolder(holder: RecyclerView.ViewHolder, viewType: Int, value: Entity?) {
+        super.onBindNormalViewHolder(holder, viewType, value)
+        value?.apply {
+            holder.itemView.value.text = text
+            holder.itemView.image_cover.apply {
                 val lp = layoutParams as? ViewGroup.MarginLayoutParams ?: return
                 lp.marginStart = coverLeft
                 lp.leftMargin = coverLeft
                 layoutParams = lp
             }
-            if (origin == null && !hasChild) {
-                itemView.setOnClickListener { adapter2.scheduleInsert(data) }
-            } else if (origin != null && last) {
-                itemView.setOnClickListener { adapter2.scheduleInsert(data.origin!!) }
-            } else {
-                itemView.setOnClickListener(null)
-            }
         }
-    }
-}
-
-class ArticlePageAdapter2(context: Context) : SingleDefaultPagingAdapter<Entity>(diffCallback, context) {
-    override fun onCreateNormalViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        val itemView = inflater.inflate(R.layout.item_paging_test1, parent, false)
-        return ArticleViewHolder2(itemView, this)
     }
 
     override fun onBindLoaderViewHolder(holder: RecyclerView.ViewHolder) {
         super.onBindLoaderViewHolder(holder)
-        onBindOther(holder)
-        holder.itemView.default_paging_item_root.addView(TextView(context).apply {
-            gravity = Gravity.CENTER
-            text = "loading"
-        })
+        defaultText(holder, "loading")
     }
 
     override fun onBindEmptyViewHolder(holder: RecyclerView.ViewHolder) {
         super.onBindEmptyViewHolder(holder)
-        onBindOther(holder)
-        holder.itemView.default_paging_item_root.addView(TextView(context).apply {
-            gravity = Gravity.CENTER
-            text = "empty"
-        })
+        defaultText(holder, "empty")
     }
 
     override fun onBindHeaderViewHolder(holder: RecyclerView.ViewHolder) {
         super.onBindHeaderViewHolder(holder)
-        onBindOther(holder)
-        holder.itemView.default_paging_item_root.addView(TextView(context).apply {
-            gravity = Gravity.CENTER
-            text = "header"
-        })
+        defaultText(holder, "header")
     }
 
     override fun onBindFooterViewHolder(holder: RecyclerView.ViewHolder) {
         super.onBindFooterViewHolder(holder)
-        onBindOther(holder)
+        defaultText(holder, "footer")
+    }
+
+    private fun defaultText(holder: RecyclerView.ViewHolder, typeText: String) {
         holder.itemView.default_paging_item_root.addView(TextView(context).apply {
             gravity = Gravity.CENTER
-            text = "footer"
+            text = typeText
         })
     }
 
-    private fun onBindOther(holder: RecyclerView.ViewHolder) {
-        holder.itemView.layoutHeight = dp2px(60f)
-        holder.itemView.setMarginBottom(dp2px(8f))
-        holder.itemView.setBackgroundColor(getColor(android.R.color.white))
+    override fun defaultHandle(holder: DefaultViewHolder, itemView: View) {
+        itemView.layoutHeight = dp2px(60f)
+        itemView.setMarginBottom(dp2px(8f))
+        itemView.setBackgroundColor(getColor(android.R.color.white))
+    }
+
+    override fun onCreateSecondFooterViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val vh = DefaultViewHolder(inflater.inflate(R.layout.item_paging_foot, parent, false))
+        vh.itemView.collapse_all.setOnClickListener {
+            val entity = getOrigin(vh.adapterPosition)
+            showToast("load_second_collapse_click -- entity: $entity")
+            TODO("收起")
+        }
+        return vh
+    }
+
+    override fun onCreateSecondLoaderViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val vh = DefaultViewHolder(inflater.inflate(R.layout.item_paging_load, parent, false))
+        vh.itemView.view_more.setOnClickListener {
+            val entity = getOrigin(vh.adapterPosition)
+            showToast("load_second_more_click -- entity: $entity")
+            if (entity != null) {
+                scheduleInsert(entity)
+            }
+        }
+        return vh
     }
 
     companion object {
@@ -208,13 +229,14 @@ class SecondActivity : AppCompatActivity() {
 
         val pagedListConfig = PagedList.Config.Builder()
                 .setEnablePlaceholders(true)
-                .setPageSize(LocalDataSourceFactory2.afterSize)
-                .setInitialLoadSizeHint(LocalDataSourceFactory2.initialSize)
+                .setPageSize(afterSize)
+                .setInitialLoadSizeHint(initialSize)
+                .setPrefetchDistance(prefetchDistance)
                 .build()
         val postList = MyLivePagedListBuilder2(LocalDataSourceFactory2(handler), pagedListConfig)
                 .build()
         postList.observe(this, Observer {
-            Log.d("LoadAround", "observe")
+            Log.e("LoadAround", "observe")
             pageAdapter.submitList(it)
         })
     }
